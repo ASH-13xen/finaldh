@@ -28,6 +28,5 @@ node_modules/
 *.sw?
 
 # Project specific uploads/temp directories
-uploads/
 temp/
 dist/
