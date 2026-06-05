@@ -179,9 +179,12 @@ export const trackDownload = async (req, res) => {
 
 // Request additional download permission
 export const requestAdditionalDownload = async (req, res) => {
-  const { courseId, courseName } = req.body;
+  const { courseId, courseName, reason } = req.body;
   if (!courseId || !courseName) {
     return res.status(400).json({ error: 'courseId and courseName are required' });
+  }
+  if (!reason || !reason.trim()) {
+    return res.status(400).json({ error: 'Reason is required and cannot be empty' });
   }
 
   try {
@@ -205,6 +208,7 @@ export const requestAdditionalDownload = async (req, res) => {
       userName: user.fullName || user.name,
       courseId,
       courseName,
+      reason: reason.trim(),
       status: 'pending'
     });
 

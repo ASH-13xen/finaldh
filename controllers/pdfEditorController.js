@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PDFDocument, PDFRawStream, PDFArray, PDFName, decodePDFRawStream, rgb, StandardFonts } from 'pdf-lib';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { r2Client } from '../config/r2.js';
 import Course from '../models/Course.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,6 +27,8 @@ export const initPDFEdit = async (req, res) => {
   try {
     let sourcePath = '';
     let originalName = '';
+    let isR2 = false;
+    let r2Key = '';
 
     if (courseId) {
       console.log(`[Init-Edit] Retrieving purchased course details for ID: ${courseId}`);
@@ -33,9 +37,15 @@ export const initPDFEdit = async (req, res) => {
         console.error(`[Init-Edit] Error: Purchased course not found for ID: ${courseId}`);
         return res.status(404).json({ error: 'Course not found' });
       }
-      sourcePath = path.join(__dirname, '../', course.fileUrl);
       originalName = course.fileName || 'course.pdf';
-      console.log(`[Init-Edit] Found course database entry. Original Name: ${originalName}, File URL: ${course.fileUrl}`);
+      if (course.fileUrl.startsWith('r2://')) {
+        isR2 = true;
+        r2Key = course.fileUrl.replace('r2://', '');
+        console.log(`[Init-Edit] Found course database entry stored in Cloudflare R2 (key: ${r2Key})`);
+      } else {
+        sourcePath = path.join(__dirname, '../', course.fileUrl);
+        console.log(`[Init-Edit] Found course database entry stored locally. Path: ${sourcePath}`);
+      }
     } else if (file) {
       sourcePath = file.path;
       originalName = file.originalname || 'document.pdf';
@@ -45,14 +55,16 @@ export const initPDFEdit = async (req, res) => {
       return res.status(400).json({ error: 'Either courseId or file upload is required to initialize editing' });
     }
 
-    // Verify source file exists
-    console.log(`[Init-Edit] Checking source file existence at: ${sourcePath}`);
-    try {
-      await fs.access(sourcePath);
-      console.log(`[Init-Edit] Confirmed source file exists.`);
-    } catch (accessErr) {
-      console.error(`[Init-Edit] Error: Source PDF file does not exist at path: ${sourcePath}`, accessErr);
-      return res.status(404).json({ error: 'Source PDF file not found.' });
+    // Verify source file exists (only if it's local)
+    if (!isR2) {
+      console.log(`[Init-Edit] Checking source file existence at: ${sourcePath}`);
+      try {
+        await fs.access(sourcePath);
+        console.log(`[Init-Edit] Confirmed source file exists.`);
+      } catch (accessErr) {
+        console.error(`[Init-Edit] Error: Source PDF file does not exist at path: ${sourcePath}`, accessErr);
+        return res.status(404).json({ error: 'Source PDF file not found.' });
+      }
     }
 
     // Generate unique edit ID and copy the file to user_edits
@@ -65,9 +77,25 @@ export const initPDFEdit = async (req, res) => {
     console.log(`  - Destination Path: ${destinationPath}`);
 
     if (courseId) {
-      console.log(`[Init-Edit] Copying database course file to edit session...`);
-      await fs.copyFile(sourcePath, destinationPath);
-      console.log(`[Init-Edit] Copy operation completed successfully.`);
+      if (isR2) {
+        console.log(`[Init-Edit] Fetching raw PDF from Cloudflare R2 key: ${r2Key} to edit session destination...`);
+        const r2Response = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+        
+        await new Promise((resolve, reject) => {
+          const writeStream = fsSync.createWriteStream(destinationPath);
+          r2Response.Body.pipe(writeStream);
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
+        });
+        console.log(`[Init-Edit] Copy from R2 completed successfully.`);
+      } else {
+        console.log(`[Init-Edit] Copying local database course file to edit session...`);
+        await fs.copyFile(sourcePath, destinationPath);
+        console.log(`[Init-Edit] Copy operation completed successfully.`);
+      }
     } else if (file) {
       console.log(`[Init-Edit] Moving custom uploaded file to edit session...`);
       await fs.rename(sourcePath, destinationPath);

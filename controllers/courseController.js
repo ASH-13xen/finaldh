@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
@@ -8,13 +9,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PDFDocument, rgb } from 'pdf-lib';
 import bwipjs from 'bwip-js';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt-lite';
+import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { r2Client } from '../config/r2.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Upload a new Course PDF
+// Global cache to track real-time download progress steps
+export const downloadProgressCache = {};
+
 // Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
   const { courseId, name, subject, price } = req.body;
@@ -43,8 +48,20 @@ export const uploadCourse = async (req, res) => {
       return res.status(400).json({ error: 'Course ID must be unique' });
     }
 
-    // Generate file url path
-    const fileUrl = `/uploads/courses/${file.filename}`;
+    console.log(`[R2 Upload] Uploading ${file.filename} to Cloudflare R2...`);
+    const fileStream = createReadStream(file.path);
+    const uploadParams = {
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: file.filename,
+      Body: fileStream,
+      ContentType: file.mimetype || 'application/pdf',
+    };
+
+    await r2Client.send(new PutObjectCommand(uploadParams));
+    console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
+
+    // Generate file url path with R2 prefix
+    const fileUrl = `r2://${file.filename}`;
 
     const newCourse = await Course.create({
       courseId: courseId.trim(),
@@ -62,6 +79,16 @@ export const uploadCourse = async (req, res) => {
   } catch (err) {
     console.error('Error uploading course:', err);
     res.status(500).json({ error: 'Server error uploading course PDF' });
+  } finally {
+    // Delete temp file from uploads/temp immediately
+    if (file && file.path) {
+      try {
+        await fs.unlink(file.path);
+        console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
+      } catch (unlinkErr) {
+        console.warn(`[Cleanup] Failed to delete temp file ${file.path}:`, unlinkErr.message);
+      }
+    }
   }
 };
 
@@ -90,15 +117,42 @@ export const updateCourse = async (req, res) => {
     if (price !== undefined) course.price = Number(price);
 
     if (file) {
-      // Remove old file
-      const oldFilePath = path.join(__dirname, '../', course.fileUrl);
-      try {
-        await fs.unlink(oldFilePath);
-      } catch (unlinkErr) {
-        console.warn('Could not delete old file:', unlinkErr.message);
+      // 1. Upload new file to R2
+      console.log(`[R2 Upload] Uploading replacement file ${file.filename} to R2...`);
+      const fileStream = createReadStream(file.path);
+      await r2Client.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: file.filename,
+        Body: fileStream,
+        ContentType: file.mimetype || 'application/pdf',
+      }));
+      console.log(`[R2 Upload] Replacement file uploaded to R2: ${file.filename}`);
+
+      // 2. Remove old file (either from R2 or local disk depending on its prefix)
+      if (course.fileUrl) {
+        if (course.fileUrl.startsWith('r2://')) {
+          const oldR2Key = course.fileUrl.replace('r2://', '');
+          console.log(`[R2 Cleanup] Deleting old file from R2: ${oldR2Key}`);
+          try {
+            await r2Client.send(new DeleteObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: oldR2Key,
+            }));
+          } catch (deleteErr) {
+            console.warn(`[R2 Cleanup] Could not delete old file from R2:`, deleteErr.message);
+          }
+        } else {
+          const oldFilePath = path.join(__dirname, '../', course.fileUrl);
+          try {
+            await fs.unlink(oldFilePath);
+          } catch (unlinkErr) {
+            console.warn('Could not delete old local file:', unlinkErr.message);
+          }
+        }
       }
+
       course.fileName = file.originalname;
-      course.fileUrl = `/uploads/courses/${file.filename}`;
+      course.fileUrl = `r2://${file.filename}`;
     }
 
     await course.save();
@@ -110,6 +164,15 @@ export const updateCourse = async (req, res) => {
   } catch (err) {
     console.error('Error updating course:', err);
     res.status(500).json({ error: 'Server error updating course' });
+  } finally {
+    if (file && file.path) {
+      try {
+        await fs.unlink(file.path);
+        console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
+      } catch (unlinkErr) {
+        console.warn(`[Cleanup] Failed to delete temp file ${file.path}:`, unlinkErr.message);
+      }
+    }
   }
 };
 
@@ -123,12 +186,27 @@ export const deleteCourse = async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    // Delete the file from the filesystem
-    const filePath = path.join(__dirname, '../', course.fileUrl);
-    try {
-      await fs.unlink(filePath);
-    } catch (unlinkErr) {
-      console.warn('Could not delete course file from disk:', unlinkErr.message);
+    // Delete the file from the filesystem/R2
+    if (course.fileUrl) {
+      if (course.fileUrl.startsWith('r2://')) {
+        const r2Key = course.fileUrl.replace('r2://', '');
+        console.log(`[R2 Cleanup] Deleting file from R2: ${r2Key}`);
+        try {
+          await r2Client.send(new DeleteObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: r2Key,
+          }));
+        } catch (deleteErr) {
+          console.warn(`[R2 Cleanup] Could not delete file from R2:`, deleteErr.message);
+        }
+      } else {
+        const filePath = path.join(__dirname, '../', course.fileUrl);
+        try {
+          await fs.unlink(filePath);
+        } catch (unlinkErr) {
+          console.warn('Could not delete course file from disk:', unlinkErr.message);
+        }
+      }
     }
 
     await Course.findByIdAndDelete(id);
@@ -228,19 +306,39 @@ export const analyzeCoursePage = async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    // 3. Resolve the local file path on disk
-    const filePath = path.join(__dirname, '../', course.fileUrl);
-
-    // Verify file existence
-    try {
-      await fs.access(filePath);
-    } catch {
-      return res.status(404).json({ error: 'Course PDF file not found on server disk.' });
+    // 3. Load PDF buffer from R2 or local disk
+    let fileBuffer;
+    if (course.fileUrl.startsWith('r2://')) {
+      const r2Key = course.fileUrl.replace('r2://', '');
+      console.log(`[R2 Stream] Fetching raw PDF for page analysis from R2 key: ${r2Key}`);
+      try {
+        const r2Response = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+        
+        const chunks = [];
+        for await (const chunk of r2Response.Body) {
+          chunks.push(chunk);
+        }
+        fileBuffer = Buffer.concat(chunks);
+      } catch (r2Err) {
+        console.error(`[PDF Security] Error reading PDF from R2 for page analysis:`, r2Err);
+        return res.status(500).json({ error: 'Could not retrieve course file from Cloudflare R2' });
+      }
+    } else {
+      const filePath = path.join(__dirname, '../', course.fileUrl);
+      try {
+        await fs.access(filePath);
+        fileBuffer = await fs.readFile(filePath);
+      } catch (readErr) {
+        console.error(`Error reading PDF file from disk for page analysis:`, readErr);
+        return res.status(404).json({ error: 'Course PDF file not found on server disk.' });
+      }
     }
 
     // 4. Read PDF and parse the specific page
-    console.log(`Analyzing course page: parsing page ${pageNumber} of file ${filePath}...`);
-    const fileBuffer = await fs.readFile(filePath);
+    console.log(`Analyzing course page: parsing page ${pageNumber}...`);
     const parser = new PDFParse({ data: fileBuffer });
     
     // Efficiently parse ONLY the target page
@@ -352,6 +450,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   const { courseId } = req.params;
   console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}`);
 
+  // Initialize tracking
+  downloadProgressCache[`${req.userId}_${courseId}`] = 1;
+
   try {
     // 1. Fetch user to verify active session
     console.log(`[PDF Security] Step 1: Fetching user details for ID: ${req.userId}`);
@@ -362,6 +463,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 1: User found (${user.email})`);
 
+    // Step 2 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 2;
+
     // 2. Fetch course by custom courseId
     console.log(`[PDF Security] Step 2: Fetching course details for courseId: ${courseId}`);
     const course = await Course.findOne({ courseId });
@@ -370,6 +474,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
     console.log(`[PDF Security] Step 2: Course found (${course.name})`);
+
+    // Step 3 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 3;
 
     // 3. Verify user has access to this course (check if interestedCourses contains courseId)
     console.log(`[PDF Security] Step 3: Verifying student course permissions`);
@@ -381,6 +488,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       return res.status(403).json({ error: 'Access denied: This course is not in your interested list' });
     }
     console.log(`[PDF Security] Step 3: Access verified`);
+
+    // Step 4 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 4;
 
     // 4. Validate and update download limits
     console.log(`[PDF Security] Step 4: Validating user download limits`);
@@ -404,17 +514,39 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     await user.save();
     console.log(`[PDF Security] Step 4: Download limit tracked & updated in database`);
 
+    // Step 5 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 5;
+
     // 5. Load raw PDF file into buffer
-    console.log(`[PDF Security] Step 5: Loading raw PDF file from disk`);
-    const filePath = path.join(__dirname, '../', course.fileUrl);
     let pdfBuffer;
-    try {
-      pdfBuffer = await fs.readFile(filePath);
-    } catch (readErr) {
-      console.error(`[PDF Security] Step 5: Error reading PDF file from disk:`, readErr);
-      return res.status(500).json({ error: 'Could not retrieve course file from server disk' });
+    if (course.fileUrl.startsWith('r2://')) {
+      const r2Key = course.fileUrl.replace('r2://', '');
+      console.log(`[PDF Security] Step 5: Loading raw PDF file from Cloudflare R2 (key: ${r2Key})`);
+      try {
+        const r2Response = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+        
+        pdfBuffer = Buffer.from(await r2Response.Body.transformToByteArray());
+      } catch (r2Err) {
+        console.error(`[PDF Security] Step 5: Error reading PDF from Cloudflare R2:`, r2Err);
+        return res.status(500).json({ error: 'Could not retrieve course file from Cloudflare R2' });
+      }
+    } else {
+      console.log(`[PDF Security] Step 5: Loading raw PDF file from local disk`);
+      const filePath = path.join(__dirname, '../', course.fileUrl);
+      try {
+        pdfBuffer = await fs.readFile(filePath);
+      } catch (readErr) {
+        console.error(`[PDF Security] Step 5: Error reading PDF file from disk:`, readErr);
+        return res.status(500).json({ error: 'Could not retrieve course file from server disk' });
+      }
     }
     console.log(`[PDF Security] Step 5: PDF file loaded (${pdfBuffer.length} bytes)`);
+
+    // Step 6 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 6;
 
     // 6. Generate barcode of student's ID string using bwip-js
     console.log(`[PDF Security] Step 6: Rendering Code 128 barcode of user ID: ${user._id}`);
@@ -442,6 +574,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 6: Barcode PNG buffer generated (${barcodePngBuffer.length} bytes)`);
 
+    // Step 7 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 7;
+
     // 7. Load PDF in pdf-lib, overlay stamps, and configure metadata tracking
     console.log(`[PDF Security] Step 7: Embedding barcode, watermarking PDF pages, and writing tracking metadata`);
     const pdfDoc = await PDFDocument.load(pdfBuffer);
@@ -460,44 +595,37 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     const pages = pdfDoc.getPages();
     const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
 
-    // Optimize page stamping for large files to prevent memory exhaustion
-    const isLargeFile = pdfBuffer.length > 50 * 1024 * 1024; // > 50MB
-    const stampStep = isLargeFile ? Math.max(5, Math.floor(pages.length / 50)) : 1; 
-
     let stampedCount = 0;
     for (let i = 0; i < pages.length; i++) {
-      // Always stamp first page, last page, and every N-th page in between
-      if (i === 0 || i === pages.length - 1 || i % stampStep === 0) {
-        const page = pages[i];
-        const { width, height } = page.getSize();
+      const page = pages[i];
+      const { width, height } = page.getSize();
 
-        // Draw watermark text at top-left (left-aligned)
-        const fontSize = 9;
-        const textX = 25; 
+      // Draw watermark text at top-left (left-aligned)
+      const fontSize = 9;
+      const textX = 25; 
 
-        page.drawText(watermarkText, {
-          x: textX,
-          y: height - 25,
-          size: fontSize,
-          font: helveticaFont,
-          color: rgb(0.6, 0.6, 0.6),
-        });
+      page.drawText(watermarkText, {
+        x: textX,
+        y: height - 25,
+        size: fontSize,
+        font: helveticaFont,
+        color: rgb(0.6, 0.6, 0.6),
+      });
 
-        // Draw barcode image at bottom-right (right-aligned, very small)
-        const barcodeWidth = 90;
-        const barcodeHeight = 20;
-        const barcodeX = width - barcodeWidth - 25;
+      // Draw barcode image at bottom-right (right-aligned, very small)
+      const barcodeWidth = 90;
+      const barcodeHeight = 20;
+      const barcodeX = width - barcodeWidth - 25;
 
-        page.drawImage(barcodeImage, {
-          x: barcodeX,
-          y: 15,
-          width: barcodeWidth,
-          height: barcodeHeight,
-        });
-        stampedCount++;
-      }
+      page.drawImage(barcodeImage, {
+        x: barcodeX,
+        y: 15,
+        width: barcodeWidth,
+        height: barcodeHeight,
+      });
+      stampedCount++;
     }
-    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on ${stampedCount} of ${pages.length} original pages (step size: ${stampStep})`);
+    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on all ${stampedCount} original pages`);
 
     // Insert random warning/security registration pages (approx 1/40 of total pages)
     if (pages.length > 0) {
@@ -526,12 +654,18 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       }
     }
 
+    // Step 8 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 8;
+
     // 8. Save modified PDF
     console.log(`[PDF Security] Step 8: Saving modified PDF`);
     const modifiedPdfBuffer = await pdfDoc.save({
       useObjectStreams: false,
       updateFieldAppearances: false
     });
+
+    // Step 9 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 9;
 
     // 9. Encrypt PDF with user email as password
     console.log(`[PDF Security] Step 9: Encrypting PDF with user email as password`);
@@ -548,6 +682,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   } catch (err) {
     console.error(`[PDF Security] Server error during PDF secure process:`, err);
     res.status(500).json({ error: 'Server error processing secured PDF download' });
+  } finally {
+    delete downloadProgressCache[`${req.userId}_${courseId}`];
   }
 };
 
@@ -702,5 +838,69 @@ const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
     font: font,
     color: rgb(0.5, 0.5, 0.5),
   });
+};
+
+// Retrieve raw course PDF (Admin or Authorized Student)
+export const getRawCoursePdf = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1. Fetch user to verify active session
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // 2. Fetch course by custom MongoDB ID
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    // 3. Verify user access: must be admin OR have courseId in interestedCourses
+    const isAdmin = user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const interestedList = Array.isArray(user.interestedCourses) ? user.interestedCourses : [];
+    const hasAccess = interestedList.some(cId => cId.toLowerCase() === course.courseId.toLowerCase());
+
+    if (!isAdmin && !hasAccess) {
+      return res.status(403).json({ error: 'Access denied: You do not have permissions for this resource' });
+    }
+
+    // 4. Stream PDF from Cloudflare R2 or local disk
+    if (course.fileUrl.startsWith('r2://')) {
+      const r2Key = course.fileUrl.replace('r2://', '');
+      console.log(`[R2 Stream] Serving raw PDF from R2 key: ${r2Key}`);
+
+      const r2Response = await r2Client.send(new GetObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: r2Key,
+      }));
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', r2Response.ContentLength);
+      r2Response.Body.pipe(res);
+    } else {
+      // Local disk file
+      const filePath = path.join(__dirname, '../', course.fileUrl);
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ error: 'Raw PDF file not found on disk' });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      const fileStream = createReadStream(filePath);
+      fileStream.pipe(res);
+    }
+  } catch (err) {
+    console.error('Error fetching raw PDF:', err);
+    res.status(500).json({ error: 'Server error retrieving raw PDF' });
+  }
+};
+
+// Retrieve real-time progress of secured PDF download process
+export const getDownloadProgress = async (req, res) => {
+  const { courseId } = req.params;
+  const step = downloadProgressCache[`${req.userId}_${courseId}`] || 0;
+  res.json({ step });
 };
 

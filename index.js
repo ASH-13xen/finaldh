@@ -26,13 +26,29 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Disposition']
+  exposedHeaders: ['Content-Disposition', 'Content-Length']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Global Request Logger to debug connection issues
+app.use((req, res, next) => {
+  console.log(`[HTTP Server] Incoming: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Initialize Database Connection
 connectDB();
+
+// Middleware to set no-cache headers for index.html
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/index.html') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 
 // Serve static frontend files from Vite build directory
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -57,8 +73,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Fallback: serve index.html for any other non-API routes (Express 5 named wildcard)
-app.get('/*splat', (req, res) => {
+// Fallback: serve index.html for any other non-API routes (Express 5 RegExp wildcard)
+app.get(/.*/, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 

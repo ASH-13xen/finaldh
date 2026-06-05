@@ -10,19 +10,21 @@ import {
   checkoutCart, 
   getPurchasedCourses,
   analyzeCoursePage,
-  downloadSecuredCoursePdf
+  downloadSecuredCoursePdf,
+  getRawCoursePdf,
+  getDownloadProgress
 } from '../controllers/courseController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
-const uploadDir = 'uploads/courses';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const tempUploadDir = 'uploads/temp';
+if (!fs.existsSync(tempUploadDir)) {
+  fs.mkdirSync(tempUploadDir, { recursive: true });
 }
 
-// Multer storage configuration for saving to disk
+// Multer storage configuration for saving to temp folder on disk
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, tempUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -32,7 +34,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
+  limits: { fileSize: 750 * 1024 * 1024 } // 750MB limit to handle 500MB files safely
 });
 
 const router = express.Router();
@@ -45,7 +47,13 @@ router.post('/checkout', authenticateToken, checkoutCart);
 router.get('/purchased', authenticateToken, getPurchasedCourses);
 router.post('/analyze-page', authenticateToken, analyzeCoursePage);
 
+// Raw unwatermarked course PDF preview route
+router.get('/raw/:id', authenticateToken, getRawCoursePdf);
+
 // Secure watermark & barcode download route
 router.get('/download/:courseId', authenticateToken, downloadSecuredCoursePdf);
+
+// Real-time download progress endpoint
+router.get('/download-progress/:courseId', authenticateToken, getDownloadProgress);
 
 export default router;

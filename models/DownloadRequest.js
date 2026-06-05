@@ -6,6 +6,7 @@ const downloadRequestSchema = new mongoose.Schema({
   userName: { type: String, required: true },
   courseId: { type: String, required: true },
   courseName: { type: String, required: true },
+  reason: { type: String, required: true },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   requestedAt: { type: Date, default: Date.now }
 }, { timestamps: true });

@@ -14,6 +14,7 @@
     "nodemon": "^3.1.14"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1063.0",
     "@google/generative-ai": "^0.24.1",
     "@pdfsmaller/pdf-encrypt-lite": "^1.0.2",
     "bwip-js": "^4.11.1",
