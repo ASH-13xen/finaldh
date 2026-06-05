@@ -447,6 +447,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const barcodeImage = await pdfDoc.embedPng(barcodePngBuffer);
     const helveticaFont = await pdfDoc.embedFont('Helvetica');
+    const helveticaBoldFont = await pdfDoc.embedFont('Helvetica-Bold');
 
     // Add metadata steganography tags
     pdfDoc.setTitle(course.name || 'Secured Course PDF');
@@ -487,7 +488,34 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         height: barcodeHeight,
       });
     }
-    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on ${pages.length} pages`);
+    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on ${pages.length} original pages`);
+
+    // Insert random warning/security registration pages (approx 1/40 of total pages)
+    if (pages.length > 0) {
+      const firstPage = pages[0];
+      const { width, height } = firstPage.getSize();
+      
+      const numPagesToAdd = Math.max(1, Math.floor(pages.length / 40));
+      console.log(`[PDF Security] Adding ${numPagesToAdd} random warning/licensing pages to the PDF`);
+      
+      let currentPagesCount = pages.length;
+      const insertIndices = [];
+      for (let j = 0; j < numPagesToAdd; j++) {
+        let maxIdx = currentPagesCount;
+        let minIdx = currentPagesCount > 1 ? 1 : 0;
+        let idx = Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx;
+        insertIndices.push(idx);
+        currentPagesCount++;
+      }
+      
+      insertIndices.sort((a, b) => a - b);
+      console.log(`[PDF Security] Random page insertion indices: ${insertIndices.join(', ')}`);
+      
+      for (const insertIdx of insertIndices) {
+        const newPage = pdfDoc.insertPage(insertIdx, [width, height]);
+        drawSecurityWarningPage(newPage, user, course, helveticaFont, helveticaBoldFont);
+      }
+    }
 
     // 8. Save modified PDF
     console.log(`[PDF Security] Step 8: Saving modified PDF`);
@@ -513,3 +541,157 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     res.status(500).json({ error: 'Server error processing secured PDF download' });
   }
 };
+
+// Helper function to wrap text for PDF rendering
+const wrapText = (text, maxWidth, font, fontSize) => {
+  const words = text.split(/\s+/);
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    if (testWidth > maxWidth) {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+};
+
+// Helper function to draw warning details on a newly inserted page
+const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
+  const { width, height } = page.getSize();
+
+  // Draw a subtle border or background card
+  page.drawRectangle({
+    x: 40,
+    y: 40,
+    width: width - 80,
+    height: height - 80,
+    borderColor: rgb(0.8, 0.2, 0.2),
+    borderWidth: 2.5,
+    color: rgb(0.99, 0.98, 0.98),
+  });
+
+  // Top header red bar
+  page.drawRectangle({
+    x: 40,
+    y: height - 90,
+    width: width - 80,
+    height: 50,
+    color: rgb(0.75, 0.15, 0.15),
+  });
+
+  // Draw header text
+  const titleText = "SECURITY NOTICE & LICENSE AGREEMENT";
+  const titleWidth = boldFont.widthOfTextAtSize(titleText, 13);
+  page.drawText(titleText, {
+    x: (width - titleWidth) / 2,
+    y: height - 70,
+    size: 13,
+    font: boldFont,
+    color: rgb(1, 1, 1),
+  });
+
+  let currentY = height - 120;
+
+  // Draw License info box header
+  page.drawText("LICENSE REGISTRATION DETAILS", {
+    x: 60,
+    y: currentY,
+    size: 11,
+    font: boldFont,
+    color: rgb(0.2, 0.2, 0.2),
+  });
+
+  currentY -= 25;
+
+  // Draw licensee details
+  const details = [
+    { label: "Authorized Licensee:", value: user.fullName || user.name || "N/A" },
+    { label: "Registered Email:", value: user.email },
+    { label: "Mobile Number:", value: user.mobileNumber || "N/A" },
+    { label: "License Tracking ID:", value: user._id.toString() },
+    { label: "Document Name:", value: course.name || "N/A" }
+  ];
+
+  details.forEach(item => {
+    page.drawText(item.label, {
+      x: 70,
+      y: currentY,
+      size: 9.5,
+      font: boldFont,
+      color: rgb(0.35, 0.35, 0.35),
+    });
+    page.drawText(item.value, {
+      x: 210,
+      y: currentY,
+      size: 9.5,
+      font: font,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+    currentY -= 18;
+  });
+
+  currentY -= 15;
+
+  // Divider
+  page.drawLine({
+    start: { x: 60, y: currentY },
+    end: { x: width - 60, y: currentY },
+    color: rgb(0.85, 0.85, 0.85),
+    thickness: 1,
+  });
+
+  currentY -= 25;
+
+  // Draw warning details
+  page.drawText("LEGAL TERMS & SHARE RESTRICTIONS", {
+    x: 60,
+    y: currentY,
+    size: 11,
+    font: boldFont,
+    color: rgb(0.75, 0.15, 0.15),
+  });
+
+  currentY -= 20;
+
+  const warningParagraphs = [
+    "1. This textbook / e-book is a licensed publication of The Dark Horse UPSC. It is registered exclusively to the user specified in the registration details above. This copy is authorized only for their personal educational use.",
+    "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
+    "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
+    "4. LEGAL CONSEQUENCES: Sharing or distributing this material constitutes intellectual property theft and copyright infringement. Violations will result in immediate termination of account access without refund and legal prosecution under the Indian Copyright Act, 1957."
+  ];
+
+  warningParagraphs.forEach(p => {
+    const lines = wrapText(p, width - 120, font, 9);
+    lines.forEach(line => {
+      page.drawText(line, {
+        x: 65,
+        y: currentY,
+        size: 9,
+        font: font,
+        color: rgb(0.25, 0.25, 0.25),
+      });
+      currentY -= 14;
+    });
+    currentY -= 6; // gap between paragraphs
+  });
+
+  currentY -= 15;
+  // Footer message
+  const footerText = "Thank you for supporting honest learning and respecting authors' copy rights.";
+  const footerW = font.widthOfTextAtSize(footerText, 8.5);
+  page.drawText(footerText, {
+    x: (width - footerW) / 2,
+    y: currentY,
+    size: 8.5,
+    font: font,
+    color: rgb(0.5, 0.5, 0.5),
+  });
+};
+
