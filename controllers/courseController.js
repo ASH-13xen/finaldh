@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import { createReadStream } from 'fs';
+import { createReadStream, createWriteStream } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
@@ -13,6 +13,11 @@ import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sd
 import { r2Client } from '../config/r2.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { pipeline } from 'stream/promises';
+
+const execPromise = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -450,8 +455,18 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   const { courseId } = req.params;
   console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}`);
 
+  // Determine mode (default to server-js if not specified)
+  const mode = process.env.DOWNLOAD_MODE || 'server-js';
+  console.log(`[PDF Security] Download mode: ${mode}`);
+
   // Initialize tracking
   downloadProgressCache[`${req.userId}_${courseId}`] = 1;
+
+  let tempInputPath = '';
+  let tempStampPath = '';
+  let tempWarningPath = '';
+  let tempOutputPath = '';
+  let creditIncremented = false;
 
   try {
     // 1. Fetch user to verify active session
@@ -504,14 +519,11 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 4: User download limits verified`);
 
-    let creditIncremented = false;
-
     // Listen for client connection abort to refund credit
     req.on('close', async () => {
       if (!res.writableFinished && creditIncremented) {
         console.log(`[PDF Security] Request aborted midway by client. Initiating download credit refund for user: ${req.userId}, courseId: ${courseId}`);
         try {
-          // Re-fetch user to get latest state and prevent race conditions
           const refundUser = await User.findById(req.userId);
           if (refundUser) {
             let refundEntry = refundUser.downloadLimits.find(d => d.courseId === courseId);
@@ -527,166 +539,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       }
     });
 
-    // Step 5 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 5;
-
-    // 5. Load raw PDF file into buffer
-    let pdfBuffer;
-    if (course.fileUrl.startsWith('r2://')) {
-      const r2Key = course.fileUrl.replace('r2://', '');
-      console.log(`[PDF Security] Step 5: Loading raw PDF file from Cloudflare R2 (key: ${r2Key})`);
-      try {
-        const r2Response = await r2Client.send(new GetObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: r2Key,
-        }));
-        
-        pdfBuffer = Buffer.from(await r2Response.Body.transformToByteArray());
-      } catch (r2Err) {
-        console.error(`[PDF Security] Step 5: Error reading PDF from Cloudflare R2:`, r2Err);
-        return res.status(500).json({ error: 'Could not retrieve course file from Cloudflare R2' });
-      }
-    } else {
-      console.log(`[PDF Security] Step 5: Loading raw PDF file from local disk`);
-      const filePath = path.join(__dirname, '../', course.fileUrl);
-      try {
-        pdfBuffer = await fs.readFile(filePath);
-      } catch (readErr) {
-        console.error(`[PDF Security] Step 5: Error reading PDF file from disk:`, readErr);
-        return res.status(500).json({ error: 'Could not retrieve course file from server disk' });
-      }
-    }
-    console.log(`[PDF Security] Step 5: PDF file loaded (${pdfBuffer.length} bytes)`);
-
-    // Step 6 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 6;
-
-    // 6. Generate barcode of student's ID string using bwip-js
-    console.log(`[PDF Security] Step 6: Rendering Code 128 barcode of user ID: ${user._id}`);
-    let barcodePngBuffer;
-    try {
-      barcodePngBuffer = await new Promise((resolve, reject) => {
-        bwipjs.toBuffer({
-          bcid: 'code128',
-          text: user._id.toString(),
-          scale: 2,
-          height: 10,
-          includetext: true,
-          textxalign: 'center',
-        }, function (err, png) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(png);
-          }
-        });
-      });
-    } catch (barcodeErr) {
-      console.error(`[PDF Security] Step 6: Error rendering barcode:`, barcodeErr);
-      return res.status(500).json({ error: 'Security processing error (barcode generation failed)' });
-    }
-    console.log(`[PDF Security] Step 6: Barcode PNG buffer generated (${barcodePngBuffer.length} bytes)`);
-
-    // Step 7 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 7;
-
-    // 7. Load PDF in pdf-lib, overlay stamps, and configure metadata tracking
-    console.log(`[PDF Security] Step 7: Embedding barcode, watermarking PDF pages, and writing tracking metadata`);
-    const pdfDoc = await PDFDocument.load(pdfBuffer);
-    const barcodeImage = await pdfDoc.embedPng(barcodePngBuffer);
-    const helveticaFont = await pdfDoc.embedFont('Helvetica');
-    const helveticaBoldFont = await pdfDoc.embedFont('Helvetica-Bold');
-
-    // Add metadata steganography tags
-    pdfDoc.setTitle(course.name || 'Secured Course PDF');
-    pdfDoc.setAuthor(user.email);
-    pdfDoc.setSubject(course.subject || 'Syllabus Course Content');
-    pdfDoc.setProducer('The Dark Horse UPSC');
-    pdfDoc.setCreator('The Dark Horse UPSC');
-    pdfDoc.setKeywords([user._id.toString(), user.email]);
-
-    const pages = pdfDoc.getPages();
-    const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
-
-    let stampedCount = 0;
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      const { width, height } = page.getSize();
-
-      // Draw watermark text at top-left (left-aligned)
-      const fontSize = 9;
-      const textX = 25; 
-
-      page.drawText(watermarkText, {
-        x: textX,
-        y: height - 25,
-        size: fontSize,
-        font: helveticaFont,
-        color: rgb(0.6, 0.6, 0.6),
-      });
-
-      // Draw barcode image at bottom-right (right-aligned, very small)
-      const barcodeWidth = 90;
-      const barcodeHeight = 20;
-      const barcodeX = width - barcodeWidth - 25;
-
-      page.drawImage(barcodeImage, {
-        x: barcodeX,
-        y: 15,
-        width: barcodeWidth,
-        height: barcodeHeight,
-      });
-      stampedCount++;
-    }
-    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on all ${stampedCount} original pages`);
-
-    // Insert random warning/security registration pages (approx 1/40 of total pages)
-    if (pages.length > 0) {
-      const firstPage = pages[0];
-      const { width, height } = firstPage.getSize();
-      
-      const numPagesToAdd = Math.max(1, Math.floor(pages.length / 40));
-      console.log(`[PDF Security] Adding ${numPagesToAdd} random warning/licensing pages to the PDF`);
-      
-      let currentPagesCount = pages.length;
-      const insertIndices = [];
-      for (let j = 0; j < numPagesToAdd; j++) {
-        let maxIdx = currentPagesCount;
-        let minIdx = currentPagesCount > 1 ? 1 : 0;
-        let idx = Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx;
-        insertIndices.push(idx);
-        currentPagesCount++;
-      }
-      
-      insertIndices.sort((a, b) => a - b);
-      console.log(`[PDF Security] Random page insertion indices: ${insertIndices.join(', ')}`);
-      
-      for (const insertIdx of insertIndices) {
-        const newPage = pdfDoc.insertPage(insertIdx, [width, height]);
-        drawSecurityWarningPage(newPage, user, course, helveticaFont, helveticaBoldFont);
-      }
-    }
-
-    // Step 8 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 8;
-
-    // 8. Save modified PDF
-    console.log(`[PDF Security] Step 8: Saving modified PDF`);
-    const modifiedPdfBuffer = await pdfDoc.save({
-      useObjectStreams: false,
-      updateFieldAppearances: false
-    });
-
-    // Step 9 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 9;
-
-    // 9. Encrypt PDF with user email as password
-    console.log(`[PDF Security] Step 9: Encrypting PDF with user email as password`);
-    const userPassword = user.email.trim().toLowerCase();
-    const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
-    console.log(`[PDF Security] Step 9: PDF encrypted successfully (${encryptedPdfBuffer.length} bytes)`);
-
-    // Increment and save the user download limit now that generation succeeded
+    // We increment download credit pre-emptively, similar to original logic
     const limitUser = await User.findById(req.userId);
     if (limitUser) {
       let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
@@ -704,17 +557,296 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       console.log(`[PDF Security] Download limit tracked & updated in database (downloadedCount incremented)`);
     }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
-    res.setHeader('Content-Length', encryptedPdfBuffer.length);
-    res.end(Buffer.from(encryptedPdfBuffer));
-    console.log(`[PDF Security] Secured and password-protected PDF streamed successfully!`);
+    // --- MODE 1: CLIENT-SIDE PROCESSING ---
+    if (mode === 'client-side') {
+      res.setHeader('x-download-mode', 'client-side');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_raw.pdf"`);
+
+      if (course.fileUrl.startsWith('r2://')) {
+        const r2Key = course.fileUrl.replace('r2://', '');
+        console.log(`[PDF Security] Client-side Mode: Proxy streaming from Cloudflare R2 (key: ${r2Key})`);
+        const r2Response = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+        
+        // Pipe the R2 response stream directly to the Express response (low memory)
+        r2Response.Body.pipe(res);
+      } else {
+        console.log(`[PDF Security] Client-side Mode: Streaming from local disk`);
+        const filePath = path.join(__dirname, '../', course.fileUrl);
+        const fileStream = createReadStream(filePath);
+        fileStream.pipe(res);
+      }
+      return;
+    }
+
+    // --- MODE 2: SERVER-SIDE NATIVE (QPDF) PROCESSING ---
+    if (mode === 'server-native') {
+      downloadProgressCache[`${req.userId}_${courseId}`] = 5;
+      
+      // Ensure temp directory exists
+      const tempDir = path.join(__dirname, '../uploads/temp');
+      await fs.mkdir(tempDir, { recursive: true });
+
+      tempInputPath = path.join(tempDir, `input_${req.userId}_${courseId}.pdf`);
+      tempStampPath = path.join(tempDir, `stamp_${req.userId}_${courseId}.pdf`);
+      tempWarningPath = path.join(tempDir, `warning_${req.userId}_${courseId}.pdf`);
+      tempOutputPath = path.join(tempDir, `output_${req.userId}_${courseId}.pdf`);
+
+      // 5. Download source file to disk
+      if (course.fileUrl.startsWith('r2://')) {
+        const r2Key = course.fileUrl.replace('r2://', '');
+        console.log(`[PDF Security] Native Mode: Streaming from Cloudflare R2 to disk (key: ${r2Key})`);
+        const r2Response = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+        await pipeline(r2Response.Body, createWriteStream(tempInputPath));
+      } else {
+        console.log(`[PDF Security] Native Mode: Copying local file to temp path`);
+        const localFilePath = path.join(__dirname, '../', course.fileUrl);
+        await fs.copyFile(localFilePath, tempInputPath);
+      }
+      console.log(`[PDF Security] Native Mode: PDF downloaded to disk`);
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 6;
+
+      // 6. Generate barcode buffer
+      console.log(`[PDF Security] Native Mode: Generating user barcode`);
+      let barcodePngBuffer = await new Promise((resolve, reject) => {
+        bwipjs.toBuffer({
+          bcid: 'code128',
+          text: user._id.toString(),
+          scale: 2,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+        }, (err, png) => {
+          if (err) reject(err);
+          else resolve(png);
+        });
+      });
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 7;
+
+      // Get page dimensions and page count using qpdf
+      console.log(`[PDF Security] Native Mode: Getting dimensions and page count from qpdf`);
+      const { stdout: qpdfInfo } = await execPromise(`qpdf --show-pages "${tempInputPath}"`);
+      const pageCount = (qpdfInfo.match(/page \d+:/g) || []).length;
+      
+      const sizeMatch = qpdfInfo.match(/page 1:[^]*?size: ([\d.]+) x ([\d.]+)/i);
+      let width = 595.276; // Default A4
+      let height = 841.89;
+      if (sizeMatch) {
+        width = parseFloat(sizeMatch[1]);
+        height = parseFloat(sizeMatch[2]);
+      }
+      console.log(`[PDF Security] Native Mode: PDF has ${pageCount} pages, size: ${width}x${height}`);
+
+      // Create stamp PDF (1 page with watermark & barcode)
+      console.log(`[PDF Security] Native Mode: Creating watermark stamp PDF`);
+      const stampDoc = await PDFDocument.create();
+      const helveticaFont = await stampDoc.embedFont('Helvetica');
+      const helveticaBoldFont = await stampDoc.embedFont('Helvetica-Bold');
+      const stampPage = stampDoc.addPage([width, height]);
+
+      const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
+      stampPage.drawText(watermarkText, {
+        x: 25,
+        y: height - 25,
+        size: 9,
+        font: helveticaFont,
+        color: rgb(0.6, 0.6, 0.6),
+      });
+
+      const barcodeImage = await stampDoc.embedPng(barcodePngBuffer);
+      const barcodeWidth = 90;
+      const barcodeHeight = 20;
+      stampPage.drawImage(barcodeImage, {
+        x: width - barcodeWidth - 25,
+        y: 15,
+        width: barcodeWidth,
+        height: barcodeHeight,
+      });
+
+      const stampBytes = await stampDoc.save();
+      await fs.writeFile(tempStampPath, stampBytes);
+
+      // Create warning PDF (1 page)
+      console.log(`[PDF Security] Native Mode: Creating warning page PDF`);
+      const warningDoc = await PDFDocument.create();
+      const warningPage = warningDoc.addPage([width, height]);
+      drawSecurityWarningPage(warningPage, user, course, helveticaFont, helveticaBoldFont);
+      const warningBytes = await warningDoc.save();
+      await fs.writeFile(tempWarningPath, warningBytes);
+
+      // Determine warning page positions
+      const numPagesToAdd = Math.max(1, Math.floor(pageCount / 40));
+      const insertPositions = [];
+      for (let j = 0; j < numPagesToAdd; j++) {
+        insertPositions.push(Math.floor(Math.random() * (pageCount + 1)) + 1);
+      }
+      insertPositions.sort((a, b) => a - b);
+
+      // Construct qpdf pages arguments
+      const qpdfPages = [];
+      let currentPos = 1;
+      for (const pos of insertPositions) {
+        if (pos > currentPos) {
+          qpdfPages.push(`"${tempInputPath}"`, `${currentPos}-${pos - 1}`);
+        }
+        qpdfPages.push(`"${tempWarningPath}"`, `1`);
+        currentPos = pos;
+      }
+      if (currentPos <= pageCount) {
+        qpdfPages.push(`"${tempInputPath}"`, `${currentPos}-z`);
+      }
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 8;
+      
+      // 8. Execute qpdf to merge warning pages, overlay watermark, and encrypt
+      console.log(`[PDF Security] Native Mode: Running qpdf command to stamp and encrypt`);
+      const userPassword = user.email.trim().toLowerCase();
+      
+      const qpdfCommand = `qpdf --empty --pages ${qpdfPages.join(' ')} -- --overlay "${tempStampPath}" --repeat=1-z --encrypt "${userPassword}" "${userPassword}" 256 -- "${tempOutputPath}"`;
+      await execPromise(qpdfCommand);
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 9;
+
+      // Stream the output file to user
+      const outputStats = await fs.stat(tempOutputPath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
+      res.setHeader('Content-Length', outputStats.size);
+      
+      await pipeline(createReadStream(tempOutputPath), res);
+      console.log(`[PDF Security] Native Mode: Secured PDF streamed successfully!`);
+      return;
+    }
+
+    // --- MODE 3: SERVER-SIDE JS (FALLBACK) PROCESSING ---
+    if (mode === 'server-js') {
+      downloadProgressCache[`${req.userId}_${courseId}`] = 5;
+
+      let pdfBuffer;
+      if (course.fileUrl.startsWith('r2://')) {
+        const r2Key = course.fileUrl.replace('r2://', '');
+        console.log(`[PDF Security] JS Mode: Loading raw PDF file from Cloudflare R2 (key: ${r2Key})`);
+        const r2Response = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+        pdfBuffer = Buffer.from(await r2Response.Body.transformToByteArray());
+      } else {
+        console.log(`[PDF Security] JS Mode: Loading raw PDF file from local disk`);
+        const filePath = path.join(__dirname, '../', course.fileUrl);
+        pdfBuffer = await fs.readFile(filePath);
+      }
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 6;
+
+      let barcodePngBuffer = await new Promise((resolve, reject) => {
+        bwipjs.toBuffer({
+          bcid: 'code128',
+          text: user._id.toString(),
+          scale: 2,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+        }, (err, png) => {
+          if (err) reject(err);
+          else resolve(png);
+        });
+      });
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 7;
+
+      const pdfDoc = await PDFDocument.load(pdfBuffer);
+      const barcodeImage = await pdfDoc.embedPng(barcodePngBuffer);
+      const helveticaFont = await pdfDoc.embedFont('Helvetica');
+      const helveticaBoldFont = await pdfDoc.embedFont('Helvetica-Bold');
+
+      pdfDoc.setTitle(course.name || 'Secured Course PDF');
+      pdfDoc.setAuthor(user.email);
+      pdfDoc.setSubject(course.subject || 'Syllabus Course Content');
+      pdfDoc.setProducer('The Dark Horse UPSC');
+      pdfDoc.setCreator('The Dark Horse UPSC');
+      pdfDoc.setKeywords([user._id.toString(), user.email]);
+
+      const pages = pdfDoc.getPages();
+      const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const { width, height } = page.getSize();
+        page.drawText(watermarkText, {
+          x: 25,
+          y: height - 25,
+          size: 9,
+          font: helveticaFont,
+          color: rgb(0.6, 0.6, 0.6),
+        });
+
+        const barcodeWidth = 90;
+        const barcodeHeight = 20;
+        page.drawImage(barcodeImage, {
+          x: width - barcodeWidth - 25,
+          y: 15,
+          width: barcodeWidth,
+          height: barcodeHeight,
+        });
+      }
+
+      if (pages.length > 0) {
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+        const numPagesToAdd = Math.max(1, Math.floor(pages.length / 40));
+        const insertIndices = [];
+        let currentPagesCount = pages.length;
+        for (let j = 0; j < numPagesToAdd; j++) {
+          let maxIdx = currentPagesCount;
+          let minIdx = currentPagesCount > 1 ? 1 : 0;
+          insertIndices.push(Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx);
+          currentPagesCount++;
+        }
+        insertIndices.sort((a, b) => a - b);
+        for (const insertIdx of insertIndices) {
+          const newPage = pdfDoc.insertPage(insertIdx, [width, height]);
+          drawSecurityWarningPage(newPage, user, course, helveticaFont, helveticaBoldFont);
+        }
+      }
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 8;
+      const modifiedPdfBuffer = await pdfDoc.save({
+        useObjectStreams: false,
+        updateFieldAppearances: false
+      });
+
+      downloadProgressCache[`${req.userId}_${courseId}`] = 9;
+      const userPassword = user.email.trim().toLowerCase();
+      const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
+      res.setHeader('Content-Length', encryptedPdfBuffer.length);
+      res.end(Buffer.from(encryptedPdfBuffer));
+      console.log(`[PDF Security] JS Mode: Secured and password-protected PDF streamed successfully!`);
+      return;
+    }
 
   } catch (err) {
     console.error(`[PDF Security] Server error during PDF secure process:`, err);
     res.status(500).json({ error: 'Server error processing secured PDF download' });
   } finally {
     delete downloadProgressCache[`${req.userId}_${courseId}`];
+    
+    // Cleanup temporary files in native mode
+    if (tempInputPath) await fs.unlink(tempInputPath).catch(() => {});
+    if (tempStampPath) await fs.unlink(tempStampPath).catch(() => {});
+    if (tempWarningPath) await fs.unlink(tempWarningPath).catch(() => {});
+    if (tempOutputPath) await fs.unlink(tempOutputPath).catch(() => {});
   }
 };
 

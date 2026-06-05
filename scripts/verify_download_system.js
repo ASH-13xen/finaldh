@@ -141,7 +141,7 @@ async function runTests() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${studentToken}`
       },
-      body: JSON.stringify({ courseId: `mock-course-${time}`, courseName: 'Mock Security Course' })
+      body: JSON.stringify({ courseId: `mock-course-${time}`, courseName: 'Mock Security Course', reason: 'Mock test reason' })
     });
     if (!res.ok) {
       const err = await res.json();

@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../models/User.js';
 import DownloadRequest from '../models/DownloadRequest.js';
+import bwipjs from 'bwip-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -297,5 +298,32 @@ export const getUserDownloadRequests = async (req, res) => {
   } catch (error) {
     console.error('Error fetching user download requests:', error);
     res.status(500).json({ error: 'Server error fetching requests' });
+  }
+};
+
+// Generate and return Code 128 barcode of user ID
+export const getUserBarcode = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    bwipjs.toBuffer({
+      bcid: 'code128',
+      text: user._id.toString(),
+      scale: 2,
+      height: 10,
+      includetext: true,
+      textxalign: 'center',
+    }, function (err, png) {
+      if (err) {
+        console.error('Error generating barcode:', err);
+        return res.status(500).json({ error: 'Failed to generate barcode' });
+      }
+      res.setHeader('Content-Type', 'image/png');
+      res.end(png);
+    });
+  } catch (error) {
+    console.error('Error generating barcode:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };

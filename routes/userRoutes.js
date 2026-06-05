@@ -9,7 +9,8 @@ import {
   requestAdditionalDownload,
   getPendingDownloadRequests,
   approveDownloadRequest,
-  getUserDownloadRequests
+  getUserDownloadRequests,
+  getUserBarcode
 } from '../controllers/userController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
@@ -20,6 +21,7 @@ router.put('/profile', authenticateToken, updateUserProfile);
 router.post('/optional', authenticateToken, updateOptionalSubject);
 router.post('/progress', authenticateToken, toggleTopicProgress);
 router.get('/syllabus', authenticateToken, getUserSyllabus);
+router.get('/barcode', authenticateToken, getUserBarcode);
 
 // PDF Download Limit routes
 router.post('/download-track', authenticateToken, trackDownload);
