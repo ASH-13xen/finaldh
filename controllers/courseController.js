@@ -460,35 +460,44 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     const pages = pdfDoc.getPages();
     const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
 
+    // Optimize page stamping for large files to prevent memory exhaustion
+    const isLargeFile = pdfBuffer.length > 50 * 1024 * 1024; // > 50MB
+    const stampStep = isLargeFile ? Math.max(5, Math.floor(pages.length / 50)) : 1; 
+
+    let stampedCount = 0;
     for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      const { width, height } = page.getSize();
+      // Always stamp first page, last page, and every N-th page in between
+      if (i === 0 || i === pages.length - 1 || i % stampStep === 0) {
+        const page = pages[i];
+        const { width, height } = page.getSize();
 
-      // Draw watermark text at top-left (left-aligned)
-      const fontSize = 9;
-      const textX = 25; 
+        // Draw watermark text at top-left (left-aligned)
+        const fontSize = 9;
+        const textX = 25; 
 
-      page.drawText(watermarkText, {
-        x: textX,
-        y: height - 25,
-        size: fontSize,
-        font: helveticaFont,
-        color: rgb(0.6, 0.6, 0.6),
-      });
+        page.drawText(watermarkText, {
+          x: textX,
+          y: height - 25,
+          size: fontSize,
+          font: helveticaFont,
+          color: rgb(0.6, 0.6, 0.6),
+        });
 
-      // Draw barcode image at bottom-right (right-aligned, very small)
-      const barcodeWidth = 90;
-      const barcodeHeight = 20;
-      const barcodeX = width - barcodeWidth - 25;
+        // Draw barcode image at bottom-right (right-aligned, very small)
+        const barcodeWidth = 90;
+        const barcodeHeight = 20;
+        const barcodeX = width - barcodeWidth - 25;
 
-      page.drawImage(barcodeImage, {
-        x: barcodeX,
-        y: 15,
-        width: barcodeWidth,
-        height: barcodeHeight,
-      });
+        page.drawImage(barcodeImage, {
+          x: barcodeX,
+          y: 15,
+          width: barcodeWidth,
+          height: barcodeHeight,
+        });
+        stampedCount++;
+      }
     }
-    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on ${pages.length} original pages`);
+    console.log(`[PDF Security] Step 7: Stamped barcode and watermark on ${stampedCount} of ${pages.length} original pages (step size: ${stampStep})`);
 
     // Insert random warning/security registration pages (approx 1/40 of total pages)
     if (pages.length > 0) {
