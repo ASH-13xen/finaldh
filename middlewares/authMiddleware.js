@@ -9,8 +9,12 @@ export const authenticateToken = (req, res, next) => {
     token = req.query.token;
   }
 
-  console.log(`[Auth Middleware] Incoming request: ${req.method} ${req.originalUrl}`);
-  console.log(`[Auth Middleware] Token found in header/query: ${!!token}`);
+  const isProgressPoll = req.originalUrl.includes('/download-progress');
+
+  if (!isProgressPoll) {
+    console.log(`[Auth Middleware] Incoming request: ${req.method} ${req.originalUrl}`);
+    console.log(`[Auth Middleware] Token found in header/query: ${!!token}`);
+  }
 
   if (!token) {
     console.warn(`[Auth Middleware] Authentication failed: No token provided for ${req.originalUrl}`);
@@ -24,7 +28,9 @@ export const authenticateToken = (req, res, next) => {
     }
     
     req.userId = decoded.userId;
-    console.log(`[Auth Middleware] Authentication successful. User ID: ${req.userId}`);
+    if (!isProgressPoll) {
+      console.log(`[Auth Middleware] Authentication successful. User ID: ${req.userId}`);
+    }
     next();
   });
 };

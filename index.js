@@ -31,9 +31,11 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Global Request Logger to debug connection issues
+// Global Request Logger to debug connection issues (ignoring high-frequency progress polling)
 app.use((req, res, next) => {
-  console.log(`[HTTP Server] Incoming: ${req.method} ${req.originalUrl}`);
+  if (!req.originalUrl.includes('/download-progress')) {
+    console.log(`[HTTP Server] Incoming: ${req.method} ${req.originalUrl}`);
+  }
   next();
 });
 

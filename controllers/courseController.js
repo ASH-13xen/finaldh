@@ -492,7 +492,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     // Step 4 starts
     downloadProgressCache[`${req.userId}_${courseId}`] = 4;
 
-    // 4. Validate and update download limits
+    // 4. Validate user download limits
     console.log(`[PDF Security] Step 4: Validating user download limits`);
     let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
 
@@ -501,18 +501,31 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         console.log(`[PDF Security] Step 4: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
         return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
       }
-      limitEntry.downloadedCount += 1;
-    } else {
-      user.downloadLimits.push({
-        courseId,
-        downloadedCount: 1,
-        allowedCount: 1
-      });
     }
+    console.log(`[PDF Security] Step 4: User download limits verified`);
 
-    // Save user state update
-    await user.save();
-    console.log(`[PDF Security] Step 4: Download limit tracked & updated in database`);
+    let creditIncremented = false;
+
+    // Listen for client connection abort to refund credit
+    req.on('close', async () => {
+      if (!res.writableFinished && creditIncremented) {
+        console.log(`[PDF Security] Request aborted midway by client. Initiating download credit refund for user: ${req.userId}, courseId: ${courseId}`);
+        try {
+          // Re-fetch user to get latest state and prevent race conditions
+          const refundUser = await User.findById(req.userId);
+          if (refundUser) {
+            let refundEntry = refundUser.downloadLimits.find(d => d.courseId === courseId);
+            if (refundEntry && refundEntry.downloadedCount > 0) {
+              refundEntry.downloadedCount -= 1;
+              await refundUser.save();
+              console.log(`[PDF Security] Credit successfully refunded in database. downloadedCount: ${refundEntry.downloadedCount}`);
+            }
+          }
+        } catch (refundErr) {
+          console.error(`[PDF Security] Error refunding download credit on abort:`, refundErr);
+        }
+      }
+    });
 
     // Step 5 starts
     downloadProgressCache[`${req.userId}_${courseId}`] = 5;
@@ -672,6 +685,24 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     const userPassword = user.email.trim().toLowerCase();
     const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
     console.log(`[PDF Security] Step 9: PDF encrypted successfully (${encryptedPdfBuffer.length} bytes)`);
+
+    // Increment and save the user download limit now that generation succeeded
+    const limitUser = await User.findById(req.userId);
+    if (limitUser) {
+      let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+      if (finalLimitEntry) {
+        finalLimitEntry.downloadedCount += 1;
+      } else {
+        limitUser.downloadLimits.push({
+          courseId,
+          downloadedCount: 1,
+          allowedCount: 1
+        });
+      }
+      await limitUser.save();
+      creditIncremented = true;
+      console.log(`[PDF Security] Download limit tracked & updated in database (downloadedCount incremented)`);
+    }
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
