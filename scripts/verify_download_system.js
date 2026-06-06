@@ -42,18 +42,24 @@ async function runTests() {
     console.log("Setting up Mock Course...");
     // Let's check if there are any existing courses or if we create one
     // We will create a mock course on disk so the server has a real file to read.
-    const mockPdfPath = path.join(__dirname, '../uploads/courses/mock_test_file.pdf');
+    const mockPdfPath1 = path.join(__dirname, '../uploads/courses/mock_test_part_1.pdf');
+    const mockPdfPath2 = path.join(__dirname, '../uploads/courses/mock_test_part_2.pdf');
     // Ensure uploads/courses directory exists
-    await fs.mkdir(path.dirname(mockPdfPath), { recursive: true });
+    await fs.mkdir(path.dirname(mockPdfPath1), { recursive: true });
     // Write a tiny dummy PDF header/content
-    await fs.writeFile(mockPdfPath, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [ 0 0 612 792 ] >>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF");
+    const dummyPdfContent = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [ 0 0 612 792 ] >>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF";
+    await fs.writeFile(mockPdfPath1, dummyPdfContent);
+    await fs.writeFile(mockPdfPath2, dummyPdfContent);
 
     mockCourse = await Course.create({
       courseId: `mock-course-${time}`,
       name: "Mock Security Course",
       subject: "GS-1",
-      fileName: "mock_test_file.pdf",
-      fileUrl: `/uploads/courses/mock_test_file.pdf`,
+      fileName: "mock_test_part_1.pdf",
+      fileUrl: `/uploads/courses/mock_test_part_1.pdf`,
+      fileUrls: [`/uploads/courses/mock_test_part_1.pdf`, `/uploads/courses/mock_test_part_2.pdf`],
+      fileNames: [`mock_test_part_1.pdf`, `mock_test_part_2.pdf`],
+      partPageCounts: [1, 1],
       price: 499
     });
 
@@ -239,8 +245,10 @@ async function runTests() {
     if (mockCourse) {
       try {
         await Course.deleteOne({ _id: mockCourse._id });
-        const mockPdfPath = path.join(__dirname, '../uploads/courses/mock_test_file.pdf');
-        await fs.unlink(mockPdfPath).catch(() => {});
+        const mockPdfPath1 = path.join(__dirname, '../uploads/courses/mock_test_part_1.pdf');
+        const mockPdfPath2 = path.join(__dirname, '../uploads/courses/mock_test_part_2.pdf');
+        await fs.unlink(mockPdfPath1).catch(() => {});
+        await fs.unlink(mockPdfPath2).catch(() => {});
       } catch (courseCleanupErr) {
         console.error("Course Cleanup error:", courseCleanupErr);
       }

@@ -39,8 +39,8 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post('/upload', upload.single('file'), uploadCourse);
-router.put('/:id', upload.single('file'), updateCourse);
+router.post('/upload', upload.array('files', 50), uploadCourse);
+router.put('/:id', upload.array('files', 50), updateCourse);
 router.delete('/:id', deleteCourse);
 router.get('/list', listCourses);
 router.post('/checkout', authenticateToken, checkoutCart);

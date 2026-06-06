@@ -28,7 +28,7 @@ export const downloadProgressCache = {};
 // Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
   const { courseId, name, subject, price } = req.body;
-  const file = req.file;
+  const files = req.files || [];
 
   if (!courseId) {
     return res.status(400).json({ error: 'Course ID is required' });
@@ -42,8 +42,8 @@ export const uploadCourse = async (req, res) => {
   if (!price) {
     return res.status(400).json({ error: 'Price is required' });
   }
-  if (!file) {
-    return res.status(400).json({ error: 'Course PDF file is required' });
+  if (files.length === 0) {
+    return res.status(400).json({ error: 'Course PDF file(s) are required' });
   }
 
   try {
@@ -53,27 +53,49 @@ export const uploadCourse = async (req, res) => {
       return res.status(400).json({ error: 'Course ID must be unique' });
     }
 
-    console.log(`[R2 Upload] Uploading ${file.filename} to Cloudflare R2...`);
-    const fileStream = createReadStream(file.path);
-    const uploadParams = {
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: file.filename,
-      Body: fileStream,
-      ContentType: file.mimetype || 'application/pdf',
-    };
+    const fileUrls = [];
+    const fileNames = [];
+    const partPageCounts = [];
 
-    await r2Client.send(new PutObjectCommand(uploadParams));
-    console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
+    for (const file of files) {
+      console.log(`[R2 Upload] Uploading ${file.filename} to Cloudflare R2...`);
+      const fileStream = createReadStream(file.path);
+      const uploadParams = {
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: file.filename,
+        Body: fileStream,
+        ContentType: file.mimetype || 'application/pdf',
+      };
 
-    // Generate file url path with R2 prefix
-    const fileUrl = `r2://${file.filename}`;
+      await r2Client.send(new PutObjectCommand(uploadParams));
+      console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
+
+      // Count pages of this PDF file
+      let pageCount = 0;
+      try {
+        const fileBytes = await fs.readFile(file.path);
+        const tempPdfDoc = await PDFDocument.load(fileBytes, {
+          updateFieldAppearances: false
+        });
+        pageCount = tempPdfDoc.getPageCount();
+      } catch (pdfErr) {
+        console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
+      }
+
+      fileUrls.push(`r2://${file.filename}`);
+      fileNames.push(file.originalname);
+      partPageCounts.push(pageCount);
+    }
 
     const newCourse = await Course.create({
       courseId: courseId.trim(),
       name,
       subject,
-      fileName: file.originalname,
-      fileUrl,
+      fileName: fileNames[0],
+      fileUrl: fileUrls[0],
+      fileUrls,
+      fileNames,
+      partPageCounts,
       price: Number(price)
     });
 
@@ -85,13 +107,15 @@ export const uploadCourse = async (req, res) => {
     console.error('Error uploading course:', err);
     res.status(500).json({ error: 'Server error uploading course PDF' });
   } finally {
-    // Delete temp file from uploads/temp immediately
-    if (file && file.path) {
-      try {
-        await fs.unlink(file.path);
-        console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
-      } catch (unlinkErr) {
-        console.warn(`[Cleanup] Failed to delete temp file ${file.path}:`, unlinkErr.message);
+    // Delete temp files
+    for (const file of files) {
+      if (file && file.path) {
+        try {
+          await fs.unlink(file.path);
+          console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
+        } catch (unlinkErr) {
+          console.warn(`[Cleanup] Failed to delete temp file ${file.path}:`, unlinkErr.message);
+        }
       }
     }
   }
@@ -101,7 +125,7 @@ export const uploadCourse = async (req, res) => {
 export const updateCourse = async (req, res) => {
   const { id } = req.params;
   const { courseId, name, subject, price } = req.body;
-  const file = req.file;
+  const files = req.files || [];
 
   try {
     const course = await Course.findById(id);
@@ -121,43 +145,70 @@ export const updateCourse = async (req, res) => {
     if (subject) course.subject = subject;
     if (price !== undefined) course.price = Number(price);
 
-    if (file) {
-      // 1. Upload new file to R2
-      console.log(`[R2 Upload] Uploading replacement file ${file.filename} to R2...`);
-      const fileStream = createReadStream(file.path);
-      await r2Client.send(new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: file.filename,
-        Body: fileStream,
-        ContentType: file.mimetype || 'application/pdf',
-      }));
-      console.log(`[R2 Upload] Replacement file uploaded to R2: ${file.filename}`);
+    if (files.length > 0) {
+      const fileUrls = [];
+      const fileNames = [];
+      const partPageCounts = [];
 
-      // 2. Remove old file (either from R2 or local disk depending on its prefix)
-      if (course.fileUrl) {
-        if (course.fileUrl.startsWith('r2://')) {
-          const oldR2Key = course.fileUrl.replace('r2://', '');
-          console.log(`[R2 Cleanup] Deleting old file from R2: ${oldR2Key}`);
-          try {
-            await r2Client.send(new DeleteObjectCommand({
-              Bucket: process.env.R2_BUCKET_NAME,
-              Key: oldR2Key,
-            }));
-          } catch (deleteErr) {
-            console.warn(`[R2 Cleanup] Could not delete old file from R2:`, deleteErr.message);
-          }
-        } else {
-          const oldFilePath = path.join(__dirname, '../', course.fileUrl);
-          try {
-            await fs.unlink(oldFilePath);
-          } catch (unlinkErr) {
-            console.warn('Could not delete old local file:', unlinkErr.message);
+      for (const file of files) {
+        console.log(`[R2 Upload] Uploading replacement file ${file.filename} to R2...`);
+        const fileStream = createReadStream(file.path);
+        await r2Client.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: file.filename,
+          Body: fileStream,
+          ContentType: file.mimetype || 'application/pdf',
+        }));
+        console.log(`[R2 Upload] Replacement file uploaded to R2: ${file.filename}`);
+
+        // Count pages of this PDF file
+        let pageCount = 0;
+        try {
+          const fileBytes = await fs.readFile(file.path);
+          const tempPdfDoc = await PDFDocument.load(fileBytes, {
+            updateFieldAppearances: false
+          });
+          pageCount = tempPdfDoc.getPageCount();
+        } catch (pdfErr) {
+          console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
+        }
+
+        fileUrls.push(`r2://${file.filename}`);
+        fileNames.push(file.originalname);
+        partPageCounts.push(pageCount);
+      }
+
+      // Cleanup old files (either from R2 or local disk depending on prefixes)
+      const oldUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+      for (const oldUrl of oldUrls) {
+        if (oldUrl) {
+          if (oldUrl.startsWith('r2://')) {
+            const oldR2Key = oldUrl.replace('r2://', '');
+            console.log(`[R2 Cleanup] Deleting old file from R2: ${oldR2Key}`);
+            try {
+              await r2Client.send(new DeleteObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: oldR2Key,
+              }));
+            } catch (deleteErr) {
+              console.warn(`[R2 Cleanup] Could not delete old file from R2:`, deleteErr.message);
+            }
+          } else {
+            const oldFilePath = path.join(__dirname, '../', oldUrl);
+            try {
+              await fs.unlink(oldFilePath);
+            } catch (unlinkErr) {
+              console.warn('Could not delete old local file:', unlinkErr.message);
+            }
           }
         }
       }
 
-      course.fileName = file.originalname;
-      course.fileUrl = `r2://${file.filename}`;
+      course.fileName = fileNames[0];
+      course.fileUrl = fileUrls[0];
+      course.fileNames = fileNames;
+      course.fileUrls = fileUrls;
+      course.partPageCounts = partPageCounts;
     }
 
     await course.save();
@@ -170,12 +221,14 @@ export const updateCourse = async (req, res) => {
     console.error('Error updating course:', err);
     res.status(500).json({ error: 'Server error updating course' });
   } finally {
-    if (file && file.path) {
-      try {
-        await fs.unlink(file.path);
-        console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
-      } catch (unlinkErr) {
-        console.warn(`[Cleanup] Failed to delete temp file ${file.path}:`, unlinkErr.message);
+    for (const file of files) {
+      if (file && file.path) {
+        try {
+          await fs.unlink(file.path);
+          console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
+        } catch (unlinkErr) {
+          console.warn(`[Cleanup] Failed to delete temp file ${file.path}:`, unlinkErr.message);
+        }
       }
     }
   }
@@ -192,24 +245,27 @@ export const deleteCourse = async (req, res) => {
     }
 
     // Delete the file from the filesystem/R2
-    if (course.fileUrl) {
-      if (course.fileUrl.startsWith('r2://')) {
-        const r2Key = course.fileUrl.replace('r2://', '');
-        console.log(`[R2 Cleanup] Deleting file from R2: ${r2Key}`);
-        try {
-          await r2Client.send(new DeleteObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: r2Key,
-          }));
-        } catch (deleteErr) {
-          console.warn(`[R2 Cleanup] Could not delete file from R2:`, deleteErr.message);
-        }
-      } else {
-        const filePath = path.join(__dirname, '../', course.fileUrl);
-        try {
-          await fs.unlink(filePath);
-        } catch (unlinkErr) {
-          console.warn('Could not delete course file from disk:', unlinkErr.message);
+    const urlsToDelete = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+    for (const url of urlsToDelete) {
+      if (url) {
+        if (url.startsWith('r2://')) {
+          const r2Key = url.replace('r2://', '');
+          console.log(`[R2 Cleanup] Deleting file from R2: ${r2Key}`);
+          try {
+            await r2Client.send(new DeleteObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: r2Key,
+            }));
+          } catch (deleteErr) {
+            console.warn(`[R2 Cleanup] Could not delete file from R2:`, deleteErr.message);
+          }
+        } else {
+          const filePath = path.join(__dirname, '../', url);
+          try {
+            await fs.unlink(filePath);
+          } catch (unlinkErr) {
+            console.warn('Could not delete course file from disk:', unlinkErr.message);
+          }
         }
       }
     }
@@ -311,10 +367,31 @@ export const analyzeCoursePage = async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
+    // Map global page number to correct local part
+    const partUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+    let targetPartUrl = partUrls[0];
+    let localPageNumber = Number(pageNumber);
+
+    if (partUrls.length > 1 && course.partPageCounts && course.partPageCounts.length === partUrls.length) {
+      let accumulatedPages = 0;
+      let targetPartIdx = 0;
+      for (let i = 0; i < course.partPageCounts.length; i++) {
+        const count = course.partPageCounts[i];
+        if (Number(pageNumber) <= accumulatedPages + count) {
+          targetPartIdx = i;
+          localPageNumber = Number(pageNumber) - accumulatedPages;
+          break;
+        }
+        accumulatedPages += count;
+      }
+      targetPartUrl = partUrls[targetPartIdx];
+      console.log(`[PDF Security] Mapping page ${pageNumber} -> Part ${targetPartIdx + 1} page ${localPageNumber}`);
+    }
+
     // 3. Load PDF buffer from R2 or local disk
     let fileBuffer;
-    if (course.fileUrl.startsWith('r2://')) {
-      const r2Key = course.fileUrl.replace('r2://', '');
+    if (targetPartUrl.startsWith('r2://')) {
+      const r2Key = targetPartUrl.replace('r2://', '');
       console.log(`[R2 Stream] Fetching raw PDF for page analysis from R2 key: ${r2Key}`);
       try {
         const r2Response = await r2Client.send(new GetObjectCommand({
@@ -332,7 +409,7 @@ export const analyzeCoursePage = async (req, res) => {
         return res.status(500).json({ error: 'Could not retrieve course file from Cloudflare R2' });
       }
     } else {
-      const filePath = path.join(__dirname, '../', course.fileUrl);
+      const filePath = path.join(__dirname, '../', targetPartUrl);
       try {
         await fs.access(filePath);
         fileBuffer = await fs.readFile(filePath);
@@ -343,12 +420,12 @@ export const analyzeCoursePage = async (req, res) => {
     }
 
     // 4. Read PDF and parse the specific page
-    console.log(`Analyzing course page: parsing page ${pageNumber}...`);
+    console.log(`Analyzing course page: parsing page ${localPageNumber} (global ${pageNumber})...`);
     const parser = new PDFParse({ data: fileBuffer });
     
     // Efficiently parse ONLY the target page
-    const pdfData = await parser.getText({ partial: [Number(pageNumber)] });
-    const pageObj = pdfData.pages.find(p => p.num === Number(pageNumber));
+    const pdfData = await parser.getText({ partial: [localPageNumber] });
+    const pageObj = pdfData.pages.find(p => p.num === localPageNumber);
     const pageText = pageObj ? pageObj.text : '';
 
     if (!pageText || pageText.trim().length === 0) {
@@ -456,16 +533,17 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}`);
 
   // Determine mode (default to server-js if not specified)
-  const mode = process.env.DOWNLOAD_MODE || 'server-js';
+  let mode = process.env.DOWNLOAD_MODE || 'server-js';
   console.log(`[PDF Security] Download mode: ${mode}`);
 
   // Initialize tracking
   downloadProgressCache[`${req.userId}_${courseId}`] = 1;
 
-  let tempInputPath = '';
   let tempStampPath = '';
   let tempWarningPath = '';
   let tempOutputPath = '';
+  let rawPartPaths = [];
+  let securedPartPaths = [];
   let creditIncremented = false;
 
   try {
@@ -557,29 +635,36 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       console.log(`[PDF Security] Download limit tracked & updated in database (downloadedCount incremented)`);
     }
 
+    const partUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+
     // --- MODE 1: CLIENT-SIDE PROCESSING ---
     if (mode === 'client-side') {
-      res.setHeader('x-download-mode', 'client-side');
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_raw.pdf"`);
-
-      if (course.fileUrl.startsWith('r2://')) {
-        const r2Key = course.fileUrl.replace('r2://', '');
-        console.log(`[PDF Security] Client-side Mode: Proxy streaming from Cloudflare R2 (key: ${r2Key})`);
-        const r2Response = await r2Client.send(new GetObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: r2Key,
-        }));
-        
-        // Pipe the R2 response stream directly to the Express response (low memory)
-        r2Response.Body.pipe(res);
+      // Fall back to server-native if the course is multi-part, since concatenated PDFs are invalid
+      if (partUrls.length > 1) {
+        console.log(`[PDF Security] Client-side Mode: Multi-part course detected. Automatically falling back to server-native mode.`);
+        mode = 'server-native';
       } else {
-        console.log(`[PDF Security] Client-side Mode: Streaming from local disk`);
-        const filePath = path.join(__dirname, '../', course.fileUrl);
-        const fileStream = createReadStream(filePath);
-        fileStream.pipe(res);
+        res.setHeader('x-download-mode', 'client-side');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_raw.pdf"`);
+
+        if (course.fileUrl.startsWith('r2://')) {
+          const r2Key = course.fileUrl.replace('r2://', '');
+          console.log(`[PDF Security] Client-side Mode: Proxy streaming from Cloudflare R2 (key: ${r2Key})`);
+          const r2Response = await r2Client.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: r2Key,
+          }));
+          
+          r2Response.Body.pipe(res);
+        } else {
+          console.log(`[PDF Security] Client-side Mode: Streaming from local disk`);
+          const filePath = path.join(__dirname, '../', course.fileUrl);
+          const fileStream = createReadStream(filePath);
+          fileStream.pipe(res);
+        }
+        return;
       }
-      return;
     }
 
     // --- MODE 2: SERVER-SIDE NATIVE (QPDF) PROCESSING ---
@@ -590,26 +675,50 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       const tempDir = path.join(__dirname, '../uploads/temp');
       await fs.mkdir(tempDir, { recursive: true });
 
-      tempInputPath = path.join(tempDir, `input_${req.userId}_${courseId}.pdf`);
       tempStampPath = path.join(tempDir, `stamp_${req.userId}_${courseId}.pdf`);
       tempWarningPath = path.join(tempDir, `warning_${req.userId}_${courseId}.pdf`);
       tempOutputPath = path.join(tempDir, `output_${req.userId}_${courseId}.pdf`);
 
-      // 5. Download source file to disk
-      if (course.fileUrl.startsWith('r2://')) {
-        const r2Key = course.fileUrl.replace('r2://', '');
-        console.log(`[PDF Security] Native Mode: Streaming from Cloudflare R2 to disk (key: ${r2Key})`);
-        const r2Response = await r2Client.send(new GetObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: r2Key,
-        }));
-        await pipeline(r2Response.Body, createWriteStream(tempInputPath));
-      } else {
-        console.log(`[PDF Security] Native Mode: Copying local file to temp path`);
-        const localFilePath = path.join(__dirname, '../', course.fileUrl);
-        await fs.copyFile(localFilePath, tempInputPath);
+      let totalPages = 0;
+      let firstPageWidth = 595.276; // Default A4
+      let firstPageHeight = 841.89;
+
+      // 5. Download and process parts sequentially to save memory
+      for (let i = 0; i < partUrls.length; i++) {
+        const partUrl = partUrls[i];
+        const rawPartPath = path.join(tempDir, `part_${i}_raw_${req.userId}_${courseId}.pdf`);
+        const securedPartPath = path.join(tempDir, `part_${i}_secured_${req.userId}_${courseId}.pdf`);
+        rawPartPaths.push(rawPartPath);
+        securedPartPaths.push(securedPartPath);
+
+        if (partUrl.startsWith('r2://')) {
+          const r2Key = partUrl.replace('r2://', '');
+          console.log(`[PDF Security] Native Mode: Downloading part ${i+1}/${partUrls.length} from R2 (key: ${r2Key})`);
+          const r2Response = await r2Client.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: r2Key,
+          }));
+          await pipeline(r2Response.Body, createWriteStream(rawPartPath));
+        } else {
+          console.log(`[PDF Security] Native Mode: Copying local part ${i+1}/${partUrls.length}`);
+          const localFilePath = path.join(__dirname, '../', partUrl);
+          await fs.copyFile(localFilePath, rawPartPath);
+        }
+
+        // Get dimensions and page count of part using qpdf
+        const { stdout: qpdfInfo } = await execPromise(`qpdf --show-pages "${rawPartPath}"`);
+        const partPageCount = (qpdfInfo.match(/page \d+:/g) || []).length;
+        totalPages += partPageCount;
+
+        if (i === 0) {
+          const sizeMatch = qpdfInfo.match(/page 1:[^]*?size: ([\d.]+) x ([\d.]+)/i);
+          if (sizeMatch) {
+            firstPageWidth = parseFloat(sizeMatch[1]);
+            firstPageHeight = parseFloat(sizeMatch[2]);
+          }
+        }
       }
-      console.log(`[PDF Security] Native Mode: PDF downloaded to disk`);
+      console.log(`[PDF Security] Native Mode: All parts downloaded. Total pages: ${totalPages}`);
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 6;
 
@@ -631,31 +740,17 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 7;
 
-      // Get page dimensions and page count using qpdf
-      console.log(`[PDF Security] Native Mode: Getting dimensions and page count from qpdf`);
-      const { stdout: qpdfInfo } = await execPromise(`qpdf --show-pages "${tempInputPath}"`);
-      const pageCount = (qpdfInfo.match(/page \d+:/g) || []).length;
-      
-      const sizeMatch = qpdfInfo.match(/page 1:[^]*?size: ([\d.]+) x ([\d.]+)/i);
-      let width = 595.276; // Default A4
-      let height = 841.89;
-      if (sizeMatch) {
-        width = parseFloat(sizeMatch[1]);
-        height = parseFloat(sizeMatch[2]);
-      }
-      console.log(`[PDF Security] Native Mode: PDF has ${pageCount} pages, size: ${width}x${height}`);
-
       // Create stamp PDF (1 page with watermark & barcode)
       console.log(`[PDF Security] Native Mode: Creating watermark stamp PDF`);
       const stampDoc = await PDFDocument.create();
       const helveticaFont = await stampDoc.embedFont('Helvetica');
       const helveticaBoldFont = await stampDoc.embedFont('Helvetica-Bold');
-      const stampPage = stampDoc.addPage([width, height]);
+      const stampPage = stampDoc.addPage([firstPageWidth, firstPageHeight]);
 
       const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
       stampPage.drawText(watermarkText, {
         x: 25,
-        y: height - 25,
+        y: firstPageHeight - 25,
         size: 9,
         font: helveticaFont,
         color: rgb(0.6, 0.6, 0.6),
@@ -665,7 +760,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       const barcodeWidth = 90;
       const barcodeHeight = 20;
       stampPage.drawImage(barcodeImage, {
-        x: width - barcodeWidth - 25,
+        x: firstPageWidth - barcodeWidth - 25,
         y: 15,
         width: barcodeWidth,
         height: barcodeHeight,
@@ -677,45 +772,91 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       // Create warning PDF (1 page)
       console.log(`[PDF Security] Native Mode: Creating warning page PDF`);
       const warningDoc = await PDFDocument.create();
-      const warningPage = warningDoc.addPage([width, height]);
+      const warningPage = warningDoc.addPage([firstPageWidth, firstPageHeight]);
       drawSecurityWarningPage(warningPage, user, course, helveticaFont, helveticaBoldFont);
       const warningBytes = await warningDoc.save();
       await fs.writeFile(tempWarningPath, warningBytes);
 
-      // Determine warning page positions
-      const numPagesToAdd = Math.max(1, Math.floor(pageCount / 40));
-      const insertPositions = [];
-      for (let j = 0; j < numPagesToAdd; j++) {
-        insertPositions.push(Math.floor(Math.random() * (pageCount + 1)) + 1);
-      }
-      insertPositions.sort((a, b) => a - b);
-
-      // Construct qpdf pages arguments
-      const qpdfPages = [];
-      let currentPos = 1;
-      for (const pos of insertPositions) {
-        if (pos > currentPos) {
-          qpdfPages.push(`"${tempInputPath}"`, `${currentPos}-${pos - 1}`);
-        }
-        qpdfPages.push(`"${tempWarningPath}"`, `1`);
-        currentPos = pos;
-      }
-      if (currentPos <= pageCount) {
-        qpdfPages.push(`"${tempInputPath}"`, `${currentPos}-z`);
+      // 7. Apply watermark stamp to each part sequentially
+      for (let i = 0; i < partUrls.length; i++) {
+        console.log(`[PDF Security] Native Mode: Watermarking part ${i+1}/${partUrls.length}`);
+        const qpdfStampCmd = `qpdf "${rawPartPaths[i]}" --overlay "${tempStampPath}" --repeat=1-z -- "${securedPartPaths[i]}"`;
+        await execPromise(qpdfStampCmd);
+        // Clean up the raw file immediately
+        await fs.unlink(rawPartPaths[i]).catch(() => {});
       }
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 8;
-      
-      // 8. Execute qpdf to merge warning pages, overlay watermark, and encrypt
-      console.log(`[PDF Security] Native Mode: Running qpdf command to stamp and encrypt`);
+
+      // Determine warning page positions in global page space
+      const numPagesToAdd = Math.max(1, Math.floor(totalPages / 40));
+      const insertPositions = [];
+      for (let j = 0; j < numPagesToAdd; j++) {
+        insertPositions.push(Math.floor(Math.random() * (totalPages + 1)) + 1);
+      }
+      insertPositions.sort((a, b) => a - b);
+
+      // Get page counts of each secured part
+      const partPageCounts = [];
+      for (let i = 0; i < securedPartPaths.length; i++) {
+        const { stdout: partInfo } = await execPromise(`qpdf --show-pages "${securedPartPaths[i]}"`);
+        const count = (partInfo.match(/page \d+:/g) || []).length;
+        partPageCounts.push(count);
+      }
+
+      // Map insertPositions globally to construct pages list
+      const qpdfPages = [];
+      let currentPartIdx = 0;
+      let currentPartPageStart = 1;
+      let globalPageCursor = 1;
+
+      for (const insertPos of insertPositions) {
+        while (currentPartIdx < securedPartPaths.length) {
+          const partLength = partPageCounts[currentPartIdx];
+          const partGlobalEnd = globalPageCursor + (partLength - currentPartPageStart);
+
+          if (insertPos <= partGlobalEnd) {
+            const localInsertOffset = insertPos - globalPageCursor;
+            const localInsertPage = currentPartPageStart + localInsertOffset;
+
+            if (localInsertPage > currentPartPageStart) {
+              qpdfPages.push(`"${securedPartPaths[currentPartIdx]}"`, `${currentPartPageStart}-${localInsertPage - 1}`);
+            }
+            qpdfPages.push(`"${tempWarningPath}"`, `1`);
+
+            currentPartPageStart = localInsertPage;
+            globalPageCursor = insertPos;
+            break;
+          } else {
+            if (currentPartPageStart <= partLength) {
+              qpdfPages.push(`"${securedPartPaths[currentPartIdx]}"`, `${currentPartPageStart}-z`);
+            }
+            globalPageCursor += (partLength - currentPartPageStart + 1);
+            currentPartIdx++;
+            currentPartPageStart = 1;
+          }
+        }
+      }
+
+      while (currentPartIdx < securedPartPaths.length) {
+        const partLength = partPageCounts[currentPartIdx];
+        if (currentPartPageStart <= partLength) {
+          qpdfPages.push(`"${securedPartPaths[currentPartIdx]}"`, `${currentPartPageStart}-z`);
+        }
+        currentPartIdx++;
+        currentPartPageStart = 1;
+      }
+
+      // 8. Execute qpdf to merge stamped parts, insert warnings, and encrypt
+      console.log(`[PDF Security] Native Mode: Running final qpdf merge & encrypt`);
       const userPassword = user.email.trim().toLowerCase();
       
-      const qpdfCommand = `qpdf --empty --pages ${qpdfPages.join(' ')} -- --overlay "${tempStampPath}" --repeat=1-z --encrypt "${userPassword}" "${userPassword}" 256 -- "${tempOutputPath}"`;
+      const qpdfCommand = `qpdf --empty --pages ${qpdfPages.join(' ')} -- --encrypt "${userPassword}" "${userPassword}" 256 -- "${tempOutputPath}"`;
       await execPromise(qpdfCommand);
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 9;
 
-      // Stream the output file to user
+      // Stream output file
       const outputStats = await fs.stat(tempOutputPath);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
@@ -730,19 +871,25 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     if (mode === 'server-js') {
       downloadProgressCache[`${req.userId}_${courseId}`] = 5;
 
-      let pdfBuffer;
-      if (course.fileUrl.startsWith('r2://')) {
-        const r2Key = course.fileUrl.replace('r2://', '');
-        console.log(`[PDF Security] JS Mode: Loading raw PDF file from Cloudflare R2 (key: ${r2Key})`);
-        const r2Response = await r2Client.send(new GetObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: r2Key,
-        }));
-        pdfBuffer = Buffer.from(await r2Response.Body.transformToByteArray());
-      } else {
-        console.log(`[PDF Security] JS Mode: Loading raw PDF file from local disk`);
-        const filePath = path.join(__dirname, '../', course.fileUrl);
-        pdfBuffer = await fs.readFile(filePath);
+      const pdfDocs = [];
+      for (let i = 0; i < partUrls.length; i++) {
+        const partUrl = partUrls[i];
+        let pdfBuffer;
+        if (partUrl.startsWith('r2://')) {
+          const r2Key = partUrl.replace('r2://', '');
+          console.log(`[PDF Security] JS Mode: Loading part ${i+1}/${partUrls.length} from Cloudflare R2 (key: ${r2Key})`);
+          const r2Response = await r2Client.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: r2Key,
+          }));
+          pdfBuffer = Buffer.from(await r2Response.Body.transformToByteArray());
+        } else {
+          console.log(`[PDF Security] JS Mode: Loading part ${i+1}/${partUrls.length} from local disk`);
+          const filePath = path.join(__dirname, '../', partUrl);
+          pdfBuffer = await fs.readFile(filePath);
+        }
+        const doc = await PDFDocument.load(pdfBuffer);
+        pdfDocs.push(doc);
       }
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 6;
@@ -763,48 +910,54 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 7;
 
-      const pdfDoc = await PDFDocument.load(pdfBuffer);
-      const barcodeImage = await pdfDoc.embedPng(barcodePngBuffer);
-      const helveticaFont = await pdfDoc.embedFont('Helvetica');
-      const helveticaBoldFont = await pdfDoc.embedFont('Helvetica-Bold');
+      const mergedPdfDoc = await PDFDocument.create();
+      const barcodeImage = await mergedPdfDoc.embedPng(barcodePngBuffer);
+      const helveticaFont = await mergedPdfDoc.embedFont('Helvetica');
+      const helveticaBoldFont = await mergedPdfDoc.embedFont('Helvetica-Bold');
 
-      pdfDoc.setTitle(course.name || 'Secured Course PDF');
-      pdfDoc.setAuthor(user.email);
-      pdfDoc.setSubject(course.subject || 'Syllabus Course Content');
-      pdfDoc.setProducer('The Dark Horse UPSC');
-      pdfDoc.setCreator('The Dark Horse UPSC');
-      pdfDoc.setKeywords([user._id.toString(), user.email]);
+      mergedPdfDoc.setTitle(course.name || 'Secured Course PDF');
+      mergedPdfDoc.setAuthor(user.email);
+      mergedPdfDoc.setSubject(course.subject || 'Syllabus Course Content');
+      mergedPdfDoc.setProducer('The Dark Horse UPSC');
+      mergedPdfDoc.setCreator('The Dark Horse UPSC');
+      mergedPdfDoc.setKeywords([user._id.toString(), user.email]);
 
-      const pages = pdfDoc.getPages();
       const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || 'N/A'}`;
 
-      for (let i = 0; i < pages.length; i++) {
-        const page = pages[i];
-        const { width, height } = page.getSize();
-        page.drawText(watermarkText, {
-          x: 25,
-          y: height - 25,
-          size: 9,
-          font: helveticaFont,
-          color: rgb(0.6, 0.6, 0.6),
-        });
+      let totalOriginalPages = 0;
+      for (const doc of pdfDocs) {
+        const copiedPages = await mergedPdfDoc.copyPages(doc, doc.getPageIndices());
+        for (const page of copiedPages) {
+          const { width, height } = page.getSize();
+          
+          page.drawText(watermarkText, {
+            x: 25,
+            y: height - 25,
+            size: 9,
+            font: helveticaFont,
+            color: rgb(0.6, 0.6, 0.6),
+          });
 
-        const barcodeWidth = 90;
-        const barcodeHeight = 20;
-        page.drawImage(barcodeImage, {
-          x: width - barcodeWidth - 25,
-          y: 15,
-          width: barcodeWidth,
-          height: barcodeHeight,
-        });
+          const barcodeWidth = 90;
+          const barcodeHeight = 20;
+          page.drawImage(barcodeImage, {
+            x: width - barcodeWidth - 25,
+            y: 15,
+            width: barcodeWidth,
+            height: barcodeHeight,
+          });
+
+          mergedPdfDoc.addPage(page);
+          totalOriginalPages++;
+        }
       }
 
-      if (pages.length > 0) {
-        const firstPage = pages[0];
+      if (totalOriginalPages > 0) {
+        const firstPage = mergedPdfDoc.getPages()[0];
         const { width, height } = firstPage.getSize();
-        const numPagesToAdd = Math.max(1, Math.floor(pages.length / 40));
+        const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 40));
         const insertIndices = [];
-        let currentPagesCount = pages.length;
+        let currentPagesCount = totalOriginalPages;
         for (let j = 0; j < numPagesToAdd; j++) {
           let maxIdx = currentPagesCount;
           let minIdx = currentPagesCount > 1 ? 1 : 0;
@@ -813,13 +966,13 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         }
         insertIndices.sort((a, b) => a - b);
         for (const insertIdx of insertIndices) {
-          const newPage = pdfDoc.insertPage(insertIdx, [width, height]);
+          const newPage = mergedPdfDoc.insertPage(insertIdx, [width, height]);
           drawSecurityWarningPage(newPage, user, course, helveticaFont, helveticaBoldFont);
         }
       }
 
       downloadProgressCache[`${req.userId}_${courseId}`] = 8;
-      const modifiedPdfBuffer = await pdfDoc.save({
+      const modifiedPdfBuffer = await mergedPdfDoc.save({
         useObjectStreams: false,
         updateFieldAppearances: false
       });
@@ -843,10 +996,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     delete downloadProgressCache[`${req.userId}_${courseId}`];
     
     // Cleanup temporary files in native mode
-    if (tempInputPath) await fs.unlink(tempInputPath).catch(() => {});
     if (tempStampPath) await fs.unlink(tempStampPath).catch(() => {});
     if (tempWarningPath) await fs.unlink(tempWarningPath).catch(() => {});
     if (tempOutputPath) await fs.unlink(tempOutputPath).catch(() => {});
+    for (const p of rawPartPaths) {
+      if (p) await fs.unlink(p).catch(() => {});
+    }
+    for (const p of securedPartPaths) {
+      if (p) await fs.unlink(p).catch(() => {});
+    }
   }
 };
 

@@ -6,6 +6,9 @@ const courseSchema = new mongoose.Schema({
   subject: { type: String, required: true },
   fileName: { type: String, required: true },
   fileUrl: { type: String, required: true },
+  fileUrls: { type: [String], default: [] },
+  fileNames: { type: [String], default: [] },
+  partPageCounts: { type: [Number], default: [] },
   price: { type: Number, default: 499 }
 }, { timestamps: true });
 
