@@ -582,21 +582,6 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 3: Access verified`);
 
-    // Step 4 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 4;
-
-    // 4. Validate user download limits
-    console.log(`[PDF Security] Step 4: Validating user download limits`);
-    let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
-
-    if (limitEntry) {
-      if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
-        console.log(`[PDF Security] Step 4: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
-        return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
-      }
-    }
-    console.log(`[PDF Security] Step 4: User download limits verified`);
-
     if (mode === 'github-actions') {
       const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
       console.log(`[PDF Security] Checking if secured PDF already exists in R2 under key: ${destinationKey}`);
@@ -625,7 +610,25 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         getResponse.Body.pipe(res);
         return;
       }
+    }
 
+    // Step 4 starts
+    downloadProgressCache[`${req.userId}_${courseId}`] = 4;
+
+    // 4. Validate user download limits
+    console.log(`[PDF Security] Step 4: Validating user download limits`);
+    let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
+
+    if (limitEntry) {
+      if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
+        console.log(`[PDF Security] Step 4: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
+        return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
+      }
+    }
+    console.log(`[PDF Security] Step 4: User download limits verified`);
+
+    if (mode === 'github-actions') {
+      const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
       // If it doesn't exist, check if there's already an active job in progress
       const cacheKey = `${req.userId}_${courseId}`;
       const activeJob = downloadProgressCache[cacheKey];
