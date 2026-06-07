@@ -49,6 +49,12 @@ console.log(`User Email: ${userEmail}`);
 console.log(`Source Keys: ${sourceKey}`);
 console.log(`Destination Key: ${destinationKey}`);
 console.log(`Callback URL: ${callbackUrl}`);
+console.log('--- Environment Variables Check ---');
+console.log(`CLOUDFLARE_ACCOUNT_ID: ${process.env.CLOUDFLARE_ACCOUNT_ID ? 'defined' : 'undefined'}`);
+console.log(`CLOUDFLARE_ACCESS_KEY_ID: ${process.env.CLOUDFLARE_ACCESS_KEY_ID ? 'defined' : 'undefined'}`);
+console.log(`CLOUDFLARE_SECRET_ACCESS_KEY: ${process.env.CLOUDFLARE_SECRET_ACCESS_KEY ? 'defined' : 'undefined'}`);
+console.log(`R2_BUCKET_NAME: ${process.env.R2_BUCKET_NAME ? 'defined (' + process.env.R2_BUCKET_NAME.length + ' chars)' : 'undefined'}`);
+console.log(`CALLBACK_SECRET: ${process.env.CALLBACK_SECRET ? 'defined' : 'undefined'}`);
 
 const r2Client = new S3Client({
   region: 'auto',
