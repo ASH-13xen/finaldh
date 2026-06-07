@@ -13,6 +13,7 @@ import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectComm
 import { r2Client } from '../config/r2.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
+import DownloadSession from '../models/DownloadSession.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { pipeline } from 'stream/promises';
@@ -22,8 +23,20 @@ const execPromise = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Global cache to track real-time download progress steps
+// Global cache to track real-time download progress steps (kept for backward-compatibility)
 export const downloadProgressCache = {};
+
+export const setSessionProgress = async (userId, courseId, step, status = 'processing', error = null) => {
+  try {
+    await DownloadSession.findOneAndUpdate(
+      { userId, courseId },
+      { step, status, error },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error(`[DownloadSession] Error updating progress:`, err);
+  }
+};
 
 // Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
@@ -536,8 +549,10 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   let mode = process.env.DOWNLOAD_MODE || 'github-actions';
   console.log(`[PDF Security] Download mode: ${mode}`);
 
+  let dispatched = false;
+
   // Initialize tracking
-  downloadProgressCache[`${req.userId}_${courseId}`] = 1;
+  await setSessionProgress(req.userId, courseId, 1, 'idle');
 
   let tempStampPath = '';
   let tempWarningPath = '';
@@ -557,7 +572,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     console.log(`[PDF Security] Step 1: User found (${user.email})`);
 
     // Step 2 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 2;
+    await setSessionProgress(req.userId, courseId, 2, 'idle');
 
     // 2. Fetch course by custom courseId
     console.log(`[PDF Security] Step 2: Fetching course details for courseId: ${courseId}`);
@@ -569,7 +584,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     console.log(`[PDF Security] Step 2: Course found (${course.name})`);
 
     // Step 3 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 3;
+    await setSessionProgress(req.userId, courseId, 3, 'idle');
 
     // 3. Verify user has access to this course (check if interestedCourses contains courseId)
     console.log(`[PDF Security] Step 3: Verifying student course permissions`);
@@ -613,7 +628,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
 
     // Step 4 starts
-    downloadProgressCache[`${req.userId}_${courseId}`] = 4;
+    await setSessionProgress(req.userId, courseId, 4, 'idle');
 
     // 4. Validate user download limits
     console.log(`[PDF Security] Step 4: Validating user download limits`);
@@ -630,10 +645,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     if (mode === 'github-actions') {
       const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
       // If it doesn't exist, check if there's already an active job in progress
-      const cacheKey = `${req.userId}_${courseId}`;
-      const activeJob = downloadProgressCache[cacheKey];
+      const activeJob = await DownloadSession.findOne({ userId: req.userId, courseId });
       if (activeJob && (activeJob.status === 'queued' || activeJob.status === 'processing')) {
-        console.log(`[PDF Security] Job is already running. Cache value:`, activeJob);
+        console.log(`[PDF Security] Job is already running. Database value:`, activeJob);
         return res.status(202).json({
           status: 'processing',
           message: 'PDF generation is currently in progress'
@@ -707,7 +721,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           throw new Error(`GitHub API returned ${response.status}: ${errorText}`);
         }
 
-        downloadProgressCache[cacheKey] = { step: 1, status: 'queued' };
+        await setSessionProgress(req.userId, courseId, 1, 'queued');
+        dispatched = true;
         console.log(`[PDF Security] Successfully dispatched GitHub workflow run`);
 
         return res.status(202).json({
@@ -802,7 +817,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     // --- MODE 2: SERVER-SIDE NATIVE (QPDF) PROCESSING ---
     if (mode === 'server-native') {
-      downloadProgressCache[`${req.userId}_${courseId}`] = 5;
+      await setSessionProgress(req.userId, courseId, 5, 'processing');
       
       // Ensure temp directory exists
       const tempDir = path.join(__dirname, '../uploads/temp');
@@ -853,7 +868,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       }
       console.log(`[PDF Security] Native Mode: All parts downloaded. Total pages: ${totalPages}`);
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 6;
+      await setSessionProgress(req.userId, courseId, 6, 'processing');
 
       // 6. Generate barcode buffer
       console.log(`[PDF Security] Native Mode: Generating user barcode`);
@@ -871,7 +886,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         });
       });
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 7;
+      await setSessionProgress(req.userId, courseId, 7, 'processing');
 
       // Create stamp PDF (1 page with watermark & barcode)
       console.log(`[PDF Security] Native Mode: Creating watermark stamp PDF`);
@@ -919,7 +934,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         await fs.unlink(rawPartPaths[i]).catch(() => {});
       }
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 8;
+      await setSessionProgress(req.userId, courseId, 8, 'processing');
 
       // Determine warning page positions in global page space
       const numPagesToAdd = Math.max(1, Math.floor(totalPages / 40));
@@ -987,7 +1002,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       const qpdfCommand = `qpdf --empty --pages ${qpdfPages.join(' ')} -- --encrypt "${userPassword}" "${userPassword}" 256 -- "${tempOutputPath}"`;
       await execPromise(qpdfCommand);
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 9;
+      await setSessionProgress(req.userId, courseId, 9, 'completed');
 
       // Stream output file
       const outputStats = await fs.stat(tempOutputPath);
@@ -1002,7 +1017,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     // --- MODE 3: SERVER-SIDE JS (FALLBACK) PROCESSING ---
     if (mode === 'server-js') {
-      downloadProgressCache[`${req.userId}_${courseId}`] = 5;
+      await setSessionProgress(req.userId, courseId, 5, 'processing');
 
       const pdfDocs = [];
       for (let i = 0; i < partUrls.length; i++) {
@@ -1025,7 +1040,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         pdfDocs.push(doc);
       }
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 6;
+      await setSessionProgress(req.userId, courseId, 6, 'processing');
 
       let barcodePngBuffer = await new Promise((resolve, reject) => {
         bwipjs.toBuffer({
@@ -1041,7 +1056,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         });
       });
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 7;
+      await setSessionProgress(req.userId, courseId, 7, 'processing');
 
       const mergedPdfDoc = await PDFDocument.create();
       const barcodeImage = await mergedPdfDoc.embedPng(barcodePngBuffer);
@@ -1104,13 +1119,13 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         }
       }
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 8;
+      await setSessionProgress(req.userId, courseId, 8, 'processing');
       const modifiedPdfBuffer = await mergedPdfDoc.save({
         useObjectStreams: false,
         updateFieldAppearances: false
       });
 
-      downloadProgressCache[`${req.userId}_${courseId}`] = 9;
+      await setSessionProgress(req.userId, courseId, 9, 'completed');
       const userPassword = user.email.trim().toLowerCase();
       const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
 
@@ -1126,7 +1141,11 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     console.error(`[PDF Security] Server error during PDF secure process:`, err);
     res.status(500).json({ error: 'Server error processing secured PDF download' });
   } finally {
-    delete downloadProgressCache[`${req.userId}_${courseId}`];
+    if (!dispatched) {
+      await DownloadSession.deleteOne({ userId: req.userId, courseId }).catch(err => 
+        console.error(`[DownloadSession] Error deleting session on cleanup:`, err)
+      );
+    }
     
     // Cleanup temporary files in native mode
     if (tempStampPath) await fs.unlink(tempStampPath).catch(() => {});
@@ -1354,18 +1373,24 @@ export const getRawCoursePdf = async (req, res) => {
 // Retrieve real-time progress of secured PDF download process
 export const getDownloadProgress = async (req, res) => {
   const { courseId } = req.params;
-  const cacheVal = downloadProgressCache[`${req.userId}_${courseId}`];
-  if (!cacheVal) {
-    return res.json({ step: 0, status: 'idle' });
+  try {
+    const session = await DownloadSession.findOne({ userId: req.userId, courseId });
+    if (!session) {
+      return res.json({ step: 0, status: 'idle' });
+    }
+    let status = session.status;
+    if (status === 'idle' && session.step > 0) {
+      status = 'processing';
+    }
+    res.json({
+      step: session.step || 0,
+      status: status || 'processing',
+      error: session.error || null
+    });
+  } catch (err) {
+    console.error(`[DownloadSession] Error retrieving progress:`, err);
+    res.status(500).json({ error: 'Server error retrieving progress' });
   }
-  if (typeof cacheVal === 'number') {
-    return res.json({ step: cacheVal, status: 'processing' });
-  }
-  res.json({
-    step: cacheVal.step || 0,
-    status: cacheVal.status || 'processing',
-    error: cacheVal.error || null
-  });
 };
 
 // Webhook callback from GitHub Actions PDF processor
@@ -1381,15 +1406,13 @@ export const githubCallback = async (req, res) => {
   const { status, courseId, userId, destinationKey, step, error } = req.body;
   console.log(`[GitHub Callback] Received update. status: ${status}, courseId: ${courseId}, userId: ${userId}, step: ${step}`);
 
-  const cacheKey = `${userId}_${courseId}`;
-
   if (status === 'progress') {
-    downloadProgressCache[cacheKey] = { step, status: 'processing' };
+    await setSessionProgress(userId, courseId, step, 'processing');
   } else if (status === 'completed') {
-    downloadProgressCache[cacheKey] = { step: 9, status: 'completed' };
+    await setSessionProgress(userId, courseId, 9, 'completed');
     console.log(`[GitHub Callback] PDF processing completed successfully. Key: ${destinationKey}`);
   } else if (status === 'failed') {
-    downloadProgressCache[cacheKey] = { step: 0, status: 'failed', error: error || 'Processing failed' };
+    await setSessionProgress(userId, courseId, 0, 'failed', error || 'Processing failed');
     console.error(`[GitHub Callback] PDF processing failed: ${error}`);
   }
 
