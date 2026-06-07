@@ -9,7 +9,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PDFDocument, rgb } from 'pdf-lib';
 import bwipjs from 'bwip-js';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt-lite';
-import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '../config/r2.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
@@ -532,8 +532,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   const { courseId } = req.params;
   console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}`);
 
-  // Determine mode (default to server-js if not specified)
-  let mode = process.env.DOWNLOAD_MODE || 'server-js';
+  // Determine mode (default to github-actions if not specified)
+  let mode = process.env.DOWNLOAD_MODE || 'github-actions';
   console.log(`[PDF Security] Download mode: ${mode}`);
 
   // Initialize tracking
@@ -596,6 +596,136 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       }
     }
     console.log(`[PDF Security] Step 4: User download limits verified`);
+
+    if (mode === 'github-actions') {
+      const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
+      console.log(`[PDF Security] Checking if secured PDF already exists in R2 under key: ${destinationKey}`);
+      let fileExists = false;
+      try {
+        await r2Client.send(new HeadObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: destinationKey
+        }));
+        fileExists = true;
+        console.log(`[PDF Security] Secured PDF found in R2. Streaming directly...`);
+      } catch (err) {
+        console.log(`[PDF Security] Secured PDF not found in R2. Proceeding to background generation...`);
+      }
+
+      if (fileExists) {
+        const getResponse = await r2Client.send(new GetObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: destinationKey
+        }));
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
+        res.setHeader('Content-Length', getResponse.ContentLength);
+        
+        getResponse.Body.pipe(res);
+        return;
+      }
+
+      // If it doesn't exist, check if there's already an active job in progress
+      const cacheKey = `${req.userId}_${courseId}`;
+      const activeJob = downloadProgressCache[cacheKey];
+      if (activeJob && (activeJob.status === 'queued' || activeJob.status === 'processing')) {
+        console.log(`[PDF Security] Job is already running. Cache value:`, activeJob);
+        return res.status(202).json({
+          status: 'processing',
+          message: 'PDF generation is currently in progress'
+        });
+      }
+
+      // Pre-emptively track and update download limit in database since we are starting generation
+      const limitUser = await User.findById(req.userId);
+      if (limitUser) {
+        let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+        if (finalLimitEntry) {
+          finalLimitEntry.downloadedCount += 1;
+        } else {
+          limitUser.downloadLimits.push({
+            courseId,
+            downloadedCount: 1,
+            allowedCount: 1
+          });
+        }
+        await limitUser.save();
+        creditIncremented = true;
+        console.log(`[PDF Security] Download limit tracked & updated in database (downloadedCount incremented)`);
+      }
+
+      const repoOwner = process.env.GITHUB_REPO_OWNER;
+      const repoName = process.env.GITHUB_REPO_NAME;
+      const githubPat = process.env.GITHUB_PAT;
+      
+      if (!repoOwner || !repoName || !githubPat) {
+        console.error('[PDF Security] Missing GitHub repository info or PAT in env');
+        return res.status(500).json({ error: 'GitHub Actions background worker is not fully configured' });
+      }
+
+      const partUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+      const sourceKeys = partUrls.map(url => url.replace('r2://', '')).join(',');
+
+      const callbackUrl = `${req.protocol}://${req.get('host')}/api/courses/github-callback`;
+
+      const dispatchUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/actions/workflows/pdf-processor.yml/dispatches`;
+      
+      console.log(`[PDF Security] Triggering GitHub workflow dispatch at: ${dispatchUrl}`);
+
+      try {
+        const response = await fetch(dispatchUrl, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${githubPat}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'render-backend-app',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ref: 'main',
+            inputs: {
+              courseId: course.courseId,
+              userId: req.userId,
+              userName: user.fullName || user.name || 'Scholar',
+              userEmail: user.email,
+              userMobile: user.mobileNumber || 'N/A',
+              sourceKey: sourceKeys,
+              destinationKey: destinationKey,
+              callbackUrl: callbackUrl
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[PDF Security] GitHub API returned error ${response.status}: ${errorText}`);
+          throw new Error(`GitHub API returned ${response.status}: ${errorText}`);
+        }
+
+        downloadProgressCache[cacheKey] = { step: 1, status: 'queued' };
+        console.log(`[PDF Security] Successfully dispatched GitHub workflow run`);
+
+        return res.status(202).json({
+          status: 'processing',
+          message: 'PDF generation queued on GitHub Actions worker'
+        });
+      } catch (dispatchErr) {
+        console.error(`[PDF Security] Error triggering workflow dispatch:`, dispatchErr);
+        if (creditIncremented) {
+          const refundUser = await User.findById(req.userId);
+          if (refundUser) {
+            let refundEntry = refundUser.downloadLimits.find(d => d.courseId === courseId);
+            if (refundEntry && refundEntry.downloadedCount > 0) {
+              refundEntry.downloadedCount -= 1;
+              await refundUser.save();
+            }
+          }
+        }
+        return res.status(500).json({ error: 'Failed to trigger background PDF processing: ' + dispatchErr.message });
+      }
+    }
 
     // Listen for client connection abort to refund credit
     req.on('close', async () => {
@@ -1221,7 +1351,45 @@ export const getRawCoursePdf = async (req, res) => {
 // Retrieve real-time progress of secured PDF download process
 export const getDownloadProgress = async (req, res) => {
   const { courseId } = req.params;
-  const step = downloadProgressCache[`${req.userId}_${courseId}`] || 0;
-  res.json({ step });
+  const cacheVal = downloadProgressCache[`${req.userId}_${courseId}`];
+  if (!cacheVal) {
+    return res.json({ step: 0, status: 'idle' });
+  }
+  if (typeof cacheVal === 'number') {
+    return res.json({ step: cacheVal, status: 'processing' });
+  }
+  res.json({
+    step: cacheVal.step || 0,
+    status: cacheVal.status || 'processing',
+    error: cacheVal.error || null
+  });
+};
+
+// Webhook callback from GitHub Actions PDF processor
+export const githubCallback = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const expectedSecret = `Bearer ${process.env.GITHUB_CALLBACK_SECRET}`;
+
+  if (!authHeader || authHeader !== expectedSecret) {
+    console.warn('[GitHub Callback] Unauthorized webhook callback attempt');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { status, courseId, userId, destinationKey, step, error } = req.body;
+  console.log(`[GitHub Callback] Received update. status: ${status}, courseId: ${courseId}, userId: ${userId}, step: ${step}`);
+
+  const cacheKey = `${userId}_${courseId}`;
+
+  if (status === 'progress') {
+    downloadProgressCache[cacheKey] = { step, status: 'processing' };
+  } else if (status === 'completed') {
+    downloadProgressCache[cacheKey] = { step: 9, status: 'completed' };
+    console.log(`[GitHub Callback] PDF processing completed successfully. Key: ${destinationKey}`);
+  } else if (status === 'failed') {
+    downloadProgressCache[cacheKey] = { step: 0, status: 'failed', error: error || 'Processing failed' };
+    console.error(`[GitHub Callback] PDF processing failed: ${error}`);
+  }
+
+  res.json({ status: 'ok' });
 };
 

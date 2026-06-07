@@ -12,7 +12,8 @@ import {
   analyzeCoursePage,
   downloadSecuredCoursePdf,
   getRawCoursePdf,
-  getDownloadProgress
+  getDownloadProgress,
+  githubCallback
 } from '../controllers/courseController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
@@ -55,5 +56,8 @@ router.get('/download/:courseId', authenticateToken, downloadSecuredCoursePdf);
 
 // Real-time download progress endpoint
 router.get('/download-progress/:courseId', authenticateToken, getDownloadProgress);
+
+// GitHub Actions callback webhook
+router.post('/github-callback', githubCallback);
 
 export default router;
