@@ -62,11 +62,11 @@ jobs:
           CALLBACK_SECRET: ${{ secrets.CALLBACK_SECRET }}
         run: |
           node scripts/process-pdf.js \
-            --courseId "${{ inputs.courseId }}" \
-            --userId "${{ inputs.userId }}" \
-            --userName "${{ inputs.userName }}" \
-            --userEmail "${{ inputs.userEmail }}" \
-            --userMobile "${{ inputs.userMobile }}" \
-            --sourceKey "${{ inputs.sourceKey }}" \
-            --destinationKey "${{ inputs.destinationKey }}" \
-            --callbackUrl "${{ inputs.callbackUrl }}"
+            --courseId="${{ inputs.courseId }}" \
+            --userId="${{ inputs.userId }}" \
+            --userName="${{ inputs.userName }}" \
+            --userEmail="${{ inputs.userEmail }}" \
+            --userMobile="${{ inputs.userMobile }}" \
+            --sourceKey="${{ inputs.sourceKey }}" \
+            --destinationKey="${{ inputs.destinationKey }}" \
+            --callbackUrl="${{ inputs.callbackUrl }}"

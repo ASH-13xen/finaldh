@@ -6,16 +6,29 @@ import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Setup argument parser
+// Setup robust argument parser
 const args = {};
-process.argv.slice(2).forEach(val => {
+const argv = process.argv.slice(2);
+for (let i = 0; i < argv.length; i++) {
+  const val = argv[i];
   if (val.startsWith('--')) {
-    const parts = val.split('=');
-    const key = parts[0].substring(2);
-    const value = parts.slice(1).join('=');
-    args[key] = value;
+    if (val.includes('=')) {
+      const parts = val.split('=');
+      const key = parts[0].substring(2);
+      const value = parts.slice(1).join('=');
+      args[key] = value;
+    } else {
+      const key = val.substring(2);
+      const nextVal = argv[i + 1];
+      if (nextVal && !nextVal.startsWith('--')) {
+        args[key] = nextVal;
+        i++; // skip next element
+      } else {
+        args[key] = 'true';
+      }
+    }
   }
-});
+}
 
 const {
   courseId,
