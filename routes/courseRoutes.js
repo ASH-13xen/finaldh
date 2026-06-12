@@ -20,7 +20,8 @@ import {
   getStudentPurchaseRequests,
   getAdminPurchaseRequests,
   approvePurchaseRequest,
-  rejectPurchaseRequest
+  rejectPurchaseRequest,
+  trackTelegramNotification
 } from '../controllers/purchaseController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
@@ -92,6 +93,7 @@ const uploadScreenshot = multer({
 // UPI Course purchase endpoints
 router.post('/purchase-request', authenticateToken, uploadScreenshot.single('screenshot'), createPurchaseRequest);
 router.get('/purchase-requests', authenticateToken, getStudentPurchaseRequests);
+router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackTelegramNotification);
 router.get('/admin/purchase-requests', authenticateToken, getAdminPurchaseRequests);
 router.post('/admin/purchase-requests/:id/approve', authenticateToken, approvePurchaseRequest);
 router.post('/admin/purchase-requests/:id/reject', authenticateToken, rejectPurchaseRequest);

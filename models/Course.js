@@ -9,7 +9,9 @@ const courseSchema = new mongoose.Schema({
   fileUrls: { type: [String], default: [] },
   fileNames: { type: [String], default: [] },
   partPageCounts: { type: [Number], default: [] },
-  price: { type: Number, default: 499 }
+  price: { type: Number, default: 499 },
+  discountedPrice: { type: Number, default: 499 },
+  useDiscount: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model('Course', courseSchema);

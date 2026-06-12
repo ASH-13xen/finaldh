@@ -40,7 +40,7 @@ export const setSessionProgress = async (userId, courseId, step, status = 'proce
 
 // Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
-  const { courseId, name, subject, price } = req.body;
+  const { courseId, name, subject, price, discountedPrice, useDiscount } = req.body;
   const files = req.files || [];
 
   if (!courseId) {
@@ -109,7 +109,9 @@ export const uploadCourse = async (req, res) => {
       fileUrls,
       fileNames,
       partPageCounts,
-      price: Number(price)
+      price: Number(price),
+      discountedPrice: discountedPrice !== undefined ? Number(discountedPrice) : Number(price),
+      useDiscount: useDiscount === 'true' || useDiscount === true
     });
 
     res.json({
@@ -137,7 +139,7 @@ export const uploadCourse = async (req, res) => {
 // Update an existing course
 export const updateCourse = async (req, res) => {
   const { id } = req.params;
-  const { courseId, name, subject, price } = req.body;
+  const { courseId, name, subject, price, discountedPrice, useDiscount } = req.body;
   const files = req.files || [];
 
   try {
@@ -157,6 +159,8 @@ export const updateCourse = async (req, res) => {
     if (name) course.name = name;
     if (subject) course.subject = subject;
     if (price !== undefined) course.price = Number(price);
+    if (discountedPrice !== undefined) course.discountedPrice = Number(discountedPrice);
+    if (useDiscount !== undefined) course.useDiscount = useDiscount === 'true' || useDiscount === true;
 
     if (files.length > 0) {
       const fileUrls = [];
@@ -684,7 +688,10 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       const partUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
       const sourceKeys = partUrls.map(url => url.replace('r2://', '')).join(',');
 
-      const callbackUrl = `${req.protocol}://${req.get('host')}/api/courses/github-callback`;
+      let callbackUrl = `${req.protocol}://${req.get('host')}/api/courses/github-callback`;
+      if (process.env.BACKEND_URL) {
+        callbackUrl = `${process.env.BACKEND_URL.replace(/\/$/, '')}/api/courses/github-callback`;
+      }
 
       const dispatchUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/actions/workflows/pdf-processor.yml/dispatches`;
       

@@ -7,6 +7,20 @@ export const connectDB = async () => {
     }
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB successfully');
+
+    // Dynamically drop the old unique index on upiTxnId if it exists in MongoDB
+    try {
+      const db = mongoose.connection.db;
+      if (db) {
+        await db.collection('purchaserequests').dropIndex('upiTxnId_1');
+        console.log('Successfully dropped old upiTxnId_1 unique index');
+      }
+    } catch (indexErr) {
+      // Error code 27 is IndexNotFound. We ignore it.
+      if (indexErr.code !== 27 && indexErr.code !== 85) {
+        console.log('Notice: Check on upiTxnId_1 index:', indexErr.message);
+      }
+    }
   } catch (err) {
     console.error('\n======================================================');
     console.error('DATABASE CONNECTION ERROR:');

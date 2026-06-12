@@ -9,8 +9,9 @@ const purchaseRequestSchema = new mongoose.Schema({
   courseName: { type: String, required: true },
   price: { type: Number, required: true },
   screenshotUrl: { type: String, required: true },
-  upiTxnId: { type: String, required: true, unique: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
+  upiTxnId: { type: String },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  telegramNotificationCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
 export default mongoose.model('PurchaseRequest', purchaseRequestSchema);

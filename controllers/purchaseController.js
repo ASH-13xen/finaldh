@@ -10,12 +10,11 @@ export const createPurchaseRequest = async (req, res) => {
   if (!courseId) {
     return res.status(400).json({ error: 'Course ID is required' });
   }
-  if (!upiTxnId || !upiTxnId.trim()) {
-    return res.status(400).json({ error: 'UPI Transaction ID is required' });
-  }
   if (!screenshotFile) {
     return res.status(400).json({ error: 'Payment screenshot is required' });
   }
+
+  const cleanedTxnId = upiTxnId ? upiTxnId.trim() : '';
 
   try {
     const user = await User.findById(req.userId);
@@ -52,12 +51,14 @@ export const createPurchaseRequest = async (req, res) => {
       return res.status(400).json({ error: 'You already have a pending purchase request for this course' });
     }
 
-    // Check if the UPI transaction ID has already been used (case-insensitive check)
-    const existingTxn = await PurchaseRequest.findOne({
-      upiTxnId: { $regex: new RegExp(`^${upiTxnId.trim()}$`, 'i') }
-    });
-    if (existingTxn) {
-      return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });
+    if (cleanedTxnId) {
+      // Check if the UPI transaction ID has already been used (case-insensitive check)
+      const existingTxn = await PurchaseRequest.findOne({
+        upiTxnId: { $regex: new RegExp(`^${cleanedTxnId}$`, 'i') }
+      });
+      if (existingTxn) {
+        return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });
+      }
     }
 
     // screenshotUrl should be relative path from backend/ uploads statically served directory
@@ -70,9 +71,9 @@ export const createPurchaseRequest = async (req, res) => {
       courseObjectId: course._id,
       courseId: course.courseId,
       courseName: course.name,
-      price: course.price,
+      price: course.useDiscount ? course.discountedPrice : course.price,
       screenshotUrl,
-      upiTxnId: upiTxnId.trim(),
+      upiTxnId: cleanedTxnId || undefined,
       status: 'pending'
     });
 
@@ -218,5 +219,38 @@ export const rejectPurchaseRequest = async (req, res) => {
   } catch (err) {
     console.error('Error rejecting purchase request:', err);
     res.status(500).json({ error: 'Server error rejecting purchase request' });
+  }
+};
+
+// Track Telegram notification clicks (limit to twice per student purchase request)
+export const trackTelegramNotification = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const request = await PurchaseRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({ error: 'Purchase request not found' });
+    }
+
+    // Ensure user owns this request
+    if (request.userId.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Access denied: You do not own this purchase request' });
+    }
+
+    if (request.telegramNotificationCount >= 2) {
+      return res.status(400).json({ error: 'Notification limit reached' });
+    }
+
+    request.telegramNotificationCount = (request.telegramNotificationCount || 0) + 1;
+    await request.save();
+
+    res.json({
+      success: true,
+      telegramNotificationCount: request.telegramNotificationCount,
+      request
+    });
+  } catch (err) {
+    console.error('Error tracking telegram notification:', err);
+    res.status(500).json({ error: 'Server error tracking telegram notification' });
   }
 };
