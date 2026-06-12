@@ -651,18 +651,18 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           }
         } catch (err) {}
 
-        const completedSession = await DownloadSession.findOne({
+        const activeSession = await DownloadSession.findOne({
           $or: [
-            { userId: req.userId, courseId, status: 'completed' },
-            { userId: userObjectId, courseId, status: 'completed' }
+            { userId: req.userId, courseId, status: { $in: ['queued', 'processing', 'completed'] } },
+            { userId: userObjectId, courseId, status: { $in: ['queued', 'processing', 'completed'] } }
           ].filter(q => q.userId !== null)
         });
         
-        if (completedSession) {
-          console.log(`[PDF Security] Direct Stream: Completed session found for user: ${req.userId}, courseId: ${courseId}. Bypassing limit increment & deleting session.`);
-          // Delete completed session so subsequent downloads get charged
-          await DownloadSession.deleteOne({ _id: completedSession._id }).catch(err => {
-            console.error(`[PDF Security] Error deleting completed session:`, err);
+        if (activeSession) {
+          console.log(`[PDF Security] Direct Stream: Active session (${activeSession.status}) found for user: ${req.userId}, courseId: ${courseId}. Bypassing limit increment & deleting session.`);
+          // Delete active session so subsequent downloads get charged
+          await DownloadSession.deleteOne({ _id: activeSession._id }).catch(err => {
+            console.error(`[PDF Security] Error deleting active session:`, err);
           });
         } else {
           // Validate user download limits first for direct download (since it's a new download of cached PDF)
