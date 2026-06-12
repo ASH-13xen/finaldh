@@ -611,12 +611,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     // If checkOnly is true and mode is NOT github-actions (local/sync mode download)
     if (checkOnly === 'true' && mode !== 'github-actions') {
-      console.log(`[PDF Security] checkOnly: Sync mode ${mode} ready for direct download. Checking limits first.`);
-      let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
-      if (limitEntry && limitEntry.downloadedCount >= limitEntry.allowedCount) {
-        console.log(`[PDF Security] checkOnly: Limit reached for user: ${user.email}, course: ${courseId}`);
-        return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
-      }
+      console.log(`[PDF Security] checkOnly: Sync mode ${mode} ready for direct download.`);
       return res.json({ exists: false, directStream: true });
     }
 
@@ -665,18 +660,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
             console.error(`[PDF Security] Error deleting active session:`, err);
           });
         } else {
-          // Validate user download limits first for direct download (since it's a new download of cached PDF)
-          console.log(`[PDF Security] Direct Stream: No completed session found. Validating user download limits`);
-          let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
-          if (limitEntry) {
-            if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
-              console.log(`[PDF Security] Direct Stream: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
-              return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
-            }
-          }
-          console.log(`[PDF Security] Direct Stream: User download limits verified`);
-
-          // Pre-emptively track and update download limit in database since we are streaming the file
+          // Track and update download limit in database since we are streaming the file
           const limitUser = await User.findById(req.userId);
           if (limitUser) {
             let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
@@ -729,17 +713,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       await setSessionProgress(req.userId, courseId, 4, 'idle');
     }
 
-    // 4. Validate user download limits
-    console.log(`[PDF Security] Step 4: Validating user download limits`);
-    let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
-
-    if (limitEntry) {
-      if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
-        console.log(`[PDF Security] Step 4: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
-        return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
-      }
-    }
-    console.log(`[PDF Security] Step 4: User download limits verified`);
+    console.log(`[PDF Security] Step 4: Download limit check bypassed`);
 
     if (mode === 'github-actions') {
       const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
