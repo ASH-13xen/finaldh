@@ -617,15 +617,59 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       }
 
       if (fileExists) {
+        // Validate user download limits first for direct download
+        console.log(`[PDF Security] Direct Stream: Validating user download limits`);
+        let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
+        if (limitEntry) {
+          if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
+            console.log(`[PDF Security] Direct Stream: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
+            return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
+          }
+        }
+        console.log(`[PDF Security] Direct Stream: User download limits verified`);
+
+        // Pre-emptively track and update download limit in database since we are streaming the file
+        const limitUser = await User.findById(req.userId);
+        if (limitUser) {
+          let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+          if (finalLimitEntry) {
+            finalLimitEntry.downloadedCount += 1;
+          } else {
+            limitUser.downloadLimits.push({
+              courseId,
+              downloadedCount: 1,
+              allowedCount: 1
+            });
+          }
+          await limitUser.save();
+          console.log(`[PDF Security] Direct Stream: Download count incremented in database`);
+        }
+
+        console.log(`[PDF Security] Direct Stream: Fetching secured PDF from R2: ${destinationKey}`);
         const getResponse = await r2Client.send(new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: destinationKey
         }));
+        console.log(`[PDF Security] Direct Stream: Object retrieved. ContentLength: ${getResponse.ContentLength} bytes. Writing response headers.`);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
         res.setHeader('Content-Length', getResponse.ContentLength);
         
+        console.log(`[PDF Security] Direct Stream: Headers written. Piping stream to client.`);
+        
+        res.on('finish', () => {
+          console.log(`[PDF Security] Direct Stream: Successfully completed streaming secured PDF for courseId: ${courseId}`);
+        });
+
+        res.on('close', () => {
+          console.log(`[PDF Security] Direct Stream: Client connection closed for courseId: ${courseId}`);
+        });
+
+        res.on('error', (err) => {
+          console.error(`[PDF Security] Direct Stream: Client response streaming error:`, err);
+        });
+
         getResponse.Body.pipe(res);
         return;
       }
