@@ -10,7 +10,8 @@ import {
   getPendingDownloadRequests,
   approveDownloadRequest,
   getUserDownloadRequests,
-  getUserBarcode
+  getUserBarcode,
+  completePurchaseProfile
 } from '../controllers/userController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
@@ -29,5 +30,8 @@ router.post('/download-request', authenticateToken, requestAdditionalDownload);
 router.get('/download-requests', authenticateToken, getUserDownloadRequests);
 router.get('/admin/requests', authenticateToken, getPendingDownloadRequests);
 router.post('/admin/requests/:id/approve', authenticateToken, approveDownloadRequest);
+
+// Profile completion route
+router.put('/complete-profile', authenticateToken, completePurchaseProfile);
 
 export default router;

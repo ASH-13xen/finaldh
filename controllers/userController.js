@@ -327,3 +327,75 @@ export const getUserBarcode = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// Complete purchase profile gate (saves name, telegram, and verified phone)
+export const completePurchaseProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, telegramUsername, mobileNumber } = req.body;
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    const updates = {};
+
+    // 1. Verify Name (first and last name, both filled)
+    const nameParts = (user.fullName || user.name || '').trim().split(/\s+/);
+    const isNameValid = nameParts.length >= 2 && nameParts[0] && nameParts[1];
+    
+    if (!isNameValid) {
+      if (!firstName || !firstName.trim() || !lastName || !lastName.trim()) {
+        return res.status(400).json({ error: 'Both First Name and Last Name must be provided.' });
+      }
+      updates.fullName = `${firstName.trim()} ${lastName.trim()}`;
+    }
+
+    // 2. Verify Telegram
+    const isTelegramValid = !!(user.telegramUsername && user.telegramUsername.trim());
+    if (!isTelegramValid) {
+      if (!telegramUsername || !telegramUsername.trim()) {
+        return res.status(400).json({ error: 'Telegram username is required.' });
+      }
+      updates.telegramUsername = telegramUsername.trim();
+    }
+
+    // 3. Save Phone (already verified on client-side via Firebase Auth)
+    const isPhoneValid = !!(user.mobileNumber && user.mobileNumber.trim());
+    if (!isPhoneValid) {
+      if (!mobileNumber || !mobileNumber.trim()) {
+        return res.status(400).json({ error: 'Phone number is required.' });
+      }
+      updates.mobileNumber = mobileNumber.trim();
+    }
+
+    // Apply updates if any
+    let updatedUser = user;
+    if (Object.keys(updates).length > 0) {
+      updatedUser = await User.findByIdAndUpdate(
+        req.userId,
+        { $set: updates },
+        { new: true }
+      );
+    }
+
+    res.json({
+      success: true,
+      user: {
+        name: updatedUser.name,
+        fullName: updatedUser.fullName || updatedUser.name,
+        email: updatedUser.email,
+        picture: updatedUser.picture,
+        optionalSubject: updatedUser.optionalSubject,
+        completedTopics: updatedUser.completedTopics,
+        mobileNumber: updatedUser.mobileNumber,
+        telegramUsername: updatedUser.telegramUsername,
+        interestedCourses: updatedUser.interestedCourses,
+        downloadLimits: updatedUser.downloadLimits || [],
+        isAdmin: updatedUser.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase()
+      }
+    });
+  } catch (error) {
+    console.error('Error completing purchase profile:', error);
+    res.status(500).json({ error: 'Server error saving profile details' });
+  }
+};
