@@ -14,6 +14,7 @@ import { r2Client } from '../config/r2.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
 import DownloadSession from '../models/DownloadSession.js';
+import mongoose from 'mongoose';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { pipeline } from 'stream/promises';
@@ -643,7 +644,19 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
         // OTHERWISE, we stream the file.
         // Prevent double-charging: Check if a completed DownloadSession exists for this user and course
-        const completedSession = await DownloadSession.findOne({ userId: req.userId, courseId, status: 'completed' });
+        let userObjectId = null;
+        try {
+          if (mongoose.Types.ObjectId.isValid(req.userId)) {
+            userObjectId = new mongoose.Types.ObjectId(req.userId);
+          }
+        } catch (err) {}
+
+        const completedSession = await DownloadSession.findOne({
+          $or: [
+            { userId: req.userId, courseId, status: 'completed' },
+            { userId: userObjectId, courseId, status: 'completed' }
+          ].filter(q => q.userId !== null)
+        });
         
         if (completedSession) {
           console.log(`[PDF Security] Direct Stream: Completed session found for user: ${req.userId}, courseId: ${courseId}. Bypassing limit increment & deleting session.`);
@@ -1472,7 +1485,19 @@ export const getRawCoursePdf = async (req, res) => {
 export const getDownloadProgress = async (req, res) => {
   const { courseId } = req.params;
   try {
-    const session = await DownloadSession.findOne({ userId: req.userId, courseId });
+    let userObjectId = null;
+    try {
+      if (mongoose.Types.ObjectId.isValid(req.userId)) {
+        userObjectId = new mongoose.Types.ObjectId(req.userId);
+      }
+    } catch (err) {}
+
+    const session = await DownloadSession.findOne({
+      $or: [
+        { userId: req.userId, courseId },
+        { userId: userObjectId, courseId }
+      ].filter(q => q.userId !== null)
+    });
     if (!session) {
       return res.json({ step: 0, status: 'idle' });
     }
