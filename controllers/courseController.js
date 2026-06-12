@@ -40,6 +40,7 @@ export const setSessionProgress = async (userId, courseId, step, status = 'proce
 };
 
 // Upload a new Course PDF
+// Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
   const { courseId, name, subject, price, discountedPrice, useDiscount } = req.body;
   const files = req.files || [];
@@ -56,9 +57,6 @@ export const uploadCourse = async (req, res) => {
   if (!price) {
     return res.status(400).json({ error: 'Price is required' });
   }
-  if (files.length === 0) {
-    return res.status(400).json({ error: 'Course PDF file(s) are required' });
-  }
 
   try {
     // Check if courseId is unique
@@ -67,38 +65,96 @@ export const uploadCourse = async (req, res) => {
       return res.status(400).json({ error: 'Course ID must be unique' });
     }
 
+    let filesConfig = [];
+    if (req.body.filesConfig) {
+      try {
+        filesConfig = JSON.parse(req.body.filesConfig);
+      } catch (e) {
+        console.warn('Failed to parse filesConfig:', e);
+      }
+    }
+
     const fileUrls = [];
     const fileNames = [];
     const partPageCounts = [];
 
-    for (const file of files) {
-      console.log(`[R2 Upload] Uploading ${file.filename} to Cloudflare R2...`);
-      const fileStream = createReadStream(file.path);
-      const uploadParams = {
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: file.filename,
-        Body: fileStream,
-        ContentType: file.mimetype || 'application/pdf',
-      };
+    let fileIndex = 0;
+    if (filesConfig.length > 0) {
+      for (const config of filesConfig) {
+        if (config.type === 'existing') {
+          fileUrls.push(config.url);
+          fileNames.push(config.name);
+          partPageCounts.push(config.pageCount || 0);
+        } else {
+          const file = files[fileIndex++];
+          if (!file) continue;
 
-      await r2Client.send(new PutObjectCommand(uploadParams));
-      console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
+          console.log(`[R2 Upload] Uploading ${file.filename} to Cloudflare R2...`);
+          const fileStream = createReadStream(file.path);
+          const uploadParams = {
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: file.filename,
+            Body: fileStream,
+            ContentType: file.mimetype || 'application/pdf',
+          };
 
-      // Count pages of this PDF file
-      let pageCount = 0;
-      try {
-        const fileBytes = await fs.readFile(file.path);
-        const tempPdfDoc = await PDFDocument.load(fileBytes, {
-          updateFieldAppearances: false
-        });
-        pageCount = tempPdfDoc.getPageCount();
-      } catch (pdfErr) {
-        console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
+          await r2Client.send(new PutObjectCommand(uploadParams));
+          console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
+
+          // Count pages of this PDF file
+          let pageCount = 0;
+          try {
+            const fileBytes = await fs.readFile(file.path);
+            const tempPdfDoc = await PDFDocument.load(fileBytes, {
+              updateFieldAppearances: false
+            });
+            pageCount = tempPdfDoc.getPageCount();
+          } catch (pdfErr) {
+            console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
+          }
+
+          fileUrls.push(`r2://${file.filename}`);
+          fileNames.push(config.name || file.originalname);
+          partPageCounts.push(pageCount);
+        }
+      }
+    } else {
+      if (files.length === 0) {
+        return res.status(400).json({ error: 'Course PDF file(s) are required' });
       }
 
-      fileUrls.push(`r2://${file.filename}`);
-      fileNames.push(file.originalname);
-      partPageCounts.push(pageCount);
+      for (const file of files) {
+        console.log(`[R2 Upload] Uploading ${file.filename} to Cloudflare R2...`);
+        const fileStream = createReadStream(file.path);
+        const uploadParams = {
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: file.filename,
+          Body: fileStream,
+          ContentType: file.mimetype || 'application/pdf',
+        };
+
+        await r2Client.send(new PutObjectCommand(uploadParams));
+        console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
+
+        let pageCount = 0;
+        try {
+          const fileBytes = await fs.readFile(file.path);
+          const tempPdfDoc = await PDFDocument.load(fileBytes, {
+            updateFieldAppearances: false
+          });
+          pageCount = tempPdfDoc.getPageCount();
+        } catch (pdfErr) {
+          console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
+        }
+
+        fileUrls.push(`r2://${file.filename}`);
+        fileNames.push(file.originalname);
+        partPageCounts.push(pageCount);
+      }
+    }
+
+    if (fileUrls.length === 0) {
+      return res.status(400).json({ error: 'At least one PDF file must be uploaded.' });
     }
 
     const newCourse = await Course.create({
@@ -163,7 +219,93 @@ export const updateCourse = async (req, res) => {
     if (discountedPrice !== undefined) course.discountedPrice = Number(discountedPrice);
     if (useDiscount !== undefined) course.useDiscount = useDiscount === 'true' || useDiscount === true;
 
-    if (files.length > 0) {
+    let filesConfig = [];
+    if (req.body.filesConfig) {
+      try {
+        filesConfig = JSON.parse(req.body.filesConfig);
+      } catch (e) {
+        console.warn('Failed to parse filesConfig in updateCourse:', e);
+      }
+    }
+
+    if (filesConfig.length > 0) {
+      const fileUrls = [];
+      const fileNames = [];
+      const partPageCounts = [];
+
+      let fileIndex = 0;
+      const oldUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+
+      for (const config of filesConfig) {
+        if (config.type === 'existing') {
+          fileUrls.push(config.url);
+          fileNames.push(config.name);
+          partPageCounts.push(config.pageCount || 0);
+        } else {
+          const file = files[fileIndex++];
+          if (!file) continue;
+
+          console.log(`[R2 Upload] Uploading replacement/new file ${file.filename} to R2...`);
+          const fileStream = createReadStream(file.path);
+          await r2Client.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: file.filename,
+            Body: fileStream,
+            ContentType: file.mimetype || 'application/pdf',
+          }));
+          console.log(`[R2 Upload] Replacement/new file uploaded to R2: ${file.filename}`);
+
+          // Count pages of this PDF file
+          let pageCount = 0;
+          try {
+            const fileBytes = await fs.readFile(file.path);
+            const tempPdfDoc = await PDFDocument.load(fileBytes, {
+              updateFieldAppearances: false
+            });
+            pageCount = tempPdfDoc.getPageCount();
+          } catch (pdfErr) {
+            console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
+          }
+
+          fileUrls.push(`r2://${file.filename}`);
+          fileNames.push(config.name || file.originalname);
+          partPageCounts.push(pageCount);
+        }
+      }
+
+      // Cleanup files that were in the old course but are not in the new configuration
+      for (const oldUrl of oldUrls) {
+        if (oldUrl && !fileUrls.includes(oldUrl)) {
+          if (oldUrl.startsWith('r2://')) {
+            const oldR2Key = oldUrl.replace('r2://', '');
+            console.log(`[R2 Cleanup] Deleting removed file from R2: ${oldR2Key}`);
+            try {
+              await r2Client.send(new DeleteObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: oldR2Key,
+              }));
+            } catch (deleteErr) {
+              console.warn(`[R2 Cleanup] Could not delete removed file from R2:`, deleteErr.message);
+            }
+          } else {
+            const oldFilePath = path.join(__dirname, '../', oldUrl);
+            try {
+              await fs.unlink(oldFilePath);
+            } catch (unlinkErr) {
+              console.warn('Could not delete removed local file:', unlinkErr.message);
+            }
+          }
+        }
+      }
+
+      course.fileName = fileNames[0] || '';
+      course.fileUrl = fileUrls[0] || '';
+      course.fileNames = fileNames;
+      course.fileUrls = fileUrls;
+      course.partPageCounts = partPageCounts;
+
+    } else if (files.length > 0) {
+      // Fallback edit behavior if no filesConfig sent but files exist:
       const fileUrls = [];
       const fileNames = [];
       const partPageCounts = [];
@@ -548,20 +690,16 @@ Return your analysis strictly as a JSON object with this format (do not wrap in 
 // Handle secured PDF download with top watermarks and bottom barcode
 export const downloadSecuredCoursePdf = async (req, res) => {
   const { courseId } = req.params;
-  const { checkOnly } = req.query;
-  console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}, checkOnly: ${checkOnly}`);
+  const { checkOnly, index: indexStr } = req.query;
+  const fileIndex = indexStr !== undefined ? parseInt(indexStr) : 0;
+
+  console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}, fileIndex: ${fileIndex}, checkOnly: ${checkOnly}`);
 
   // Determine mode (default to github-actions if not specified)
   let mode = process.env.DOWNLOAD_MODE || 'github-actions';
   console.log(`[PDF Security] Download mode: ${mode}`);
 
   let dispatched = false;
-
-  // Initialize tracking only if not checkOnly
-  if (checkOnly !== 'true') {
-    await setSessionProgress(req.userId, courseId, 1, 'idle');
-  }
-
   let tempStampPath = '';
   let tempWarningPath = '';
   let tempOutputPath = '';
@@ -570,6 +708,22 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   let creditIncremented = false;
 
   try {
+    // 2. Fetch course by custom courseId
+    console.log(`[PDF Security] Fetching course details for courseId: ${courseId}`);
+    const course = await Course.findOne({ courseId });
+    if (!course) {
+      console.log(`[PDF Security] Course not found for courseId: ${courseId}`);
+      return res.status(404).json({ error: 'Course not found' });
+    }
+    console.log(`[PDF Security] Course found (${course.name})`);
+
+    const compositeCourseId = (course.fileUrls && course.fileUrls.length > 1) ? `${courseId}_${fileIndex}` : courseId;
+
+    // Initialize tracking only if not checkOnly
+    if (checkOnly !== 'true') {
+      await setSessionProgress(req.userId, compositeCourseId, 1, 'idle');
+    }
+
     // 1. Fetch user to verify active session
     console.log(`[PDF Security] Step 1: Fetching user details for ID: ${req.userId}`);
     const user = await User.findById(req.userId);
@@ -581,21 +735,12 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     // Step 2 starts only if not checkOnly
     if (checkOnly !== 'true') {
-      await setSessionProgress(req.userId, courseId, 2, 'idle');
+      await setSessionProgress(req.userId, compositeCourseId, 2, 'idle');
     }
-
-    // 2. Fetch course by custom courseId
-    console.log(`[PDF Security] Step 2: Fetching course details for courseId: ${courseId}`);
-    const course = await Course.findOne({ courseId });
-    if (!course) {
-      console.log(`[PDF Security] Step 2: Course not found for courseId: ${courseId}`);
-      return res.status(404).json({ error: 'Course not found' });
-    }
-    console.log(`[PDF Security] Step 2: Course found (${course.name})`);
 
     // Step 3 starts only if not checkOnly
     if (checkOnly !== 'true') {
-      await setSessionProgress(req.userId, courseId, 3, 'idle');
+      await setSessionProgress(req.userId, compositeCourseId, 3, 'idle');
     }
 
     // 3. Verify user has access to this course (check if interestedCourses contains courseId)
@@ -616,7 +761,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
 
     if (mode === 'github-actions') {
-      const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
+      const destinationKey = `secured-${req.userId}-${courseId}${(course.fileUrls && course.fileUrls.length > 1) ? `_${fileIndex}` : ''}.pdf`;
       console.log(`[PDF Security] Checking if secured PDF already exists in R2 under key: ${destinationKey}`);
       let fileExists = false;
       try {
@@ -648,13 +793,13 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
         const activeSession = await DownloadSession.findOne({
           $or: [
-            { userId: req.userId, courseId, status: { $in: ['queued', 'processing', 'completed'] } },
-            { userId: userObjectId, courseId, status: { $in: ['queued', 'processing', 'completed'] } }
+            { userId: req.userId, courseId: compositeCourseId, status: { $in: ['queued', 'processing', 'completed'] } },
+            { userId: userObjectId, courseId: compositeCourseId, status: { $in: ['queued', 'processing', 'completed'] } }
           ].filter(q => q.userId !== null)
         });
         
         if (activeSession) {
-          console.log(`[PDF Security] Direct Stream: Active session (${activeSession.status}) found for user: ${req.userId}, courseId: ${courseId}. Bypassing limit increment & deleting session.`);
+          console.log(`[PDF Security] Direct Stream: Active session (${activeSession.status}) found for user: ${req.userId}, courseId: ${compositeCourseId}. Bypassing limit increment & deleting session.`);
           // Delete active session so subsequent downloads get charged
           await DownloadSession.deleteOne({ _id: activeSession._id }).catch(err => {
             console.error(`[PDF Security] Error deleting active session:`, err);
@@ -663,12 +808,12 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           // Track and update download limit in database since we are streaming the file
           const limitUser = await User.findById(req.userId);
           if (limitUser) {
-            let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+            let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
             if (finalLimitEntry) {
               finalLimitEntry.downloadedCount += 1;
             } else {
               limitUser.downloadLimits.push({
-                courseId,
+                courseId: compositeCourseId,
                 downloadedCount: 1,
                 allowedCount: 1
               });
@@ -685,14 +830,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         }));
         console.log(`[PDF Security] Direct Stream: Object retrieved. ContentLength: ${getResponse.ContentLength} bytes. Writing response headers.`);
 
+        const activeFileName = (course.fileNames && course.fileNames.length > 1) ? course.fileNames[fileIndex] : course.fileName;
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${course.fileName.replace(/\s+/g, '_')}_secured.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${activeFileName.replace(/\s+/g, '_')}_secured.pdf"`);
         res.setHeader('Content-Length', getResponse.ContentLength);
         
         console.log(`[PDF Security] Direct Stream: Headers written. Piping stream to client.`);
         
         res.on('finish', () => {
-          console.log(`[PDF Security] Direct Stream: Successfully completed streaming secured PDF for courseId: ${courseId}`);
+          console.log(`[PDF Security] Direct Stream: Successfully completed streaming secured PDF for courseId: ${compositeCourseId}`);
         });
 
         res.on('close', () => {
@@ -710,15 +856,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     // Step 4 starts only if not checkOnly
     if (checkOnly !== 'true') {
-      await setSessionProgress(req.userId, courseId, 4, 'idle');
+      await setSessionProgress(req.userId, compositeCourseId, 4, 'idle');
     }
 
     console.log(`[PDF Security] Step 4: Download limit check bypassed`);
 
     if (mode === 'github-actions') {
-      const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
+      const destinationKey = `secured-${req.userId}-${courseId}${(course.fileUrls && course.fileUrls.length > 1) ? `_${fileIndex}` : ''}.pdf`;
       // If it doesn't exist, check if there's already an active job in progress
-      const activeJob = await DownloadSession.findOne({ userId: req.userId, courseId });
+      const activeJob = await DownloadSession.findOne({ userId: req.userId, courseId: compositeCourseId });
       if (activeJob && (activeJob.status === 'queued' || activeJob.status === 'processing')) {
         console.log(`[PDF Security] Job is already running. Database value:`, activeJob);
         return res.status(202).json({
@@ -731,12 +877,12 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       // Pre-emptively track and update download limit in database since we are starting generation
       const limitUser = await User.findById(req.userId);
       if (limitUser) {
-        let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+        let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
         if (finalLimitEntry) {
           finalLimitEntry.downloadedCount += 1;
         } else {
           limitUser.downloadLimits.push({
-            courseId,
+            courseId: compositeCourseId,
             downloadedCount: 1,
             allowedCount: 1
           });
@@ -755,8 +901,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         return res.status(500).json({ error: 'GitHub Actions background worker is not fully configured' });
       }
 
-      const partUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
-      const sourceKeys = partUrls.map(url => url.replace('r2://', '')).join(',');
+      const singleUrl = (course.fileUrls && course.fileUrls.length > 1) ? course.fileUrls[fileIndex] : (course.fileUrls && course.fileUrls.length === 1 ? course.fileUrls[0] : course.fileUrl);
+      const sourceKeys = singleUrl.replace('r2://', '');
 
       let callbackUrl = `${req.protocol}://${req.get('host')}/api/courses/github-callback`;
       if (process.env.BACKEND_URL) {
@@ -780,7 +926,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           body: JSON.stringify({
             ref: 'main',
             inputs: {
-              courseId: course.courseId,
+              courseId: compositeCourseId,
               userId: req.userId,
               userName: user.fullName || user.name || 'Scholar',
               userEmail: user.email,
@@ -798,7 +944,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           throw new Error(`GitHub API returned ${response.status}: ${errorText}`);
         }
 
-        await setSessionProgress(req.userId, courseId, 1, 'queued');
+        await setSessionProgress(req.userId, compositeCourseId, 1, 'queued');
         dispatched = true;
         console.log(`[PDF Security] Successfully dispatched GitHub workflow run`);
 
@@ -811,7 +957,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         if (creditIncremented) {
           const refundUser = await User.findById(req.userId);
           if (refundUser) {
-            let refundEntry = refundUser.downloadLimits.find(d => d.courseId === courseId);
+            let refundEntry = refundUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
             if (refundEntry && refundEntry.downloadedCount > 0) {
               refundEntry.downloadedCount -= 1;
               await refundUser.save();
@@ -825,11 +971,11 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     // Listen for client connection abort to refund credit
     req.on('close', async () => {
       if (!res.writableFinished && creditIncremented) {
-        console.log(`[PDF Security] Request aborted midway by client. Initiating download credit refund for user: ${req.userId}, courseId: ${courseId}`);
+        console.log(`[PDF Security] Request aborted midway by client. Initiating download credit refund for user: ${req.userId}, courseId: ${compositeCourseId}`);
         try {
           const refundUser = await User.findById(req.userId);
           if (refundUser) {
-            let refundEntry = refundUser.downloadLimits.find(d => d.courseId === courseId);
+            let refundEntry = refundUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
             if (refundEntry && refundEntry.downloadedCount > 0) {
               refundEntry.downloadedCount -= 1;
               await refundUser.save();
@@ -845,12 +991,12 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     // We increment download credit pre-emptively, similar to original logic
     const limitUser = await User.findById(req.userId);
     if (limitUser) {
-      let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+      let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
       if (finalLimitEntry) {
         finalLimitEntry.downloadedCount += 1;
       } else {
         limitUser.downloadLimits.push({
-          courseId,
+          courseId: compositeCourseId,
           downloadedCount: 1,
           allowedCount: 1
         });
@@ -860,7 +1006,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       console.log(`[PDF Security] Download limit tracked & updated in database (downloadedCount incremented)`);
     }
 
-    const partUrls = course.fileUrls && course.fileUrls.length > 0 ? course.fileUrls : [course.fileUrl];
+    const singleUrl = (course.fileUrls && course.fileUrls.length > 1) ? course.fileUrls[fileIndex] : (course.fileUrls && course.fileUrls.length === 1 ? course.fileUrls[0] : course.fileUrl);
+    const partUrls = [singleUrl];
 
     // --- MODE 1: CLIENT-SIDE PROCESSING ---
     if (mode === 'client-side') {
@@ -1401,6 +1548,7 @@ const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
 // Retrieve raw course PDF (Admin or Authorized Student)
 export const getRawCoursePdf = async (req, res) => {
   const { id } = req.params;
+  const fileIndex = req.query.index !== undefined ? parseInt(req.query.index) : 0;
 
   try {
     // 1. Fetch user to verify active session
@@ -1424,10 +1572,15 @@ export const getRawCoursePdf = async (req, res) => {
       return res.status(403).json({ error: 'Access denied: You do not have permissions for this resource' });
     }
 
+    const targetUrl = (course.fileUrls && course.fileUrls.length > 0) ? (course.fileUrls[fileIndex] || course.fileUrl) : course.fileUrl;
+    if (!targetUrl) {
+      return res.status(404).json({ error: 'Raw PDF file URL not found for requested index' });
+    }
+
     // 4. Stream PDF from Cloudflare R2 or local disk
-    if (course.fileUrl.startsWith('r2://')) {
-      const r2Key = course.fileUrl.replace('r2://', '');
-      console.log(`[R2 Stream] Serving raw PDF from R2 key: ${r2Key}`);
+    if (targetUrl.startsWith('r2://')) {
+      const r2Key = targetUrl.replace('r2://', '');
+      console.log(`[R2 Stream] Serving raw PDF from R2 key: ${r2Key} (index ${fileIndex})`);
 
       const r2Response = await r2Client.send(new GetObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME,
@@ -1439,7 +1592,7 @@ export const getRawCoursePdf = async (req, res) => {
       r2Response.Body.pipe(res);
     } else {
       // Local disk file
-      const filePath = path.join(__dirname, '../', course.fileUrl);
+      const filePath = path.join(__dirname, '../', targetUrl);
       try {
         await fs.access(filePath);
       } catch {
@@ -1458,7 +1611,13 @@ export const getRawCoursePdf = async (req, res) => {
 // Retrieve real-time progress of secured PDF download process
 export const getDownloadProgress = async (req, res) => {
   const { courseId } = req.params;
+  const { index: indexStr } = req.query;
+  const fileIndex = indexStr !== undefined ? parseInt(indexStr) : 0;
+
   try {
+    const course = await Course.findOne({ courseId });
+    const compositeCourseId = (course && course.fileUrls && course.fileUrls.length > 1) ? `${courseId}_${fileIndex}` : courseId;
+
     let userObjectId = null;
     try {
       if (mongoose.Types.ObjectId.isValid(req.userId)) {
@@ -1468,8 +1627,8 @@ export const getDownloadProgress = async (req, res) => {
 
     const session = await DownloadSession.findOne({
       $or: [
-        { userId: req.userId, courseId },
-        { userId: userObjectId, courseId }
+        { userId: req.userId, courseId: compositeCourseId },
+        { userId: userObjectId, courseId: compositeCourseId }
       ].filter(q => q.userId !== null)
     });
     if (!session) {

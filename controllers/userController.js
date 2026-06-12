@@ -155,7 +155,7 @@ export const trackDownload = async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
+    let limitEntry = user.downloadLimits.find(d => d.courseId.toLowerCase() === courseId.toLowerCase());
 
     if (limitEntry) {
       if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
@@ -267,7 +267,7 @@ export const approveDownloadRequest = async (req, res) => {
       return res.status(404).json({ error: 'Target student user not found' });
     }
 
-    let limitEntry = targetUser.downloadLimits.find(d => d.courseId === request.courseId);
+    let limitEntry = targetUser.downloadLimits.find(d => d.courseId.toLowerCase() === request.courseId.toLowerCase());
     if (limitEntry) {
       limitEntry.allowedCount += 1;
     } else {

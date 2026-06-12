@@ -160,14 +160,21 @@ export const approvePurchaseRequest = async (req, res) => {
       targetUser.purchasedCourses.push(request.courseObjectId);
     }
 
-    // Pre-initialize downloadLimit configuration for this course to give them 1 download access
-    const existingLimit = targetUser.downloadLimits.find(d => d.courseId === request.courseId);
-    if (!existingLimit) {
-      targetUser.downloadLimits.push({
-        courseId: request.courseId,
-        downloadedCount: 0,
-        allowedCount: 1
-      });
+    // Pre-initialize downloadLimit configuration for this course.
+    // If course has multiple PDFs, initialize separate limits for each PDF (using courseId_index composite keys).
+    const course = await Course.findById(request.courseObjectId);
+    const fileCount = (course && course.fileUrls && course.fileUrls.length > 0) ? course.fileUrls.length : 1;
+
+    for (let i = 0; i < fileCount; i++) {
+      const compositeCourseId = fileCount > 1 ? `${request.courseId}_${i}` : request.courseId;
+      const existingLimit = targetUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
+      if (!existingLimit) {
+        targetUser.downloadLimits.push({
+          courseId: compositeCourseId,
+          downloadedCount: 0,
+          allowedCount: 1
+        });
+      }
     }
 
     request.status = 'approved';
