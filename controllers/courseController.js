@@ -1089,7 +1089,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       console.log(`[PDF Security] Native Mode: Running final qpdf merge & encrypt`);
       let userPassword = user.email.trim().toLowerCase();
       if (user.mobileNumber && user.mobileNumber.trim() !== 'N/A' && user.mobileNumber.trim() !== '') {
-        userPassword = user.mobileNumber.trim();
+        const digits = user.mobileNumber.replace(/\D/g, '');
+        userPassword = digits.length >= 10 ? digits.slice(-10) : digits;
       }
       
       const qpdfCommand = `qpdf --empty --pages ${qpdfPages.join(' ')} -- --encrypt "${userPassword}" "${userPassword}" 256 -- "${tempOutputPath}"`;
@@ -1221,7 +1222,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       await setSessionProgress(req.userId, courseId, 9, 'completed');
       let userPassword = user.email.trim().toLowerCase();
       if (user.mobileNumber && user.mobileNumber.trim() !== 'N/A' && user.mobileNumber.trim() !== '') {
-        userPassword = user.mobileNumber.trim();
+        const digits = user.mobileNumber.replace(/\D/g, '');
+        userPassword = digits.length >= 10 ? digits.slice(-10) : digits;
       }
       const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
 

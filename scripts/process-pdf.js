@@ -362,7 +362,8 @@ async function run() {
     console.log('Encrypting PDF...');
     let userPassword = userEmail.trim().toLowerCase();
     if (userMobile && userMobile.trim() !== 'N/A' && userMobile.trim() !== '') {
-      userPassword = userMobile.trim();
+      const digits = userMobile.replace(/\D/g, '');
+      userPassword = digits.length >= 10 ? digits.slice(-10) : digits;
     }
     const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
 
