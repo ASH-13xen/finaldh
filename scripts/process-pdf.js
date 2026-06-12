@@ -358,9 +358,12 @@ async function run() {
     // Notify backend that we are encrypting and uploading (Step 9)
     await updateProgress(9);
 
-    // 6. Encrypt PDF with user's email password
+    // 6. Encrypt PDF with user's mobile number (fallback to email if not registered)
     console.log('Encrypting PDF...');
-    const userPassword = userEmail.trim().toLowerCase();
+    let userPassword = userEmail.trim().toLowerCase();
+    if (userMobile && userMobile.trim() !== 'N/A' && userMobile.trim() !== '') {
+      userPassword = userMobile.trim();
+    }
     const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
 
     // 7. Upload to R2
