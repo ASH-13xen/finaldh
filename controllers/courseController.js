@@ -547,7 +547,8 @@ Return your analysis strictly as a JSON object with this format (do not wrap in 
 // Handle secured PDF download with top watermarks and bottom barcode
 export const downloadSecuredCoursePdf = async (req, res) => {
   const { courseId } = req.params;
-  console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}`);
+  const { checkOnly } = req.query;
+  console.log(`[PDF Security] Starting secure download process for courseId: ${courseId}, checkOnly: ${checkOnly}`);
 
   // Determine mode (default to github-actions if not specified)
   let mode = process.env.DOWNLOAD_MODE || 'github-actions';
@@ -555,8 +556,10 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
   let dispatched = false;
 
-  // Initialize tracking
-  await setSessionProgress(req.userId, courseId, 1, 'idle');
+  // Initialize tracking only if not checkOnly
+  if (checkOnly !== 'true') {
+    await setSessionProgress(req.userId, courseId, 1, 'idle');
+  }
 
   let tempStampPath = '';
   let tempWarningPath = '';
@@ -575,8 +578,10 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 1: User found (${user.email})`);
 
-    // Step 2 starts
-    await setSessionProgress(req.userId, courseId, 2, 'idle');
+    // Step 2 starts only if not checkOnly
+    if (checkOnly !== 'true') {
+      await setSessionProgress(req.userId, courseId, 2, 'idle');
+    }
 
     // 2. Fetch course by custom courseId
     console.log(`[PDF Security] Step 2: Fetching course details for courseId: ${courseId}`);
@@ -587,8 +592,10 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 2: Course found (${course.name})`);
 
-    // Step 3 starts
-    await setSessionProgress(req.userId, courseId, 3, 'idle');
+    // Step 3 starts only if not checkOnly
+    if (checkOnly !== 'true') {
+      await setSessionProgress(req.userId, courseId, 3, 'idle');
+    }
 
     // 3. Verify user has access to this course (check if interestedCourses contains courseId)
     console.log(`[PDF Security] Step 3: Verifying student course permissions`);
@@ -601,6 +608,17 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Step 3: Access verified`);
 
+    // If checkOnly is true and mode is NOT github-actions (local/sync mode download)
+    if (checkOnly === 'true' && mode !== 'github-actions') {
+      console.log(`[PDF Security] checkOnly: Sync mode ${mode} ready for direct download. Checking limits first.`);
+      let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
+      if (limitEntry && limitEntry.downloadedCount >= limitEntry.allowedCount) {
+        console.log(`[PDF Security] checkOnly: Limit reached for user: ${user.email}, course: ${courseId}`);
+        return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
+      }
+      return res.json({ exists: false, directStream: true });
+    }
+
     if (mode === 'github-actions') {
       const destinationKey = `secured-${req.userId}-${courseId}.pdf`;
       console.log(`[PDF Security] Checking if secured PDF already exists in R2 under key: ${destinationKey}`);
@@ -611,38 +629,56 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           Key: destinationKey
         }));
         fileExists = true;
-        console.log(`[PDF Security] Secured PDF found in R2. Streaming directly...`);
+        console.log(`[PDF Security] Secured PDF found in R2.`);
       } catch (err) {
-        console.log(`[PDF Security] Secured PDF not found in R2. Proceeding to background generation...`);
+        console.log(`[PDF Security] Secured PDF not found in R2.`);
       }
 
       if (fileExists) {
-        // Validate user download limits first for direct download
-        console.log(`[PDF Security] Direct Stream: Validating user download limits`);
-        let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
-        if (limitEntry) {
-          if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
-            console.log(`[PDF Security] Direct Stream: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
-            return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
-          }
+        // If checkOnly is true, return that it exists so frontend can trigger native direct download redirect
+        if (checkOnly === 'true') {
+          console.log(`[PDF Security] checkOnly: Secured PDF exists in R2. Returning exists: true`);
+          return res.json({ exists: true });
         }
-        console.log(`[PDF Security] Direct Stream: User download limits verified`);
 
-        // Pre-emptively track and update download limit in database since we are streaming the file
-        const limitUser = await User.findById(req.userId);
-        if (limitUser) {
-          let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
-          if (finalLimitEntry) {
-            finalLimitEntry.downloadedCount += 1;
-          } else {
-            limitUser.downloadLimits.push({
-              courseId,
-              downloadedCount: 1,
-              allowedCount: 1
-            });
+        // OTHERWISE, we stream the file.
+        // Prevent double-charging: Check if a completed DownloadSession exists for this user and course
+        const completedSession = await DownloadSession.findOne({ userId: req.userId, courseId, status: 'completed' });
+        
+        if (completedSession) {
+          console.log(`[PDF Security] Direct Stream: Completed session found for user: ${req.userId}, courseId: ${courseId}. Bypassing limit increment & deleting session.`);
+          // Delete completed session so subsequent downloads get charged
+          await DownloadSession.deleteOne({ _id: completedSession._id }).catch(err => {
+            console.error(`[PDF Security] Error deleting completed session:`, err);
+          });
+        } else {
+          // Validate user download limits first for direct download (since it's a new download of cached PDF)
+          console.log(`[PDF Security] Direct Stream: No completed session found. Validating user download limits`);
+          let limitEntry = user.downloadLimits.find(d => d.courseId === courseId);
+          if (limitEntry) {
+            if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
+              console.log(`[PDF Security] Direct Stream: Download limit reached (used ${limitEntry.downloadedCount} of ${limitEntry.allowedCount})`);
+              return res.status(403).json({ error: 'Download limit reached. Please request additional download access from the admin.' });
+            }
           }
-          await limitUser.save();
-          console.log(`[PDF Security] Direct Stream: Download count incremented in database`);
+          console.log(`[PDF Security] Direct Stream: User download limits verified`);
+
+          // Pre-emptively track and update download limit in database since we are streaming the file
+          const limitUser = await User.findById(req.userId);
+          if (limitUser) {
+            let finalLimitEntry = limitUser.downloadLimits.find(d => d.courseId === courseId);
+            if (finalLimitEntry) {
+              finalLimitEntry.downloadedCount += 1;
+            } else {
+              limitUser.downloadLimits.push({
+                courseId,
+                downloadedCount: 1,
+                allowedCount: 1
+              });
+            }
+            await limitUser.save();
+            console.log(`[PDF Security] Direct Stream: Download count incremented in database`);
+          }
         }
 
         console.log(`[PDF Security] Direct Stream: Fetching secured PDF from R2: ${destinationKey}`);
@@ -675,8 +711,10 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       }
     }
 
-    // Step 4 starts
-    await setSessionProgress(req.userId, courseId, 4, 'idle');
+    // Step 4 starts only if not checkOnly
+    if (checkOnly !== 'true') {
+      await setSessionProgress(req.userId, courseId, 4, 'idle');
+    }
 
     // 4. Validate user download limits
     console.log(`[PDF Security] Step 4: Validating user download limits`);
@@ -698,7 +736,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         console.log(`[PDF Security] Job is already running. Database value:`, activeJob);
         return res.status(202).json({
           status: 'processing',
-          message: 'PDF generation is currently in progress'
+          message: 'PDF generation is currently in progress',
+          step: activeJob.step || 1
         });
       }
 
