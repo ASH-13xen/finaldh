@@ -1587,7 +1587,7 @@ export const getRawCoursePdf = async (req, res) => {
     }
 
     // 3. Verify user access: must be admin OR have courseId in interestedCourses
-    const isAdmin = user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
     const interestedList = Array.isArray(user.interestedCourses) ? user.interestedCourses : [];
     const hasAccess = interestedList.some(cId => cId.toLowerCase() === course.courseId.toLowerCase());
 

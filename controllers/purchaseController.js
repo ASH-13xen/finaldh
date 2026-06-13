@@ -22,7 +22,7 @@ export const createPurchaseRequest = async (req, res) => {
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    const isAdmin = user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
     if (isAdmin) {
       return res.status(400).json({ error: 'Admins do not need to purchase courses' });
     }
@@ -108,7 +108,7 @@ export const getAdminPurchaseRequests = async (req, res) => {
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    const isAdmin = user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
     if (!isAdmin) {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }
@@ -131,7 +131,7 @@ export const approvePurchaseRequest = async (req, res) => {
       return res.status(404).json({ error: 'Admin user not found' });
     }
 
-    const isAdmin = adminUser.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((adminUser.email || '').toLowerCase());
     if (!isAdmin) {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }
@@ -202,7 +202,7 @@ export const rejectPurchaseRequest = async (req, res) => {
       return res.status(404).json({ error: 'Admin user not found' });
     }
 
-    const isAdmin = adminUser.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((adminUser.email || '').toLowerCase());
     if (!isAdmin) {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }

@@ -24,7 +24,7 @@ export const getUserProfile = async (req, res) => {
       telegramUsername: user.telegramUsername,
       interestedCourses: user.interestedCourses,
       downloadLimits: user.downloadLimits || [],
-      isAdmin: user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase()
+      isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -227,7 +227,7 @@ export const getPendingDownloadRequests = async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const isAdmin = user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
     if (!isAdmin) {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }
@@ -248,7 +248,7 @@ export const approveDownloadRequest = async (req, res) => {
     const adminUser = await User.findById(req.userId);
     if (!adminUser) return res.status(404).json({ error: 'Admin user not found' });
 
-    const isAdmin = adminUser.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((adminUser.email || '').toLowerCase());
     if (!isAdmin) {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }
@@ -383,7 +383,7 @@ export const completePurchaseProfile = async (req, res) => {
         telegramUsername: updatedUser.telegramUsername,
         interestedCourses: updatedUser.interestedCourses,
         downloadLimits: updatedUser.downloadLimits || [],
-        isAdmin: updatedUser.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase()
+        isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((updatedUser.email || '').toLowerCase())
       }
     });
   } catch (error) {

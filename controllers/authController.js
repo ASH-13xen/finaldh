@@ -74,7 +74,7 @@ export const verifyGoogleToken = async (req, res) => {
         mobileNumber: user.mobileNumber,
         telegramUsername: user.telegramUsername,
         interestedCourses: user.interestedCourses,
-        isAdmin: user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase()
+        isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
       }
     });
   } catch (dbError) {
@@ -113,7 +113,7 @@ export const mockLogin = async (req, res) => {
         mobileNumber: user.mobileNumber,
         telegramUsername: user.telegramUsername,
         interestedCourses: user.interestedCourses,
-        isAdmin: user.email.toLowerCase() === (process.env.ADMIN_EMAIL || '').toLowerCase()
+        isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
       }
     });
   } catch (err) {
