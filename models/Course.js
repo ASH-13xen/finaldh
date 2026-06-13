@@ -11,7 +11,8 @@ const courseSchema = new mongoose.Schema({
   partPageCounts: { type: [Number], default: [] },
   price: { type: Number, default: 499 },
   discountedPrice: { type: Number, default: 499 },
-  useDiscount: { type: Boolean, default: false }
+  useDiscount: { type: Boolean, default: false },
+  discountLimitTag: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model('Course', courseSchema);

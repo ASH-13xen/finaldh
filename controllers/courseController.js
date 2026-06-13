@@ -99,7 +99,7 @@ const getPdfPageCount = async (filePath, originalname = 'PDF') => {
 
 // Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
-  const { courseId, name, subject, price, discountedPrice, useDiscount } = req.body;
+  const { courseId, name, subject, price, discountedPrice, useDiscount, discountLimitTag } = req.body;
   const files = req.files || [];
 
   if (!courseId) {
@@ -207,7 +207,8 @@ export const uploadCourse = async (req, res) => {
       partPageCounts,
       price: Number(price),
       discountedPrice: discountedPrice !== undefined ? Number(discountedPrice) : Number(price),
-      useDiscount: useDiscount === 'true' || useDiscount === true
+      useDiscount: useDiscount === 'true' || useDiscount === true,
+      discountLimitTag: discountLimitTag === 'true' || discountLimitTag === true
     });
 
     res.json({
@@ -235,7 +236,7 @@ export const uploadCourse = async (req, res) => {
 // Update an existing course
 export const updateCourse = async (req, res) => {
   const { id } = req.params;
-  const { courseId, name, subject, price, discountedPrice, useDiscount } = req.body;
+  const { courseId, name, subject, price, discountedPrice, useDiscount, discountLimitTag } = req.body;
   const files = req.files || [];
 
   try {
@@ -257,6 +258,7 @@ export const updateCourse = async (req, res) => {
     if (price !== undefined) course.price = Number(price);
     if (discountedPrice !== undefined) course.discountedPrice = Number(discountedPrice);
     if (useDiscount !== undefined) course.useDiscount = useDiscount === 'true' || useDiscount === true;
+    if (discountLimitTag !== undefined) course.discountLimitTag = discountLimitTag === 'true' || discountLimitTag === true;
 
     let filesConfig = [];
     if (req.body.filesConfig) {
