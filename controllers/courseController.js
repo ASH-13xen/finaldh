@@ -39,12 +39,12 @@ export const setSessionProgress = async (userId, courseId, step, status = 'proce
   }
 };
 
-// Lightweight page count extractor — reads only the tail of the file to avoid loading
-// 200MB+ PDFs fully into memory (which kills Render's memory limit on upload).
-// PDF page count (/Count in root Pages tree) is almost always near the xref at the end.
+// Page count extractor that never loads the full file into memory.
+// Reads head (512 KB) + tail (2 MB) — ~2.5 MB max regardless of PDF size.
+// Single-part courses don't use the page count at all, so 0 is a safe fallback.
 const getPdfPageCount = async (filePath, originalname = 'PDF') => {
   try {
-    // Try qpdf first — zero memory overhead, perfectly reliable
+    // Try qpdf first — zero memory, perfectly reliable if installed
     try {
       const { stdout } = await execPromise(`qpdf --show-npages "${filePath}"`);
       const count = parseInt(stdout.trim(), 10);
@@ -53,75 +53,57 @@ const getPdfPageCount = async (filePath, originalname = 'PDF') => {
         return count;
       }
     } catch {
-      // qpdf not available; fall through to tail-read approach
+      // qpdf not available on this host; continue
     }
 
-    // Read only the last 1MB — avoids loading a 200MB file fully into RAM
     const stat = await fs.stat(filePath);
     const fileSize = stat.size;
-    const TAIL_SIZE = Math.min(1024 * 1024, fileSize);
+
+    // Read first 512 KB (catalog/root Pages often near start in linearized PDFs)
+    const HEAD_SIZE = Math.min(512 * 1024, fileSize);
+    // Read last 2 MB (xref + trailer usually at end, root Pages nearby)
+    const tailOffset = Math.max(HEAD_SIZE, fileSize - 2 * 1024 * 1024);
+    const TAIL_SIZE = fileSize - tailOffset;
 
     const fh = await fs.open(filePath, 'r');
+    const headBuf = Buffer.alloc(HEAD_SIZE);
     const tailBuf = Buffer.alloc(TAIL_SIZE);
-    await fh.read(tailBuf, 0, TAIL_SIZE, fileSize - TAIL_SIZE);
+    await fh.read(headBuf, 0, HEAD_SIZE, 0);
+    await fh.read(tailBuf, 0, TAIL_SIZE, tailOffset);
     await fh.close();
 
-    const tailStr = tailBuf.toString('binary');
+    // Search both regions concatenated (~2.5 MB max)
+    const searchStr = Buffer.concat([headBuf, tailBuf]).toString('binary');
     let match;
     let maxCount = 0;
 
-    // Attempt 1: root Page tree node with /Count
+    // Attempt 1: root Page tree node — /Type /Pages ... /Count N
     const pagesRegex = /\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/g;
-    while ((match = pagesRegex.exec(tailStr)) !== null) {
+    while ((match = pagesRegex.exec(searchStr)) !== null) {
       const count = parseInt(match[1], 10);
       if (count > maxCount) maxCount = count;
     }
     if (maxCount > 0) {
-      console.log(`[PDF Pages] Tail parse successful for ${originalname}: ${maxCount} pages`);
+      console.log(`[PDF Pages] Head+Tail parse for ${originalname}: ${maxCount} pages`);
       return maxCount;
     }
 
-    // Attempt 2: any /Count entry
+    // Attempt 2: any /Count entry (catches split trees)
     const countRegex = /\/Count\s*(\d+)/g;
-    while ((match = countRegex.exec(tailStr)) !== null) {
+    while ((match = countRegex.exec(searchStr)) !== null) {
       const count = parseInt(match[1], 10);
       if (count > maxCount) maxCount = count;
     }
     if (maxCount > 0) {
-      console.log(`[PDF Pages] Tail count search successful for ${originalname}: ${maxCount} pages`);
+      console.log(`[PDF Pages] Head+Tail /Count search for ${originalname}: ${maxCount} pages`);
       return maxCount;
     }
 
-    // Attempt 3: /Type /Page entries in the tail (undercount for large files, but better than 0)
-    const pageMatches = tailStr.match(/\/Type\s*\/Page\b/g);
-    if (pageMatches && pageMatches.length > 0) {
-      console.log(`[PDF Pages] Tail page-type matching for ${originalname}: ${pageMatches.length} pages`);
-      return pageMatches.length;
-    }
-
-    // Last resort: full file load (memory-heavy — only hits for unusual PDF layouts)
-    console.log(`[PDF Pages] Tail parse found nothing. Falling back to full file load for ${originalname}...`);
-    const fileBytes = await fs.readFile(filePath);
-    const fullStr = fileBytes.toString('binary');
-
-    const fullPagesRegex = /\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/g;
-    while ((match = fullPagesRegex.exec(fullStr)) !== null) {
-      const count = parseInt(match[1], 10);
-      if (count > maxCount) maxCount = count;
-    }
-    if (maxCount > 0) return maxCount;
-
-    const fullCountRegex = /\/Count\s*(\d+)/g;
-    while ((match = fullCountRegex.exec(fullStr)) !== null) {
-      const count = parseInt(match[1], 10);
-      if (count > maxCount) maxCount = count;
-    }
-    if (maxCount > 0) return maxCount;
-
-    const tempPdfDoc = await PDFDocument.load(fileBytes, { updateFieldAppearances: false });
-    const fallbackCount = tempPdfDoc.getPageCount();
-    console.log(`[PDF Pages] pdf-lib fallback successful: ${fallbackCount} pages`);
-    return fallbackCount;
+    // No count found in head+tail — /Pages root is in the middle of this PDF.
+    // Returning 0 is safe: single-part courses ignore page count entirely,
+    // and multi-part mapping will fall back to showing all parts.
+    console.warn(`[PDF Pages] Could not find page count for ${originalname} without full load — defaulting to 0.`);
+    return 0;
 
   } catch (pdfErr) {
     console.warn(`[PDF Warning] Could not parse page count for ${originalname}:`, pdfErr.message);
