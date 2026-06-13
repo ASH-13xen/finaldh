@@ -339,29 +339,21 @@ export const completePurchaseProfile = async (req, res) => {
 
     const updates = {};
 
-    // 1. Verify Name (first and last name, both filled)
-    const nameParts = (user.fullName || user.name || '').trim().split(/\s+/);
-    const isNameValid = nameParts.length >= 2 && nameParts[0] && nameParts[1];
-    
-    if (!isNameValid) {
-      if (!firstName || !firstName.trim() || !lastName || !lastName.trim()) {
-        return res.status(400).json({ error: 'Both First Name and Last Name must be provided.' });
-      }
-      updates.fullName = `${firstName.trim()} ${lastName.trim()}`;
+    // 1. Verify and Update Name (Always allow updating name)
+    if (!firstName || !firstName.trim() || !lastName || !lastName.trim()) {
+      return res.status(400).json({ error: 'Both First Name and Last Name must be provided.' });
     }
+    updates.fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-    // 2. Verify Telegram
-    const isTelegramValid = !!(user.telegramUsername && user.telegramUsername.trim());
-    if (!isTelegramValid) {
-      if (!telegramUsername || !telegramUsername.trim()) {
-        return res.status(400).json({ error: 'Telegram username is required.' });
-      }
-      updates.telegramUsername = telegramUsername.trim();
+    // 2. Verify and Update Telegram (Always allow updating telegram)
+    if (!telegramUsername || !telegramUsername.trim()) {
+      return res.status(400).json({ error: 'Telegram username is required.' });
     }
+    updates.telegramUsername = telegramUsername.trim();
 
-    // 3. Save Phone (already verified on client-side via Firebase Auth)
-    const isPhoneValid = !!(user.mobileNumber && user.mobileNumber.trim());
-    if (!isPhoneValid) {
+    // 3. Save Phone (only if not already verified/saved in the DB)
+    const isPhoneAlreadyVerified = !!(user.mobileNumber && user.mobileNumber.trim());
+    if (!isPhoneAlreadyVerified) {
       if (!mobileNumber || !mobileNumber.trim()) {
         return res.status(400).json({ error: 'Phone number is required.' });
       }

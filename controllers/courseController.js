@@ -39,7 +39,64 @@ export const setSessionProgress = async (userId, courseId, step, status = 'proce
   }
 };
 
-// Upload a new Course PDF
+// Lightweight page count extractor using binary buffer matching
+const getPdfPageCount = async (filePath, originalname = 'PDF') => {
+  try {
+    const fileBytes = await fs.readFile(filePath);
+    const fileStr = fileBytes.toString('binary');
+    
+    // Attempt 1: Search for root Page tree nodes and extract /Count inside it
+    const pagesRegex = /\/Type\s*\/Pages[\s\S]*?\/Count\s*(\d+)/g;
+    let match;
+    let maxCount = 0;
+    while ((match = pagesRegex.exec(fileStr)) !== null) {
+      const count = parseInt(match[1], 10);
+      if (count > maxCount) {
+        maxCount = count;
+      }
+    }
+    
+    if (maxCount > 0) {
+      console.log(`[PDF Pages] Lightweight parse successful for ${originalname}: ${maxCount} pages`);
+      return maxCount;
+    }
+
+    // Attempt 2: Search for /Count entries in pages dictionary directly
+    const countRegex = /\/Count\s*(\d+)/g;
+    while ((match = countRegex.exec(fileStr)) !== null) {
+      const count = parseInt(match[1], 10);
+      if (count > maxCount) {
+        maxCount = count;
+      }
+    }
+
+    if (maxCount > 0) {
+      console.log(`[PDF Pages] Lightweight count search successful for ${originalname}: ${maxCount} pages`);
+      return maxCount;
+    }
+
+    // Attempt 3: Search for /Type /Page entries directly
+    const pageMatches = fileStr.match(/\/Type\s*\/Page\b/g);
+    if (pageMatches && pageMatches.length > 0) {
+      console.log(`[PDF Pages] Lightweight page matching successful for ${originalname}: ${pageMatches.length} pages`);
+      return pageMatches.length;
+    }
+
+    // Fallback: Use pdf-lib to parse it
+    console.log(`[PDF Pages] Lightweight parsing returned 0. Falling back to pdf-lib for ${originalname}...`);
+    const tempPdfDoc = await PDFDocument.load(fileBytes, {
+      updateFieldAppearances: false
+    });
+    const fallbackCount = tempPdfDoc.getPageCount();
+    console.log(`[PDF Pages] pdf-lib fallback parsing successful: ${fallbackCount} pages`);
+    return fallbackCount;
+
+  } catch (pdfErr) {
+    console.warn(`[PDF Warning] Could not parse page count for ${originalname}:`, pdfErr.message);
+    return 0;
+  }
+};
+
 // Upload a new Course PDF
 export const uploadCourse = async (req, res) => {
   const { courseId, name, subject, price, discountedPrice, useDiscount } = req.body;
@@ -102,16 +159,7 @@ export const uploadCourse = async (req, res) => {
           console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
 
           // Count pages of this PDF file
-          let pageCount = 0;
-          try {
-            const fileBytes = await fs.readFile(file.path);
-            const tempPdfDoc = await PDFDocument.load(fileBytes, {
-              updateFieldAppearances: false
-            });
-            pageCount = tempPdfDoc.getPageCount();
-          } catch (pdfErr) {
-            console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
-          }
+          const pageCount = await getPdfPageCount(file.path, file.originalname);
 
           fileUrls.push(`r2://${file.filename}`);
           fileNames.push(config.name || file.originalname);
@@ -136,16 +184,7 @@ export const uploadCourse = async (req, res) => {
         await r2Client.send(new PutObjectCommand(uploadParams));
         console.log(`[R2 Upload] File uploaded successfully to R2: ${file.filename}`);
 
-        let pageCount = 0;
-        try {
-          const fileBytes = await fs.readFile(file.path);
-          const tempPdfDoc = await PDFDocument.load(fileBytes, {
-            updateFieldAppearances: false
-          });
-          pageCount = tempPdfDoc.getPageCount();
-        } catch (pdfErr) {
-          console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
-        }
+        const pageCount = await getPdfPageCount(file.path, file.originalname);
 
         fileUrls.push(`r2://${file.filename}`);
         fileNames.push(file.originalname);
@@ -256,16 +295,7 @@ export const updateCourse = async (req, res) => {
           console.log(`[R2 Upload] Replacement/new file uploaded to R2: ${file.filename}`);
 
           // Count pages of this PDF file
-          let pageCount = 0;
-          try {
-            const fileBytes = await fs.readFile(file.path);
-            const tempPdfDoc = await PDFDocument.load(fileBytes, {
-              updateFieldAppearances: false
-            });
-            pageCount = tempPdfDoc.getPageCount();
-          } catch (pdfErr) {
-            console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
-          }
+          const pageCount = await getPdfPageCount(file.path, file.originalname);
 
           fileUrls.push(`r2://${file.filename}`);
           fileNames.push(config.name || file.originalname);
@@ -322,16 +352,7 @@ export const updateCourse = async (req, res) => {
         console.log(`[R2 Upload] Replacement file uploaded to R2: ${file.filename}`);
 
         // Count pages of this PDF file
-        let pageCount = 0;
-        try {
-          const fileBytes = await fs.readFile(file.path);
-          const tempPdfDoc = await PDFDocument.load(fileBytes, {
-            updateFieldAppearances: false
-          });
-          pageCount = tempPdfDoc.getPageCount();
-        } catch (pdfErr) {
-          console.warn(`[PDF Warning] Could not parse page count for ${file.originalname}:`, pdfErr.message);
-        }
+        const pageCount = await getPdfPageCount(file.path, file.originalname);
 
         fileUrls.push(`r2://${file.filename}`);
         fileNames.push(file.originalname);
