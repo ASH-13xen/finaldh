@@ -1,13 +1,14 @@
 import PurchaseRequest from '../models/PurchaseRequest.js';
 import User from '../models/User.js';
 import Course from '../models/Course.js';
+import ComboOffer from '../models/ComboOffer.js';
 
-// Create a new purchase request for a course
+// Create a new purchase request for a single course
 export const createPurchaseRequest = async (req, res) => {
-  const { courseId, upiTxnId } = req.body;
+  const { courseId, comboOfferId, upiTxnId } = req.body;
   const screenshotFile = req.file;
 
-  if (!courseId) {
+  if (!courseId && !comboOfferId) {
     return res.status(400).json({ error: 'Course ID is required' });
   }
   if (!screenshotFile) {
@@ -25,6 +26,23 @@ export const createPurchaseRequest = async (req, res) => {
     const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
     if (isAdmin) {
       return res.status(400).json({ error: 'Admins do not need to purchase courses' });
+    }
+
+    if (cleanedTxnId) {
+      // Check if the UPI transaction ID has already been used (case-insensitive check)
+      const existingTxn = await PurchaseRequest.findOne({
+        upiTxnId: { $regex: new RegExp(`^${cleanedTxnId}$`, 'i') }
+      });
+      if (existingTxn) {
+        return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });
+      }
+    }
+
+    // screenshotUrl should be relative path from backend/ uploads statically served directory
+    const screenshotUrl = `/uploads/screenshots/${screenshotFile.filename}`;
+
+    if (comboOfferId) {
+      return await createComboPurchaseRequest({ req, res, user, comboOfferId, screenshotUrl, cleanedTxnId });
     }
 
     // Find the course by custom courseId
@@ -51,19 +69,6 @@ export const createPurchaseRequest = async (req, res) => {
       return res.status(400).json({ error: 'You already have a pending purchase request for this course' });
     }
 
-    if (cleanedTxnId) {
-      // Check if the UPI transaction ID has already been used (case-insensitive check)
-      const existingTxn = await PurchaseRequest.findOne({
-        upiTxnId: { $regex: new RegExp(`^${cleanedTxnId}$`, 'i') }
-      });
-      if (existingTxn) {
-        return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });
-      }
-    }
-
-    // screenshotUrl should be relative path from backend/ uploads statically served directory
-    const screenshotUrl = `/uploads/screenshots/${screenshotFile.filename}`;
-
     const newRequest = new PurchaseRequest({
       userId: user._id,
       userEmail: user.email,
@@ -72,6 +77,7 @@ export const createPurchaseRequest = async (req, res) => {
       courseId: course.courseId,
       courseName: course.name,
       price: course.useDiscount ? course.discountedPrice : course.price,
+      courses: [course._id],
       screenshotUrl,
       upiTxnId: cleanedTxnId || undefined,
       status: 'pending'
@@ -89,10 +95,86 @@ export const createPurchaseRequest = async (req, res) => {
   }
 };
 
+// Create a new purchase request for a combo offer (multiple courses, one flat price)
+const createComboPurchaseRequest = async ({ req, res, user, comboOfferId, screenshotUrl, cleanedTxnId }) => {
+  const comboOffer = await ComboOffer.findById(comboOfferId);
+  if (!comboOffer || !comboOffer.active) {
+    return res.status(404).json({ error: 'Combo offer not found' });
+  }
+
+  let selectedCourseIds = [];
+  try {
+    selectedCourseIds = JSON.parse(req.body.selectedCourseIds || '[]');
+  } catch {
+    return res.status(400).json({ error: 'Invalid selectedCourseIds payload' });
+  }
+
+  if (!Array.isArray(selectedCourseIds) || selectedCourseIds.length !== comboOffer.pickCount) {
+    return res.status(400).json({ error: `You must select exactly ${comboOffer.pickCount} course(s) for this combo` });
+  }
+
+  const uniqueSelected = new Set(selectedCourseIds);
+  if (uniqueSelected.size !== selectedCourseIds.length) {
+    return res.status(400).json({ error: 'Duplicate courses selected' });
+  }
+
+  const invalidSelection = selectedCourseIds.some((id) => !comboOffer.eligibleCourseIds.includes(id));
+  if (invalidSelection) {
+    return res.status(400).json({ error: 'Selected course is not eligible for this combo' });
+  }
+
+  const finalCourseIds = [...selectedCourseIds, ...comboOffer.requiredCourseIds];
+  const courseDocs = await Course.find({ courseId: { $in: finalCourseIds } });
+  if (courseDocs.length !== finalCourseIds.length) {
+    return res.status(404).json({ error: 'One or more courses in this combo are no longer available' });
+  }
+
+  const alreadyOwned = finalCourseIds.some((id) =>
+    user.interestedCourses.some((cId) => cId.toLowerCase() === id.toLowerCase())
+  );
+  if (alreadyOwned) {
+    return res.status(400).json({ error: 'You already have access to one or more courses in this combo' });
+  }
+
+  const existingPending = await PurchaseRequest.findOne({
+    userId: req.userId,
+    comboOffer: comboOffer._id,
+    status: 'pending'
+  });
+  if (existingPending) {
+    return res.status(400).json({ error: 'You already have a pending purchase request for this combo' });
+  }
+
+  const newRequest = new PurchaseRequest({
+    userId: user._id,
+    userEmail: user.email,
+    userName: user.fullName || user.name,
+    courseObjectId: courseDocs[0]._id,
+    courseId: courseDocs.map((c) => c.courseId).join(','),
+    courseName: comboOffer.label,
+    price: comboOffer.price,
+    courses: courseDocs.map((c) => c._id),
+    comboOffer: comboOffer._id,
+    screenshotUrl,
+    upiTxnId: cleanedTxnId || undefined,
+    status: 'pending'
+  });
+
+  await newRequest.save();
+
+  res.json({
+    message: 'Purchase request submitted successfully. It will be verified within 6-8 hours.',
+    request: newRequest
+  });
+};
+
 // Retrieve purchase requests for the logged-in student
 export const getStudentPurchaseRequests = async (req, res) => {
   try {
-    const requests = await PurchaseRequest.find({ userId: req.userId }).sort({ createdAt: -1 });
+    const requests = await PurchaseRequest.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .populate('courses', 'name courseId')
+      .populate('comboOffer', 'label price');
     res.json(requests);
   } catch (err) {
     console.error('Error fetching student purchase requests:', err);
@@ -113,7 +195,10 @@ export const getAdminPurchaseRequests = async (req, res) => {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }
 
-    const requests = await PurchaseRequest.find({}).sort({ createdAt: -1 });
+    const requests = await PurchaseRequest.find({})
+      .sort({ createdAt: -1 })
+      .populate('courses', 'name courseId')
+      .populate('comboOffer', 'label price');
     res.json(requests);
   } catch (err) {
     console.error('Error fetching admin purchase requests:', err);
@@ -150,30 +235,37 @@ export const approvePurchaseRequest = async (req, res) => {
       return res.status(404).json({ error: 'Student user not found' });
     }
 
-    // Add custom courseId to interestedCourses if not already there
-    if (!targetUser.interestedCourses.includes(request.courseId)) {
-      targetUser.interestedCourses.push(request.courseId);
-    }
+    // Resolve every course covered by this request (combo = multiple, legacy/single = one)
+    const courseObjectIds = (request.courses && request.courses.length > 0)
+      ? request.courses
+      : [request.courseObjectId];
+    const coursesInRequest = await Course.find({ _id: { $in: courseObjectIds } });
 
-    // Add courseObjectId to purchasedCourses if not already there
-    if (!targetUser.purchasedCourses.includes(request.courseObjectId)) {
-      targetUser.purchasedCourses.push(request.courseObjectId);
-    }
+    for (const course of coursesInRequest) {
+      // Add custom courseId to interestedCourses if not already there
+      if (!targetUser.interestedCourses.includes(course.courseId)) {
+        targetUser.interestedCourses.push(course.courseId);
+      }
 
-    // Pre-initialize downloadLimit configuration for this course.
-    // If course has multiple PDFs, initialize separate limits for each PDF (using courseId_index composite keys).
-    const course = await Course.findById(request.courseObjectId);
-    const fileCount = (course && course.fileUrls && course.fileUrls.length > 0) ? course.fileUrls.length : 1;
+      // Add courseObjectId to purchasedCourses if not already there
+      if (!targetUser.purchasedCourses.some((id) => id.equals(course._id))) {
+        targetUser.purchasedCourses.push(course._id);
+      }
 
-    for (let i = 0; i < fileCount; i++) {
-      const compositeCourseId = fileCount > 1 ? `${request.courseId}_${i}` : request.courseId;
-      const existingLimit = targetUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
-      if (!existingLimit) {
-        targetUser.downloadLimits.push({
-          courseId: compositeCourseId,
-          downloadedCount: 0,
-          allowedCount: 1
-        });
+      // Pre-initialize downloadLimit configuration for this course.
+      // If course has multiple PDFs, initialize separate limits for each PDF (using courseId_index composite keys).
+      const fileCount = (course.fileUrls && course.fileUrls.length > 0) ? course.fileUrls.length : 1;
+
+      for (let i = 0; i < fileCount; i++) {
+        const compositeCourseId = fileCount > 1 ? `${course.courseId}_${i}` : course.courseId;
+        const existingLimit = targetUser.downloadLimits.find(d => d.courseId.toLowerCase() === compositeCourseId.toLowerCase());
+        if (!existingLimit) {
+          targetUser.downloadLimits.push({
+            courseId: compositeCourseId,
+            downloadedCount: 0,
+            allowedCount: 1
+          });
+        }
       }
     }
 

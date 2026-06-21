@@ -23,6 +23,13 @@ import {
   rejectPurchaseRequest,
   trackTelegramNotification
 } from '../controllers/purchaseController.js';
+import {
+  listActiveComboOffers,
+  listComboOffers,
+  createComboOffer,
+  updateComboOffer,
+  deleteComboOffer
+} from '../controllers/comboOfferController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const tempUploadDir = 'uploads/temp';
@@ -97,5 +104,12 @@ router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackTe
 router.get('/admin/purchase-requests', authenticateToken, getAdminPurchaseRequests);
 router.post('/admin/purchase-requests/:id/approve', authenticateToken, approvePurchaseRequest);
 router.post('/admin/purchase-requests/:id/reject', authenticateToken, rejectPurchaseRequest);
+
+// Combo offer endpoints
+router.get('/combo-offers/active', listActiveComboOffers);
+router.get('/combo-offers', authenticateToken, listComboOffers);
+router.post('/combo-offers', authenticateToken, createComboOffer);
+router.put('/combo-offers/:id', authenticateToken, updateComboOffer);
+router.delete('/combo-offers/:id', authenticateToken, deleteComboOffer);
 
 export default router;

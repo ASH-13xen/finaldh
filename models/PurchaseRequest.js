@@ -8,6 +8,8 @@ const purchaseRequestSchema = new mongoose.Schema({
   courseId: { type: String, required: true },
   courseName: { type: String, required: true },
   price: { type: Number, required: true },
+  courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
+  comboOffer: { type: mongoose.Schema.Types.ObjectId, ref: 'ComboOffer' },
   screenshotUrl: { type: String, required: true },
   upiTxnId: { type: String },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
