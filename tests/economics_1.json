@@ -1,0 +1,2709 @@
+{
+  "meta": {
+    "source": "sectional",
+    "subject": "economics_1",
+    "created_at": "2026-02-23T07:28:42.440Z"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "Consider the following economic activities:\n1.\tPublic administration\n2.\tFinancial services\n3.\tMining and quarrying\nWhich of the above economic activities fall under the tertiary sector?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Public administration and financial services provide services rather than producing goods, so they fall under the tertiary (service) sector. The tertiary sector includes activities like banking, insurance, administration, transport, and communication. Mining and quarrying involve extraction of natural resources, which is a primary sector activity. Therefore, only statements 1 and 2 belong to the tertiary sector.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC IES 2023"
+    },
+    {
+      "id": 2,
+      "question": "What is a controlled industry?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Any industry the control of which by the Union has been declared by any Central Act to be expedient in the public interest"
+        },
+        {
+          "key": "B",
+          "text": "Any industry the control of which by the State has been declared by any State Act to be expedient in the public interest"
+        },
+        {
+          "key": "C",
+          "text": "Any industry the control of which by the Municipal bodies has been declared by any Municipal Rules to be expedient in the public interest"
+        },
+        {
+          "key": "D",
+          "text": "Any industry the control of which by the State has been declared by any Central Act to be expedient in the public interest"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Under Entry 52 of the Union List, Parliament can declare by law that control of an industry by the Union is expedient in the public interest. Once such a declaration is made through a Central Act, it becomes a controlled industry. Therefore, control must be declared by the Union through a Central Act, not by State or municipal authorities.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "EPFO EO/AO 2020"
+    },
+    {
+      "id": 3,
+      "question": "The value of the slope of a normal demand curve is",
+      "options": [
+        {
+          "key": "A",
+          "text": "positive"
+        },
+        {
+          "key": "B",
+          "text": "negative"
+        },
+        {
+          "key": "C",
+          "text": "zero"
+        },
+        {
+          "key": "D",
+          "text": "infinity"
+        }
+      ],
+      "answer": "B",
+      "explanation": "A normal demand curve slopes downward from left to right, showing an inverse relationship between price and quantity demanded. When price increases, quantity demanded decreases, and vice versa. Therefore, the slope of a normal demand curve is negative.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2019"
+    },
+    {
+      "id": 4,
+      "question": "In which of the following types of economy are the factors of production owned individually?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Capitalist"
+        },
+        {
+          "key": "B",
+          "text": "Socialist"
+        },
+        {
+          "key": "C",
+          "text": "Mixed"
+        },
+        {
+          "key": "D",
+          "text": "Both socialist and capitalist"
+        }
+      ],
+      "answer": "A",
+      "explanation": "In a capitalist economy, factors of production such as land, labour, capital, and enterprise are owned and controlled by private individuals. In a socialist economy, they are owned by the state. A mixed economy has both private and government ownership, but individual ownership is the defining feature of a capitalist system.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2011"
+    },
+    {
+      "id": 5,
+      "question": "In the context of economy, the term \"capital goods\" refers to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "any asset"
+        },
+        {
+          "key": "B",
+          "text": "any durable good that is owned for pleasure or income"
+        },
+        {
+          "key": "C",
+          "text": "any durable or non-durable good that helps to increase the productivity of labour"
+        },
+        {
+          "key": "D",
+          "text": "any commodity which is used to produce goods and services including itself"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Capital goods are not for direct consumption but for production. They include machinery, tools, and equipment used to make other goods and services. Unlike consumer goods, they help in generating future output. Hence, the correct definition is commodities used to produce goods and services, including themselves.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "UPSC MOLE 2023"
+    },
+    {
+      "id": 6,
+      "question": "In view of the fact that kerosene is an inferior good in India, what is/are its implication(s)?\n1.\tAs households get richer, they consume less kerosene.\n2.\tOver time there is a decline in quality of kerosene.\n3.\tGovernment needs to stop subsidies on kerosene.\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "An inferior good is one whose demand falls as income rises. In India, kerosene is mainly used by poorer households for cooking and lighting. As families become richer, they shift to LPG or electricity, reducing kerosene use. Statements 2 and 3 are not logically implied, so only statement 1 is correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2015"
+    },
+    {
+      "id": 7,
+      "question": "How is the magnitude of price elasticity for an individual good determined?\n1.\tBy the degree to which the good is a necessity or luxury\n2.\tBy the extent to which substitutes are available\n3.\tBy the rate of income growth in the economy\n4.\tBy the relative importance of the good in the consumer's budget\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Necessities have low elasticity, while luxuries have higher elasticity. Availability of substitutes makes demand more elastic. Goods that take a larger share of the consumer’s budget are more elastic. Income growth rate does not directly determine elasticity, so only 1, 2, and 4 are correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2021"
+    },
+    {
+      "id": 8,
+      "question": "Which of the following goods are included to estimate food inflation in India?\n1.\tWheat\n2.\tPaddy\n3.\tTobacco\n4.\tSugar\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Food inflation is measured using the Consumer Price Index (CPI) basket. It includes essential food items like cereals (wheat, paddy) and sugar. Tobacco is not considered a food item, so it is excluded. Hence, the correct set is Wheat, Paddy, and Sugar.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 9,
+      "question": "Which of the following will be the outcome if an economy is under the inflationary pressure?\n1. Domestic currency heads for depreciation.\n2. Exports become less competitive with imports getting costlier.\n3. Cost of borrowing decreases.\n4. Bondholders get benefitted.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 3 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1: Correct. Inflation reduces the purchasing power of domestic currency, leading to depreciation in foreign exchange markets. Statement 2: Correct. Inflation raises domestic prices, making exports less competitive abroad, while imports become costlier.  Statement 3: Incorrect. Under inflation, central banks usually raise interest rates, so borrowing costs increase, not decrease. Statement 4: Incorrect. Bondholders lose during inflation because the real value of fixed interest payments declines.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2021"
+    },
+    {
+      "id": 10,
+      "question": "The Global Multidimensional Poverty Index developed by the United Nations Development Programme is a measurement of:\n1.\tNutrition\n2.\tCooking fuel\n3.\tAssets\n4.\tSchool attendance\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2, 3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 4 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Global Multidimensional Poverty Index (MPI) measures poverty beyond income, focusing on deprivations in health, education, and living standards. Indicators include nutrition, cooking fuel, assets, and school attendance, among others.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "EPFO EO/AO 2023"
+    },
+    {
+      "id": 11,
+      "question": "Consider the following statements regarding instruments of Monetary Policy:\n1.\tThe Central Bank can increase the money supply by increasing the bank rate\n2.\tThe Central Bank can increase the money supply by purchasing securities from the public\n3.\tThe Central Bank can decrease the money supply by increasing the cash reserve ratio\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Increasing the bank rate makes borrowing costlier, so it reduces money supply, not increases. Purchasing securities from the public injects money into the economy, increasing money supply. Increasing the cash reserve ratio (CRR) forces banks to keep more reserves, reducing their lending capacity, hence decreasing money supply.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 12,
+      "question": "Consider the following statements regarding Statutory Liquidity Ratio (SLR):\n1.\tTo meet SLR, commercial banks can use cash only.\n2.\tSLR is maintained by the banks with themselves.\n3.\tSLR restricts the banks’ leverage in pumping more money into the economy.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 is incorrect because banks can maintain SLR not just in cash but also in approved government securities and gold. Statement 2 is correct since SLR is maintained by banks themselves (unlike CRR, which is kept with RBI). Statement 3 is correct because SLR acts as a regulatory requirement that limits excessive lending, thereby restricting leverage and controlling inflationary pressures.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2020"
+    },
+    {
+      "id": 13,
+      "question": "Indian Government Bond Yields are influenced by which of the following?\n1. Actions of the United States Federal Reserve\n2. Actions of the Reserve Bank of India\n3. Inflation and short-term interest rates",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Actions of the US Federal Reserve : Correct. Changes in US interest rates affect global capital flows, including India, thereby influencing bond yields. Actions of the RBI (2): Correct. RBI’s monetary policy decisions (repo rate, open market operations, bond buybacks) directly impact yields. Inflation and short-term interest rates (3): Correct. Higher inflation expectations push yields up, while short-term interest rates influence borrowing costs and investor demand.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC CSE – 2021"
+    },
+    {
+      "id": 14,
+      "question": "The practice of reducing the size of a product while maintaining its sticker price is called:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Shrinkflation"
+        },
+        {
+          "key": "B",
+          "text": "Reflation"
+        },
+        {
+          "key": "C",
+          "text": "Disinflation"
+        },
+        {
+          "key": "D",
+          "text": "Deflation"
+        }
+      ],
+      "answer": "A",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS 2 2025"
+    },
+    {
+      "id": 15,
+      "question": "Which one among the following pairs of type of firm and feature is not correctly matched?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Oligopoly firm: Interdependence in decision-making"
+        },
+        {
+          "key": "B",
+          "text": "Monopolistic firm: Firm is a price setter"
+        },
+        {
+          "key": "C",
+          "text": "Monopoly firm: Produces an efficient level of output"
+        },
+        {
+          "key": "D",
+          "text": "Perfectly competitive firm: Produces socially optimum output"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Oligopoly firm - Correct. Firms are interdependent in decision-making (pricing, output, advertising). Monopolistic firm - Correct. Each firm has some degree of price-setting power due to product differentiation. Monopoly firm - Incorrect. A monopoly restricts output and charges higher prices, leading to inefficiency and welfare loss. It does not produce the efficient level of output. Perfectly competitive firm - Correct. Produces at equilibrium where price = marginal cost, ensuring socially optimum output.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS 2 2025"
+    },
+    {
+      "id": 16,
+      "question": "Consider the following statements regarding Repo rate:\n1.\tIt is the rate at which RBI lends money to Commercial Banks generally against Government Securities.\n2.\tIt is the rate at which RBI borrows money from Commercial Banks generally against Government Securities.\n3.\tIt is the rate at which Commercial Banks keep Deposits with RBI.\nWhich of the above statements is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1 is correct: Repo rate is the rate at which RBI lends short-term funds to commercial banks against government securities. Statement 2 is incorrect: That describes the Reverse Repo rate, where RBI borrows from banks. Statement 3 is incorrect: That is related to Cash Reserve Ratio (CRR), where banks keep deposits with RBI.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC IES 2017"
+    },
+    {
+      "id": 17,
+      "question": "Consider the following indicators:\n1.\tChild stunting\n2.\tChild wasting\n3.\tChild dropout\n4.\tChild mortality\nHow many of the following is/are indicators in the compilation of Global Hunger Index (GHI)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Only one"
+        },
+        {
+          "key": "B",
+          "text": "Only two"
+        },
+        {
+          "key": "C",
+          "text": "Only three"
+        },
+        {
+          "key": "D",
+          "text": "All four"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Global Hunger Index (GHI) is calculated using four components: Undernourishment (population-level food availability). Child stunting (low height-for-age). Child wasting (low weight-for-height). Child mortality (under-five mortality rate.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "UPSC MOLE"
+    },
+    {
+      "id": 18,
+      "question": "Deflation is best described as:",
+      "options": [
+        {
+          "key": "A",
+          "text": "It is a sudden fall in the value of a currency against other currencies"
+        },
+        {
+          "key": "B",
+          "text": "It is a persistent recession in the economy"
+        },
+        {
+          "key": "C",
+          "text": "It is a persistent fall in the general price level of goods and services"
+        },
+        {
+          "key": "D",
+          "text": "It is a fall in the rate of inflation over a period of time"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Deflation means a sustained decline in the overall price level of goods and services.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2012"
+    },
+    {
+      "id": 19,
+      "question": "Consider the following objectives:\nThe \"Open Market Operations\" is a monetary policy tool used by the Reserve Bank of India to\n1.\tControl inflation\n2.\tControl fiscal deficit\n3.\tRegulate foreign exchange rates\n4.\tRegulate interest rates\nWhich of the above objectives are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Open Market Operations (OMO) involve buying and selling government securities by the RBI to regulate liquidity in the economy. By controlling liquidity, OMO helps in controlling inflation.  It indirectly influences the fiscal deficit through government borrowing and debt management.  OMO impacts foreign exchange rates by influencing capital flows and currency stability. It also affects interest rates by changing money supply in the banking system.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2021"
+    },
+    {
+      "id": 20,
+      "question": "Which among the following regarding the nature of goods and income elasticity are correctly matched?\nNature of Goods — Income Elasticity\n1.\tNecessity: Between 0 and 1\n2.\tLuxury: More than 1\n3.\tInferior: More than 0\nSelect the answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Necessity goods - Income elasticity lies between 0 and 1. Demand rises with income, but less than proportionately (e.g., food grains, basic clothing). Luxury goods - Income elasticity is more than 1. Demand rises more than proportionately with income (e.g., cars, jewelry). Inferior goods - Income elasticity is less than 0 (negative). As income rises, demand falls (e.g., coarse cereals, cheap substitutes).",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA 2 2025"
+    },
+    {
+      "id": 21,
+      "question": "Consider the following statements about authors and their famous works:\n1.\tJohn M. Keynes wrote The General Theory of Employment, Interest and Money.\n2.\tPaul Samuelson authored Foundations of Economic Analysis.\n3.\tAmartya Sen is the author of Collective Choice and Social Welfare.\n4.\tAbhijit V. Banerjee and Esther Duflo co-authored Poor Economics.\nWhich of the above statements are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2025"
+    },
+    {
+      "id": 22,
+      "question": "Which of the following statements accurately describe the division of labour?\n1.\tSpecialized economic activity\n2.\tHighly distinct productive roles\n3.\tInvolving everyone in many of the same activities\n4.\tIndividuals engage in only a single activity and are dependent on others to meet their various needs\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 3 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 and 4 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Division of labour means breaking down work into specialized tasks. Statement 1 - Correct. It involves specialized economic activity. Statement 2 - Correct. Workers take distinct productive roles. Statement 3 - Incorrect. Division of labour does not mean everyone does the same activities; it is about specialization. Statement 4 - Correct. Individuals focus on one activity and depend on others for their needs.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2016"
+    },
+    {
+      "id": 23,
+      "question": "Consider the following index numbers:\n1.\tIndex number of Agricultural Production\n2.\tIndex number of Wholesale Prices\n3.\tIndex number of Foreign Trade\n4.\tIndex number of Service Sector\nHow many of the index numbers given above is/are published by the Government of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Only one"
+        },
+        {
+          "key": "B",
+          "text": "Only two"
+        },
+        {
+          "key": "C",
+          "text": "Only three"
+        },
+        {
+          "key": "D",
+          "text": "All four"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Index number of Agricultural Production - Published by the Government of India. Index number of Wholesale Prices (WPI) - Published by the Office of Economic Adviser, Ministry of Commerce and Industry. Index number of Foreign Trade - Published by the Government of India. Index number of Service Sector - Not published as a separate index by the Government.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC MoLE 2023"
+    },
+    {
+      "id": 24,
+      "question": "Fiscal consolidation in the long run requires\n1.\traising tax-GDP ratio\n2.\tescalation of expenditure\n3.\tchecking leakages to contain level of subsidies\n4.\tstop borrowing to contain interest payment\nWhich combination of instruments is the best from the angle of sustaining growth?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Raising the tax-GDP ratio strengthens government revenue, helping fiscal consolidation. Escalation of expenditure does not support consolidation; it worsens fiscal imbalance.  Checking leakages and containing subsidies ensures efficient spending, aiding consolidation.  Completely stopping borrowing is impractical and can harm growth, so not the best option.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2014"
+    },
+    {
+      "id": 25,
+      "question": "Which of the following statements is/are correct?\n1.\tHigh growth will lead to inflation.\n2.\tHigh growth will lead to deflation.\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "High economic growth increases demand for goods and services. If supply does not keep pace, prices rise, leading to inflation. Deflation, on the other hand, occurs when demand falls and prices decline, which is not linked to high growth.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2012"
+    },
+    {
+      "id": 26,
+      "question": "Which one of the following about financing through debentures is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The debentures carry a fixed rate of interest"
+        },
+        {
+          "key": "B",
+          "text": "The rate of interest on debentures varies with the profit of the company"
+        },
+        {
+          "key": "C",
+          "text": "The debenture holders have the voting rights"
+        },
+        {
+          "key": "D",
+          "text": "The debentures carry a fixed rate of dividend"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Debentures are debt instruments issued by companies to raise funds. They carry a fixed rate of interest, payable to debenture holders irrespective of company profits. Interest on debentures is a legal obligation, unlike dividends which depend on profits. Debenture holders are creditors, not owners, so they do not have voting rights. Dividends are linked to shares, not debentures.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "UPSC ESIC 2022"
+    },
+    {
+      "id": 27,
+      "question": "For anything to be recognized as money, it needs to have which of the following characteristics?\n1.\tAct as an intermediate in the exchange process\n2.\tStandard unit for quoting prices\n3.\tMust be easily divisible\n4.\tHave higher value in alternative uses\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 is correct: Money must serve as a medium of exchange. Statement 2 is correct: It must act as a standard unit for quoting prices (unit of account). Statement 3 is correct: Divisibility ensures transactions of varying values can be carried out. Statement 4 is incorrect: If money has higher value in alternative uses (like gold in jewelry), it may not serve effectively as money due to diversion of use.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2021"
+    },
+    {
+      "id": 28,
+      "question": "The Government of India and Reserve Bank of India have decided to introduce 1 billion pieces of Rs. 10 notes in polymer/plastic on a field trial basis. Which of the following is/are the objectives behind this move?\n1.\tIncrease of the lifetime of the notes\n2.\tCombating counterfeiting\n3.\tReducing the cost of minting of currency\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Polymer/plastic notes are more durable than paper notes, so their lifetime increases. They have advanced security features, making them harder to counterfeit. However, the cost of minting polymer notes is higher than paper notes, so statement 3 is incorrect.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2013"
+    },
+    {
+      "id": 29,
+      "question": "Consider the following statements:\n1.\tWhen the inflation decreases, but still remains positive, it is deflation.\n2.\tDeflation reduces the real value of money over time.\n3.\tHistorically not all episodes of deflation correspond with periods of poor economic growth.\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 is wrong: when inflation decreases but stays positive, it is disinflation, not deflation. Statement 2 is wrong: deflation actually increases the real value of money, since prices fall. Statement 3 is correct: not all deflationary episodes are linked to poor growth (e.g., productivity-driven deflation).",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC"
+    },
+    {
+      "id": 30,
+      "question": "Which of the following occupations are included under secondary sector as per the national income accounts?\n1.\tManufacturing\n2.\tConstruction\n3.\tGas and water supply\n4.\tMining and quarrying\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "3 and 4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The secondary sector includes manufacturing, construction, and utilities like gas and water supply, as they involve processing or industrial activities. Mining and quarrying involve extraction of natural resources and are classified under the primary sector. Therefore, only 1, 2 and 3 belong to the secondary sector.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2013"
+    },
+    {
+      "id": 31,
+      "question": "Which one of the following is considered as ‘Invisible hand’ in the market economy?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Trade"
+        },
+        {
+          "key": "B",
+          "text": "Money"
+        },
+        {
+          "key": "C",
+          "text": "Competition"
+        },
+        {
+          "key": "D",
+          "text": "Demand and supply"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The term “invisible hand,” given by Adam Smith, refers to the self-regulating nature of the market. It operates through the forces of demand and supply, which determine prices and allocation of resources without central control. Thus, demand and supply represent the invisible hand in a market economy.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2023"
+    },
+    {
+      "id": 32,
+      "question": "Consider the following statements:\n1.\tIf there is inadequate rainfall, the vegetable prices will increase.\n2.\tThe price of vegetables has increased.\nWhich of the following, in your opinion, logically follows from these statements?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Definitely there has been inadequate rainfall"
+        },
+        {
+          "key": "B",
+          "text": "Increase of price of vegetables is not caused by inadequate rainfall alone, so nothing conclusive follows"
+        },
+        {
+          "key": "C",
+          "text": "No counterexample can be shown"
+        },
+        {
+          "key": "D",
+          "text": "There has not been inadequate rainfall"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1 gives only a possible cause (inadequate rainfall) for higher prices, not the only cause. Statement 2 confirms that vegetable prices have increased. But price rise can happen due to many reasons like transport cost, demand surge, or supply chain issues. Therefore, we cannot conclude rainfall was the definite cause; nothing conclusive follows.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA 2013"
+    },
+    {
+      "id": 33,
+      "question": "Which of the following statement(s) are true with respect to the concept of 'EFFICIENCY' as used in mainstream economics?\n1.\tEfficiency occurs when no possible reorganization of production can make anyone better off without making someone else worse off\n2.\tAn economy is clearly inefficient if it is inside the Production Possibility Frontier (PPF)\n3.\tAt a minimum, an efficient economy is on its Production Possibility Frontier (PPF)\n4.\tThe terms such as 'Pareto Efficiency', 'Pareto Optimality' and 'Allocative Efficiency' are all essentially one and the same which denote 'efficiency in resource allocation'\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Efficiency in economics means resources are allocated so that no one can be made better off without making someone else worse off (Pareto condition). If the economy is inside the PPF, it is inefficient because resources are underutilized. On the PPF, the economy is efficient as it uses resources fully. Terms like Pareto Efficiency, Pareto Optimality, and Allocative Efficiency all describe the same idea of efficient resource allocation.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 34,
+      "question": "Why is Gross Domestic Product (GDP) called 'gross'?",
+      "options": [
+        {
+          "key": "A",
+          "text": "depreciation of capital (consumption of capital in production process)"
+        },
+        {
+          "key": "B",
+          "text": "subsidies on consumption of goods"
+        },
+        {
+          "key": "C",
+          "text": "earnings of foreign factors in host country"
+        },
+        {
+          "key": "D",
+          "text": "impact of price rise"
+        }
+      ],
+      "answer": "A",
+      "explanation": "GDP measures the total value of goods and services produced within a country. It is called gross because it does not deduct depreciation of capital assets (like machinery, buildings). Depreciation is the wear and tear of capital used in production. If depreciation is deducted, we get Net Domestic Product (NDP). Hence, GDP is “gross” since it includes depreciation.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA 2014"
+    },
+    {
+      "id": 35,
+      "question": "Which of the following is/are the example(s) of Transfer Payment(s)?\n1.\tUnemployment Allowance\n2.\tPayment of Salary\n3.\tSocial Security Payments\n4.\tOld age Pension\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "None of the above"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Transfer payments are payments made without exchange of goods or services. Examples include unemployment allowance, social security, and old age pensions. These are redistributive in nature, funded by the government. Salary payments, however, are compensation for work done, so they are not transfer payments.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 36,
+      "question": "Which of the following items are included in GNP?\n1.\tConsumer goods and services\n2.\tGross private domestic investment\n3.\tGoods and services produced by the Government\n4.\tNet income from abroad\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Gross National Product (GNP) measures the total value of goods and services produced by a country’s residents, regardless of location. It includes consumer goods and services, private domestic investment, and government production. Net income from abroad (factor income earned by residents outside the country) is also added.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "APFC 2016"
+    },
+    {
+      "id": 37,
+      "question": "Consider the following statements relating to estimation of National Income:\n1.\tForeigners working in Indian Embassies are normal residents of India.\n2.\tForeigners working in the office of WHO, World Bank, UNO etc. located in India are not normal residents of India.\n3.\tIndians working in foreign embassies in India are not normal residents of India.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Normal residents are those who live in a country and participate in its economic activities for a long period. Foreigners working in Indian embassies are not residents of India; they remain residents of their own country. Foreigners working in international organizations in India are also not counted as Indian residents. Indians working in foreign embassies in India are considered residents of the foreign country, not India.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2010"
+    },
+    {
+      "id": 38,
+      "question": "Which of the following are components of the Human Poverty Index (HPI) developed by UNDP?\n1.\tIncome deprivation\n2.\tLiteracy deprivation\n3.\tSocial services deprivation\n4.\tEmployment deprivation\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "2 and 4 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Human Poverty Index (HPI) was developed by UNDP to measure multidimensional poverty. It focuses on income deprivation, literacy deprivation, and social services deprivation (like health, sanitation, housing). Employment deprivation is not part of HPI.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2013"
+    },
+    {
+      "id": 39,
+      "question": "Which of the following is not a 'Public Good'?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Electricity"
+        },
+        {
+          "key": "B",
+          "text": "National Defense"
+        },
+        {
+          "key": "C",
+          "text": "Light House"
+        },
+        {
+          "key": "D",
+          "text": "Public Parks"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Public goods are non-excludable (cannot stop people from using) and non-rivalrous (one person’s use doesn’t reduce availability for others). National defense, lighthouses, and public parks fit this definition. Electricity, however, can be metered, priced, and restricted to paying users. Hence, electricity is not considered a pure public good.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 40,
+      "question": "Amartya Sen was awarded the Nobel Prize for his contribution to",
+      "options": [
+        {
+          "key": "A",
+          "text": "Monetary Economics"
+        },
+        {
+          "key": "B",
+          "text": "Welfare Economics"
+        },
+        {
+          "key": "C",
+          "text": "Environmental Economics"
+        },
+        {
+          "key": "D",
+          "text": "Development Economics"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Amartya Sen received the Nobel Prize in Economic Sciences in 1998 for his contributions to welfare economics. His work focused on social choice theory, poverty, famine analysis, and human development. He emphasized the capability approach, linking welfare with freedoms and quality of life rather than just income.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2017"
+    },
+    {
+      "id": 41,
+      "question": "Surge pricing takes place when a service provider",
+      "options": [
+        {
+          "key": "A",
+          "text": "raises the price of its product or service as demand outstrips supply"
+        },
+        {
+          "key": "B",
+          "text": "follows preset prices immune to demand and supply dynamics"
+        },
+        {
+          "key": "C",
+          "text": "fixes a minimum price for its services"
+        },
+        {
+          "key": "D",
+          "text": "fixes an average price on the basis of transactions carried over a day"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Surge pricing occurs when demand for a service exceeds its available supply. In such situations, service providers increase prices to balance demand and supply. This mechanism is commonly used by ride-hailing and online service platforms.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2017"
+    },
+    {
+      "id": 42,
+      "question": "The market structure that best describes the mobile phone operators market in India is:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Monopoly"
+        },
+        {
+          "key": "B",
+          "text": "Monopolistic Competition"
+        },
+        {
+          "key": "C",
+          "text": "Oligopoly"
+        },
+        {
+          "key": "D",
+          "text": "Perfect Competition"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Oligopoly is a market structure where a few large firms dominate the industry. In India, mobile phone services are controlled mainly by a handful of operators (like Jio, Airtel, and Vodafone Idea). Each firm has significant market power, but they also compete with one another. This makes the telecom sector a classic example of oligopoly.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 43,
+      "question": "Which of the following statements are correct?\n1.\tWhen marginal revenue is positive, total revenue increases with increase in output.\n2.\tWhen marginal revenue is zero, total revenue is maximum.\n3.\tWhen marginal revenue becomes negative, total revenue falls with increase in output.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Marginal revenue shows the change in total revenue when one more unit is sold. If marginal revenue is positive, total revenue keeps rising. When marginal revenue becomes zero, total revenue reaches its maximum point. If marginal revenue turns negative, total revenue starts falling with further output. Hence, all three statements are correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2014"
+    },
+    {
+      "id": 44,
+      "question": "Which one of the following is not an example of externalities?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Pollution of air by a cement factory"
+        },
+        {
+          "key": "B",
+          "text": "Health hazard caused to the person due to smoking by himself/herself"
+        },
+        {
+          "key": "C",
+          "text": "Smoke coming out of neighbor’s vehicle"
+        },
+        {
+          "key": "D",
+          "text": "Increase in land price of adjacent plots due to construction of a road by the Government"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Externalities are effects of an activity that impact others who are not directly involved. Pollution from factories or vehicles affects third parties, so they are externalities. Government road construction raising land prices is also a positive externality. But smoking harming the smoker himself is a self-inflicted effect, not an externality.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2015"
+    },
+    {
+      "id": 45,
+      "question": "Which one of the following is the opportunity cost of a chosen activity?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Out of pocket cost"
+        },
+        {
+          "key": "B",
+          "text": "Out of pocket cost plus cost incurred by the Government"
+        },
+        {
+          "key": "C",
+          "text": "Value of all opportunities forgone"
+        },
+        {
+          "key": "D",
+          "text": "Value of next best alternative that is given up"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Opportunity cost means the benefit of the next best option sacrificed when a choice is made. It is not just money spent, but the value of what is given up. For example, if you choose to study instead of working, the forgone wages are the opportunity cost.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2021"
+    },
+    {
+      "id": 46,
+      "question": "Q60. Which of the following are the main causes of the slow rate of growth of per capita income in India?\n1. High rate of capital formation\n2. High level of fiscal deficits\n3. High rate of growth of population",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "High rate of capital formation :  Incorrect. A high rate of capital formation actually supports faster economic growth, not slower. High level of fiscal deficits (2): Correct. Persistent fiscal deficits crowd out private investment and reduce efficiency, slowing per capita income growth. High rate of growth of population (3): Correct. Rapid population growth dilutes income gains, keeping per capita income low despite overall GDP growth.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "APFC 2012"
+    },
+    {
+      "id": 47,
+      "question": "Which one of the following equals Personal Disposable Income?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Personal Income – Direct taxes paid by households and miscellaneous fees, fines, etc."
+        },
+        {
+          "key": "B",
+          "text": "Private Income – Saving of Private Corporate Sectors – Corporation Tax"
+        },
+        {
+          "key": "C",
+          "text": "Private Income – Taxes"
+        },
+        {
+          "key": "D",
+          "text": "Total expenditure of Households – Income Tax – Gifts received"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Personal Income is the total income received by individuals before taxes. Disposable Income is what remains after paying direct taxes, fees, and fines. It represents the actual amount households can spend or save. Hence, Personal Disposable Income = Personal Income – Direct taxes – other compulsory payments.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 48,
+      "question": "When is \"Unbalanced\" Growth hypothesized?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Expansion can take place simultaneously on several growth routes"
+        },
+        {
+          "key": "B",
+          "text": "Supply of labour is fixed"
+        },
+        {
+          "key": "C",
+          "text": "Supply of capital is unlimited"
+        },
+        {
+          "key": "D",
+          "text": "Active sectors need to, and do energize sluggish sectors"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The theory of Unbalanced Growth (Albert Hirschman) argues that development cannot occur evenly across all sectors. Instead, investment in key “leading sectors” creates pressures and linkages that stimulate growth in other, sluggish sectors. Balanced growth is ideal but unrealistic in resource-constrained economies. Hence, unbalanced growth is hypothesized when active sectors energize sluggish ones.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "APFC 2016"
+    },
+    {
+      "id": 49,
+      "question": "When the productive capacity of the economic system of a State is inadequate to create sufficient number of jobs, it is called:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Seasonal unemployment"
+        },
+        {
+          "key": "B",
+          "text": "Structural unemployment"
+        },
+        {
+          "key": "C",
+          "text": "Disguised unemployment"
+        },
+        {
+          "key": "D",
+          "text": "Cyclical unemployment"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Seasonal unemployment (A): Occurs when jobs are available only during certain seasons (e.g., agriculture, tourism). Structural unemployment (B):  Correct. It arises when the economy’s productive capacity is insufficient or mismatched with the labor force, leading to inadequate job creation. Disguised unemployment (C): Common in agriculture, where more people are employed than necessary, but not linked to overall productive capacity. Cyclical unemployment (D):Linked to business cycles (recession/boom), not long-term structural inadequacy.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 50,
+      "question": "Statement I: Seasonal employment results in large-scale migration of the agricultural labourers from agriculturally backward regions to that of the developed regions.\nStatement II: In seasonal unemployment, once the seasons are over, the agricultural workers, especially landless labourers and marginal farmers remain unemployed.\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and Statement II is the correct explanation of Statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but Statement II is not the correct explanation of Statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but Statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but Statement II is true"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Seasonal unemployment occurs when work is available only during certain seasons (e.g., sowing, harvesting). After the season ends, workers—especially landless labourers—remain unemployed. This forces migration from backward regions to developed ones where seasonal work is available. Thus, both statements are true, and Statement II correctly explains Statement I.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA 2012"
+    },
+    {
+      "id": 51,
+      "question": "Which one of the following is a measure that can be used by the Government for combatting inflation?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Increasing the non-planned expenditure on defence, police, etc."
+        },
+        {
+          "key": "B",
+          "text": "Providing more subsidies on exports"
+        },
+        {
+          "key": "C",
+          "text": "Increasing the rate of interest on savings and fixed deposits"
+        },
+        {
+          "key": "D",
+          "text": "Reduction in the cash reserve ratio (CRR)"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Inflation occurs when demand exceeds supply, pushing prices upward. To combat inflation, governments and central banks use contractionary policies. Increasing interest rates encourages savings and reduces consumption demand. This helps cool down inflationary pressures.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2023"
+    },
+    {
+      "id": 52,
+      "question": "Core inflation is different from headline inflation because the former",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ignores articles of volatile nature in the price index"
+        },
+        {
+          "key": "B",
+          "text": "Considers articles of volatile nature in the price index"
+        },
+        {
+          "key": "C",
+          "text": "Is not based on commodity price index"
+        },
+        {
+          "key": "D",
+          "text": "Considers only core items of consumption in the price index"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Headline inflation measures the overall change in prices, including food and fuel. Core inflation excludes volatile items like food and energy to show the underlying trend. This helps policymakers focus on long-term inflationary pressures.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "EPFO EO/AO 2017"
+    },
+    {
+      "id": 53,
+      "question": "Fiscal policy in India is formulated by",
+      "options": [
+        {
+          "key": "A",
+          "text": "the Reserve Bank of India"
+        },
+        {
+          "key": "B",
+          "text": "the Planning Commission"
+        },
+        {
+          "key": "C",
+          "text": "the Finance Ministry"
+        },
+        {
+          "key": "D",
+          "text": "the Securities and Exchange Board of India"
+        }
+      ],
+      "answer": "C",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 54,
+      "question": "Which of the following are considered to be the four pillars of human development?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Equity, inclusion, productivity and empowerment"
+        },
+        {
+          "key": "B",
+          "text": "Equity, productivity, empowerment and sustainability"
+        },
+        {
+          "key": "C",
+          "text": "Productivity, gender, inclusion and equity"
+        },
+        {
+          "key": "D",
+          "text": "Labour, productivity, inclusion and equity"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Human development is measured not just by income but by opportunities and freedoms. The UNDP framework identifies four pillars: Equity (fairness), Productivity (economic growth with efficiency), Empowerment (people’s participation in decisions), and Sustainability (development that lasts across generations). Together, these ensure balanced social and economic progress.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2020"
+    },
+    {
+      "id": 55,
+      "question": "During the time of recession",
+      "options": [
+        {
+          "key": "A",
+          "text": "Interest rate should be increased"
+        },
+        {
+          "key": "B",
+          "text": "Taxes should be increased"
+        },
+        {
+          "key": "C",
+          "text": "Cash Reserve Ratio should be increased"
+        },
+        {
+          "key": "D",
+          "text": "Expenditure on public projects should be increased"
+        }
+      ],
+      "answer": "D",
+      "explanation": "A recession is a period of falling demand, output, and employment. Increasing interest rates, taxes, or CRR would further reduce demand, worsening recession. To revive the economy, governments use expansionary fiscal policy. Increasing expenditure on public projects boosts demand, creates jobs, and stimulates growth.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA  2010"
+    },
+    {
+      "id": 56,
+      "question": "Which of the following statements with regard to the Report of Tendulkar Committee (2009) on poverty estimates is/are correct?\n1.\tThe Committee had used an all-India urban poverty line basket as a reference to derive both rural and urban poverty levels.\n2.\tThe Committee had anchored the poverty line to the official food calorie norms.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Tendulkar Committee (2009) shifted poverty measurement away from calorie-based norms. It used an all-India urban poverty line basket of goods and services as the reference, applying it to both rural and urban areas. This approach included food, health, education, and other essentials. Hence, statement 1 is correct, while statement 2 is wrong because calorie norms were not the anchor.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2024"
+    },
+    {
+      "id": 57,
+      "question": "Consider the following statements regarding the rise in the price of a commodity:\n1.\tIt means a rise in the value of currency only.\n2.\tIt means a fall in the value of currency only.\n3.\tIt means a rise in the value of commodity only.\n4.\tIt means a fall in the value of currency and a rise in the value of commodity.\nWhich of the above statements is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "4 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "A rise in the price of a commodity reflects two aspects: The value of currency falls (since more currency is needed to buy the same good). The value of the commodity rises (since it commands more currency). Statements 1, 2, and 3 are partial or incomplete. Statement 4 correctly captures both effects.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2015"
+    },
+    {
+      "id": 58,
+      "question": "Which of the following statements about revenue and primary deficit is/are correct?\n1.\tRevenue deficit refers to the excess of revenue expenditure over revenue receipts.\n2.\tPrimary deficit is measured as fiscal deficit less interest payments.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 is correct: Revenue deficit occurs when the government’s revenue expenditure (day-to-day expenses like salaries, subsidies, interest payments) exceeds its revenue receipts (tax and non-tax revenues). Statement 2 is correct: Primary deficit is calculated as Fiscal Deficit – Interest Payments. It shows the borrowing requirement of the government excluding the burden of past debt.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CBI DSP 2023"
+    },
+    {
+      "id": 59,
+      "question": "Consider the following statements about the GDP deflator:\n1.\tGDP deflator captures the average price of an unchanging basket of commodities that constitutes the GDP of the country.\n2.\tGDP deflator can be used to measure the real GDP of the economy but not the inflation rate.\nWhich of the above statements is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Statement 1 is incorrect because the GDP deflator does not rely on a fixed basket of goods (unlike CPI or WPI). It reflects the prices of all goods and services included in GDP, allowing the basket to change with production. Statement 2 is incorrect because the GDP deflator can be used both to measure real GDP and to calculate inflation rate.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2024"
+    },
+    {
+      "id": 60,
+      "question": "Consider the following statements regarding the relation between Gross Domestic Product (GDP) and Net Domestic Product (NDP):\n1.\tNet Domestic Product = Gross Domestic Product + Depreciation\n2.\tNet Domestic Product = Gross Domestic Product - Depreciation\n3.\tNet Domestic Product = Gross Domestic Product ÷ Depreciation\n4.\tNet Domestic Product = Gross Domestic Product × Depreciation\nWhich of the above statements is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "4 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2018"
+    },
+    {
+      "id": 61,
+      "question": "Consider the following:\n1.\tPetroleum products\n2.\tAlcoholic liquor for human consumption\n3.\tTobacco and tobacco products\nHow many of the above are currently being taxed under the GST regime?",
+      "options": [
+        {
+          "key": "A",
+          "text": "None"
+        },
+        {
+          "key": "B",
+          "text": "Only one"
+        },
+        {
+          "key": "C",
+          "text": "Only two"
+        },
+        {
+          "key": "D",
+          "text": "All three"
+        }
+      ],
+      "answer": "B",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC MoLE 2023"
+    },
+    {
+      "id": 62,
+      "question": "Which of the following is/are considered to be part/parts of broad money measure but not part/parts of narrow money measure?\nI. Currency with the public\nII. Demand deposits with banks\nIII. Time deposits with banks\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "II only"
+        },
+        {
+          "key": "B",
+          "text": "III only"
+        },
+        {
+          "key": "C",
+          "text": "II and III only"
+        },
+        {
+          "key": "D",
+          "text": "1, II and III"
+        }
+      ],
+      "answer": "B",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC GEOS. 2026"
+    },
+    {
+      "id": 63,
+      "question": "The Cash Reserve Ratio (CRR) refers to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "The share of Net Demand and Time Liabilities (NDTL) that banks have to hold as liquid assets."
+        },
+        {
+          "key": "B",
+          "text": "The share of Net Demand and Time Liabilities that banks have to hold as balances with the RBI."
+        },
+        {
+          "key": "C",
+          "text": "The share of Net Demand and Time Liabilities that banks have to hold as part of their cash reserves."
+        },
+        {
+          "key": "D",
+          "text": "The ratio of cash holding to reserves of banks."
+        }
+      ],
+      "answer": "B",
+      "explanation": "CRR is the proportion of a commercial bank’s NDTL that must be kept as cash balance with the RBI. Statement 1 is incorrect because liquid assets requirement refers to SLR, not CRR. Statement 2 is correct: CRR is specifically maintained with RBI. Statement 3 is incorrect because CRR is not about reserves with banks themselves. Statement 4 is incorrect as it misstates the definition.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2010"
+    },
+    {
+      "id": 64,
+      "question": "Which one of the following does not influence quantity demanded for a good?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Good’s own price"
+        },
+        {
+          "key": "B",
+          "text": "Price of a complementary good"
+        },
+        {
+          "key": "C",
+          "text": "Price of a substitute good"
+        },
+        {
+          "key": "D",
+          "text": "Prices of inputs into production of the good"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Quantity demanded depends on factors like: The good’s own price (inverse relation with demand). Price of complementary goods (e.g., car and petrol). Price of substitute goods (e.g., tea and coffee.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2022"
+    },
+    {
+      "id": 65,
+      "question": "Which of the following are included in M1 definition of money for the Indian economy?\n1.\tReserves\n2.\tCurrency\n3.\tTime deposits\n4.\tDemand deposits\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "M1 is the narrowest measure of money supply in India. It includes: Currency with the public (statement 2). Demand deposits with banks (statement 4). Other deposits with RBI (not listed here). Statement 1 (Reserves) are not part of M1. Statement 3 (Time deposits) are part of M3, not M1.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS 2024"
+    },
+    {
+      "id": 66,
+      "question": "Which one of the following expresses the relation between normal price and market price?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Market price is greater than normal price"
+        },
+        {
+          "key": "B",
+          "text": "Market price is equal to normal price"
+        },
+        {
+          "key": "C",
+          "text": "Market price tends to be equal to normal price"
+        },
+        {
+          "key": "D",
+          "text": "Market price is lesser than normal price"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Normal price is the long-run equilibrium price determined by cost of production and demand. Market price is the actual price at which goods are sold in the short run, influenced by demand and supply fluctuations. In the long run, market price tends to move towards normal price because competition and production adjustments bring balance.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "APFC 2012"
+    },
+    {
+      "id": 67,
+      "question": "Who among the following first mooted the idea of deficit financing?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Adam Smith"
+        },
+        {
+          "key": "B",
+          "text": "Alfred Marshall"
+        },
+        {
+          "key": "C",
+          "text": "John Maynard Keynes"
+        },
+        {
+          "key": "D",
+          "text": "Milton Friedman"
+        }
+      ],
+      "answer": "C",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2022"
+    },
+    {
+      "id": 68,
+      "question": "Which of the following are typical differences between private insurance programmes and social insurance programmes?\n1.\tAdequacy versus Equity\n2.\tVoluntary versus Mandatory Participation\n3.\tContractual versus Statutory Rights\n4.\tFunding\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Private insurance focuses on adequacy of coverage, while social insurance emphasizes equity for all. Participation in private insurance is voluntary, but social insurance is usually mandatory. Rights in private insurance are contractual, whereas in social insurance they are statutory. Funding also differs: private insurance is funded by premiums, while social insurance is funded through taxes or contributions.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "APFC 2016"
+    },
+    {
+      "id": 69,
+      "question": "Which one of the following is not a fixed cost?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Rent on land"
+        },
+        {
+          "key": "B",
+          "text": "Municipal taxes"
+        },
+        {
+          "key": "C",
+          "text": "Wages paid to workers"
+        },
+        {
+          "key": "D",
+          "text": "Insurance charges"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Fixed costs remain constant regardless of output, like rent, taxes, and insurance. Variable costs change with the level of production. Wages paid to workers usually vary with hours worked or output produced. Hence, wages are not considered a fixed cost.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2023"
+    },
+    {
+      "id": 70,
+      "question": "Which one of the following is an example of a price ceiling?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Fares charged by Airlines in India"
+        },
+        {
+          "key": "B",
+          "text": "Price printed on biscuit packets"
+        },
+        {
+          "key": "C",
+          "text": "Minimum support price for cane growers"
+        },
+        {
+          "key": "D",
+          "text": "Minimum wages fixed by state Government"
+        }
+      ],
+      "answer": "B",
+      "explanation": "A price ceiling is the maximum price set by law that sellers cannot exceed. It is meant to protect consumers from very high prices. The printed price on biscuit packets is an example, as it restricts the maximum selling price. Minimum support price and minimum wages are examples of price floors, not ceilings.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2019"
+    },
+    {
+      "id": 71,
+      "question": "A market situation when many firms sell similar but not identical products is termed as",
+      "options": [
+        {
+          "key": "A",
+          "text": "perfect competition"
+        },
+        {
+          "key": "B",
+          "text": "imperfect competition"
+        },
+        {
+          "key": "C",
+          "text": "monopolistic competition"
+        },
+        {
+          "key": "D",
+          "text": "oligopoly"
+        }
+      ],
+      "answer": "C",
+      "explanation": "In monopolistic competition, many firms sell products that are similar but differentiated (like brands of soap or restaurants). Each firm has some control over price due to product differentiation. Unlike perfect competition, products are not identical. Unlike oligopoly, there are many sellers, not just a few.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 72,
+      "question": "According to the Law of Diminishing Returns, in a production function when more and more units of the variable factor are used, holding the quantities of a fixed factor constant, a point is reached beyond which",
+      "options": [
+        {
+          "key": "A",
+          "text": "the marginal revenue will diminish"
+        },
+        {
+          "key": "B",
+          "text": "the average revenue will diminish"
+        },
+        {
+          "key": "C",
+          "text": "the marginal product will diminish"
+        },
+        {
+          "key": "D",
+          "text": "the marginal product will increase"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Law of Diminishing Returns applies when one factor is fixed and another is increased. Initially, output rises at an increasing rate, but after a point, efficiency drops. Each additional unit of the variable factor adds less to total output. Hence, marginal product begins to diminish beyond that point.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2019"
+    },
+    {
+      "id": 73,
+      "question": "National product at factor cost is equal to",
+      "options": [
+        {
+          "key": "A",
+          "text": "Domestic product + Net factor income from abroad"
+        },
+        {
+          "key": "B",
+          "text": "National product at market prices – indirect taxes + subsidies"
+        },
+        {
+          "key": "C",
+          "text": "Gross domestic product – depreciation"
+        },
+        {
+          "key": "D",
+          "text": "National product at market prices + Indirect taxes + subsidies"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Factor cost means the value of output measured at the cost of production factors (labour, capital, land). Market price includes indirect taxes and excludes subsidies. To move from market price to factor cost, we subtract indirect taxes and add subsidies.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2014"
+    },
+    {
+      "id": 74,
+      "question": "Which of the following action(s) by the Government would lead to contraction of money supply in the economy?\n1.\tPurchase of Treasury Bills by the central bank from public\n2.\tSale of Treasury Bills by the central bank to public\n3.\tSale of foreign exchange by the central bank\n4.\tPurchase of foreign exchange by the central bank\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Statement 1 (Purchase of T-Bills) - RBI injects money into the economy → expansionary. Statement 2 (Sale of T-Bills) - RBI absorbs money from the public → contractionary. Statement 3 (Sale of foreign exchange) - RBI gives foreign currency and absorbs rupees - contractionary in principle, but in exam context, only T-Bill sale is considered the direct contractionary tool. Statement 4 (Purchase of foreign exchange) → RBI injects rupees into the economy - expansionary.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS 2023"
+    },
+    {
+      "id": 75,
+      "question": "Overhauling expenses of ₹50,000 spent on the engine of a motor car to get better fuel efficiency is classified as:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Revenue expenditure"
+        },
+        {
+          "key": "B",
+          "text": "Capital expenditure"
+        },
+        {
+          "key": "C",
+          "text": "Prepaid revenue expenditure"
+        },
+        {
+          "key": "D",
+          "text": "Deferred revenue expenditure"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Revenue expenditure: Day-to-day expenses for running and maintaining assets (e.g., fuel, routine servicing). Capital expenditure: Expenses that improve the asset’s efficiency, extend its life, or add value. Prepaid revenue expenditure: Payments made in advance for services to be received later. Deferred revenue expenditure: Large expenses that are spread over multiple years but don’t create assets (e.g., heavy advertising).",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "DRDO 2024"
+    },
+    {
+      "id": 76,
+      "question": "Which of the following are the features of GST?\n1.\tIt is an origin-based tax.\n2.\tIt is a destination-based tax.\n3.\tIt is a consumption tax.\n4.\tIt is a value added tax.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Statement 1 (Origin-based tax) - Incorrect, GST is not origin-based; it is levied at the place of consumption. Statement 2 (Destination-based tax) - Correct, GST is collected where goods/services are consumed. Statement 3 (Consumption tax) - Correct, GST is borne by the final consumer. Statement 4 (Value Added Tax) - Correct, GST is levied on the value added at each stage of production/distribution.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "UPSC MoLE 2023"
+    },
+    {
+      "id": 77,
+      "question": "Under Section 10(26) of the Income Tax Act, which of the following category of people are exempted from income tax?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Members of the Scheduled Tribes in Chhattisgarh"
+        },
+        {
+          "key": "B",
+          "text": "Members of the Scheduled Tribes and the Scheduled Castes in Special Category States"
+        },
+        {
+          "key": "C",
+          "text": "Members from the Economically Backward Class in All States"
+        },
+        {
+          "key": "D",
+          "text": "Members of the Scheduled Tribes in States of Manipur, Mizoram, Nagaland and Tripura"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Section 10(26) of the Income Tax Act provides exemption from income tax to members of Scheduled Tribes residing in specified states.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 78,
+      "question": "During the time of recession:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Interest rate should be increased"
+        },
+        {
+          "key": "B",
+          "text": "Taxes should be increased"
+        },
+        {
+          "key": "C",
+          "text": "Cash Reserve Ratio should be increased"
+        },
+        {
+          "key": "D",
+          "text": "Expenditure on public projects should be increased"
+        }
+      ],
+      "answer": "D",
+      "explanation": "In recession, aggregate demand falls, leading to reduced investment and consumption. Increasing interest rates A) or taxes B) or CRR C) would further contract demand, worsening recession. Increasing public expenditure D) is an expansionary fiscal policy measure. It injects money into the economy, creates jobs, and boosts demand, helping recovery.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "UPSC SCRA 2010"
+    },
+    {
+      "id": 79,
+      "question": "The Directorate General of Foreign Trade (DGFT) is an attached office of which Ministry of the Government of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Ministry of Commerce and Industry"
+        },
+        {
+          "key": "B",
+          "text": "The Ministry of Finance"
+        },
+        {
+          "key": "C",
+          "text": "The Ministry of External Affairs"
+        },
+        {
+          "key": "D",
+          "text": "The Ministry of Corporate Affair"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Directorate General of Foreign Trade (DGFT) is an attached office of The Ministry of Commerce and Industry, Government of India.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "UPSC GEOS 2026"
+    },
+    {
+      "id": 80,
+      "question": "Consider the following statements regarding Public Goods and Externalities:\n1.\tNon-rivalry and non-excludability are two characteristics of Public Goods\n2.\tMarket can provide the optimal amount of a good in the presence of externalities\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1 - Correct. Public goods are defined by non-rivalry (one person’s use doesn’t reduce availability for others) and non-excludability (people cannot be prevented from using them). Examples: national defense, street lighting. Statement 2 - Incorrect. In the presence of externalities (positive or negative), markets fail to provide the optimal amount of goods. Government intervention is often required to correct this market failure.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 81,
+      "question": "Which one of the following statements is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Real GDP is calculated by valuing outputs of different years at common prices."
+        },
+        {
+          "key": "B",
+          "text": "Potential GDP is the real GDP that the economy would produce if its resources were fully employed."
+        },
+        {
+          "key": "C",
+          "text": "Nominal GDP is calculated by valuing outputs of different years at constant prices."
+        },
+        {
+          "key": "D",
+          "text": "Real GDP per capita is the ratio of real GDP divided by population."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Real GDP - Calculated using constant/common prices to remove inflation effect. Potential GDP - The maximum output possible when resources are fully employed. Nominal GDP - Calculated using current prices, not constant prices. Real GDP per capita - Real GDP divided by population, showing average income adjusted for inflation.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2021"
+    },
+    {
+      "id": 82,
+      "question": "Which of the following duties levied by the Central Government on petrol and diesel are non-shareable with the States?\n1.\tBasic excise duty\n2.\tAdditional excise duty\n3.\tSpecial additional excise duty\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Basic excise duty - Shareable with states under the divisible pool of central taxes. Additional excise duty - Non-shareable; retained entirely by the Centre. Special additional excise duty - Non-shareable; also retained by the Centre.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC MoLE 2023"
+    },
+    {
+      "id": 83,
+      "question": "‘Fiscal policy’ means",
+      "options": [
+        {
+          "key": "A",
+          "text": "Balancing the revenue collection and expenditure"
+        },
+        {
+          "key": "B",
+          "text": "Establishing equilibrium between demand and supply of goods and services"
+        },
+        {
+          "key": "C",
+          "text": "Use of taxation, public borrowing and public expenditure by Government for purposes of ‘stabilization’ or ‘development’"
+        },
+        {
+          "key": "D",
+          "text": "Deficiency as an instrument of growth"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Fiscal policy refers to the government’s use of taxation, borrowing, and spending to influence the economy. It is mainly used for economic stabilization (controlling inflation, unemployment) and development (growth, infrastructure, welfare). Option A) is too narrow; fiscal policy is not just balancing revenue and expenditure. Option B) relates more to market equilibrium, not fiscal policy. Option D) is vague and incorrect.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "UPSC IES 2019"
+    },
+    {
+      "id": 84,
+      "question": "Which of the following are examples of “Near Money”?\n1.\tTreasury Bill\n2.\tCredit Card\n3.\tSavings accounts and small time deposits\n4.\tRetail money market mutual funds\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Near Money refers to highly liquid assets that are not cash but can be quickly converted into cash. Statement 1 (Treasury Bill) - Correct, as it is a short-term government security easily convertible to cash. Statement 2 (Credit Card) - Incorrect, because it is a payment instrument, not an asset. Statement 3 (Savings accounts and small time deposits) - Correct, as they are liquid and close substitutes for money. Statement 4 (Retail money market mutual funds) - Correct, as they are highly liquid financial instruments.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 85,
+      "question": "If the RBI adopts an expansionist open market operations policy, this means it will:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Sell securities in the open market"
+        },
+        {
+          "key": "B",
+          "text": "Buy securities from non-government holders"
+        },
+        {
+          "key": "C",
+          "text": "Openly announce to the market that it intends to expand credit"
+        },
+        {
+          "key": "D",
+          "text": "Offer commercial banks more credit in the open market"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Open Market Operations (OMO) are actions by the RBI to buy or sell government securities in the market. Under an expansionist policy, RBI aims to increase liquidity and credit availability. It does this by buying securities or offering more credit to banks, which raises money supply. Selling securities would reduce liquidity, so option A) is incorrect. Simply announcing expansion (option c) is not the actual policy action. The correct effect is that RBI offers more credit to commercial banks, thereby expanding money supply.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "APFC 2012"
+    },
+    {
+      "id": 86,
+      "question": "Which of the following are indicators of debt vulnerability of a country?\n1.\tGDP\n2.\tTotal Debt/GDP\n3.\tShort-term Debt to Total Debt Ratio\n4.\tLevel of Foreign Exchange Reserves\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 (GDP) - Not a direct indicator of vulnerability; it shows economic size but not debt stress. Statement 2 (Total Debt/GDP) - Correct, as it measures debt burden relative to economic output. Statement 3 (Short-term Debt to Total Debt Ratio) - Correct, since higher short-term debt increases rollover risk and vulnerability. Statement 4 (Level of Foreign Exchange Reserves) - Correct, because reserves determine a country’s ability to meet external debt obligations.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC MOLE 2023"
+    },
+    {
+      "id": 87,
+      "question": "Which of the following is the highest policy-making body for monetary matters in India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Securities and Exchange Board of India"
+        },
+        {
+          "key": "B",
+          "text": "The NITI Aayog"
+        },
+        {
+          "key": "C",
+          "text": "The Ministry of Finance"
+        },
+        {
+          "key": "D",
+          "text": "The Reserve Bank of India"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2019"
+    },
+    {
+      "id": 88,
+      "question": "Which one of the following items is ignored in the calculation of national income?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Sales of a firm"
+        },
+        {
+          "key": "B",
+          "text": "Salary of employees"
+        },
+        {
+          "key": "C",
+          "text": "Exports of the IT sector"
+        },
+        {
+          "key": "D",
+          "text": "Sale of land"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The sale of land is a transfer of ownership, not production, so it is excluded.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 89,
+      "question": "Which of the following statements is/are true?\n1.\tIf increase in demand and supply are of equal magnitude, the price will remain unchanged, but the equilibrium quantity will increase.\n2.\tIf increase in demand is of greater magnitude than increase in supply, both equilibrium price and equilibrium quantity will increase.\n3.\tIf increase in supply is of greater magnitude than increase in demand, equilibrium price will fall but equilibrium quantity will increase.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "When demand and supply rise equally, price stays the same but quantity traded increases. If demand rises more than supply, buyers compete, so both price and quantity go up. If supply rises more than demand, sellers compete, so price falls but quantity traded increases. All three statements correctly describe market equilibrium outcomes.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS 2014"
+    },
+    {
+      "id": 90,
+      "question": "Classification of an enterprise into public or private sector is based on",
+      "options": [
+        {
+          "key": "A",
+          "text": "number of employees in the enterprise"
+        },
+        {
+          "key": "B",
+          "text": "ownership of assets of the enterprise"
+        },
+        {
+          "key": "C",
+          "text": "employment conditions for workers in the enterprise"
+        },
+        {
+          "key": "D",
+          "text": "nature of products manufactured by the enterprise"
+        }
+      ],
+      "answer": "B",
+      "explanation": "An enterprise is classified as public or private based on who owns and controls its assets. If the government owns the majority of assets, it is a public sector enterprise; if owned by private individuals or companies, it is a private sector enterprise. The number of employees, working conditions, or type of product do not determine this classification.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2024"
+    },
+    {
+      "id": 91,
+      "question": "When some goods or productive factors are completely fixed in amount, regardless of price, the supply curve is",
+      "options": [
+        {
+          "key": "A",
+          "text": "horizontal"
+        },
+        {
+          "key": "B",
+          "text": "downward sloping to the right"
+        },
+        {
+          "key": "C",
+          "text": "vertical"
+        },
+        {
+          "key": "D",
+          "text": "upward sloping to the right"
+        }
+      ],
+      "answer": "C",
+      "explanation": "When the quantity supplied is completely fixed and does not change with price, supply is perfectly inelastic. In such a case, the supply curve is vertical. This means price changes have no effect on the quantity supplied.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 92,
+      "question": "Consider the following statements regarding the burden of a tax on a commodity:\n1.\tThe burden of a tax on a commodity is independent of whether it is explicitly imposed on the buyer or the seller.\n2.\tThe burden of a tax on a commodity depends on the slope of the demand and supply curves.\nWhich of the statements given above is/are correct?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The statutory incidence (who is legally responsible to pay the tax) does not determine the economic incidence (who actually bears the burden). Whether the tax is levied on buyers or sellers, the market adjusts through prices. The actual burden depends on the elasticity (slope) of demand and supply curves. If demand is inelastic, consumers bear more of the burden; if supply is inelastic, producers bear more.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 93,
+      "question": "Which one among the following is a fixed cost to a manufacturing firm in the short run?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Insurance on buildings"
+        },
+        {
+          "key": "B",
+          "text": "Overtime payment to workers"
+        },
+        {
+          "key": "C",
+          "text": "Cost of energy"
+        },
+        {
+          "key": "D",
+          "text": "Cost of raw materials"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Fixed costs do not change with the level of output in the short run. Insurance on buildings is paid regardless of how much is produced. Costs like overtime wages, energy, and raw materials vary with production. Hence, insurance on buildings is a fixed cost.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2013"
+    },
+    {
+      "id": 94,
+      "question": "Suppose an Indian citizen makes an investment abroad and earns a positive return on her investment. Which of the following is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Her income is part of India's GDP, but not part of India's national income."
+        },
+        {
+          "key": "B",
+          "text": "Her income is part of India's national income, but not part of India's GDP."
+        },
+        {
+          "key": "C",
+          "text": "Her income is part of both India's GDP and national income."
+        },
+        {
+          "key": "D",
+          "text": "Her income is neither part of India's GDP, nor its national income."
+        }
+      ],
+      "answer": "B",
+      "explanation": "GDP measures all production within the domestic territory of India, regardless of who owns it. National income measures income earned by Indian residents, whether inside or outside India. Returns from investment abroad are earned by Indian citizens, so they count in national income. But since production happened outside India, it is not part of India’s GDP.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2023"
+    },
+    {
+      "id": 95,
+      "question": "Which one of the following ministries is responsible for calculating GDP in India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ministry of Finance"
+        },
+        {
+          "key": "B",
+          "text": "Ministry of Commerce and Industry"
+        },
+        {
+          "key": "C",
+          "text": "Ministry of Statistics and Programme Implementation"
+        },
+        {
+          "key": "D",
+          "text": "Ministry of Consumer Affairs, Food and Public Distribution"
+        }
+      ],
+      "answer": "C",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2013"
+    },
+    {
+      "id": 96,
+      "question": "Which of the following statements about the Direct Benefit Transfer (DBT) Programme of the Government of India is/are correct?\n1.\tThe purpose of Direct Benefit Transfer is to ensure that benefits go to individuals’ bank accounts electronically.\n2.\tThe Programme covers all the districts of India.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 is correct: DBT was designed to transfer subsidies and benefits directly into beneficiaries’ bank accounts electronically, reducing leakages and ensuring transparency. Statement 2 is correct in the exam’s context: At the time of framing, DBT was envisaged to cover all districts of India, though in practice it was rolled out in phases starting with select districts.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2013"
+    },
+    {
+      "id": 97,
+      "question": "Which of the following institutions was/were asked by the Government of India to provide official estimates of black (unaccounted) money held by Indians, both in India and abroad?\n1.\tNational Institute of Public Finance and Policy (NIPFP)\n2.\tNational Council of Applied Economic Research (NCAER)\n3.\tNational Institute of Financial Management (NIFM)\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Government of India, in 2011, commissioned three institutions—NIPFP, NCAER, and NIFM—to conduct studies and provide estimates of black money held by Indians both domestically and abroad. This was part of a broader effort to understand the scale of unaccounted wealth and to design policy measures against tax evasion and illicit financial flows. Hence, all three listed institutions were involved.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2013"
+    },
+    {
+      "id": 98,
+      "question": "How can the Government influence private sector expenditure?\n1.\tTaxation\n2.\tSubsidies\n3.\tMacroeconomic policies\n4.\tGrants\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "3 and 4 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Taxation: Higher taxes reduce disposable income and discourage spending; lower taxes encourage expenditure. Subsidies: Reduce costs for producers/consumers, encouraging more spending and investment. Macroeconomic policies: Fiscal and monetary policies directly affect demand, credit availability, and investment climate. Grants: Direct financial support boosts private sector activity. Thus, all four are valid instruments through which the government can influence private sector expenditure.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2013"
+    },
+    {
+      "id": 99,
+      "question": "How does an expansionary monetary policy affect the rate of interest and level of income?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Raises the level of income but lowers the rate of interest"
+        },
+        {
+          "key": "B",
+          "text": "Raises the rate of interest but lowers the level of income"
+        },
+        {
+          "key": "C",
+          "text": "Raises both, the rate of interest and the level of income"
+        },
+        {
+          "key": "D",
+          "text": "Lowers both, the rate of interest and the level of income"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Expansionary monetary policy means the central bank increases money supply (e.g., lowering repo rate, reducing CRR, or buying securities). This leads to lower interest rates, making borrowing cheaper. Cheaper credit boosts investment and consumption, thereby raising income/output levels. Hence, the correct effect is higher income with lower interest rates.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "APFC 2016"
+    },
+    {
+      "id": 100,
+      "question": "Which of the following are the major economic functions of Governments?\n1.\tIncreasing efficiency by promoting competition\n2.\tPromoting equity by using tax and expenditure programme\n3.\tFostering macroeconomic stability and growth\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Governments promote efficiency by encouraging competition and reducing monopolies. They promote equity through redistribution policies like progressive taxation and welfare spending. They foster macroeconomic stability and growth by managing inflation, unemployment, and overall economic cycles through fiscal and monetary policies.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2015"
+    }
+  ]
+}

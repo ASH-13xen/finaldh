@@ -1614,30 +1614,62 @@ export const getRawCoursePdf = async (req, res) => {
       return res.status(404).json({ error: 'Raw PDF file URL not found for requested index' });
     }
 
-    // 4. Stream PDF from Cloudflare R2 or local disk
+    // 4. Stream PDF from Cloudflare R2 or local disk, honoring HTTP Range requests so
+    // pdf.js can lazily fetch only the byte ranges it needs instead of downloading the
+    // whole file before rendering the first page.
+    const rangeHeader = req.headers.range;
+
     if (targetUrl.startsWith('r2://')) {
       const r2Key = targetUrl.replace('r2://', '');
-      console.log(`[R2 Stream] Serving raw PDF from R2 key: ${r2Key} (index ${fileIndex})`);
+      console.log(`[R2 Stream] Serving raw PDF from R2 key: ${r2Key} (index ${fileIndex})${rangeHeader ? ` range=${rangeHeader}` : ''}`);
 
-      const r2Response = await r2Client.send(new GetObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: r2Key,
-      }));
+      const getObjectParams = { Bucket: process.env.R2_BUCKET_NAME, Key: r2Key };
+      if (rangeHeader) getObjectParams.Range = rangeHeader;
+
+      const r2Response = await r2Client.send(new GetObjectCommand(getObjectParams));
 
       res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Content-Length', r2Response.ContentLength);
+
+      if (rangeHeader && r2Response.ContentRange) {
+        res.status(206);
+        res.setHeader('Content-Range', r2Response.ContentRange);
+      }
+
       r2Response.Body.pipe(res);
     } else {
       // Local disk file
       const filePath = path.join(__dirname, '../', targetUrl);
+      let stat;
       try {
-        await fs.access(filePath);
+        stat = await fs.stat(filePath);
       } catch {
         return res.status(404).json({ error: 'Raw PDF file not found on disk' });
       }
+
+      const fileSize = stat.size;
       res.setHeader('Content-Type', 'application/pdf');
-      const fileStream = createReadStream(filePath);
-      fileStream.pipe(res);
+      res.setHeader('Accept-Ranges', 'bytes');
+
+      const match = rangeHeader && /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+      if (match) {
+        const start = match[1] === '' ? 0 : parseInt(match[1], 10);
+        const end = match[2] === '' ? fileSize - 1 : parseInt(match[2], 10);
+
+        if (isNaN(start) || isNaN(end) || start > end || end >= fileSize) {
+          res.setHeader('Content-Range', `bytes */${fileSize}`);
+          return res.status(416).end();
+        }
+
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Content-Length', end - start + 1);
+        createReadStream(filePath, { start, end }).pipe(res);
+      } else {
+        res.setHeader('Content-Length', fileSize);
+        createReadStream(filePath).pipe(res);
+      }
     }
   } catch (err) {
     console.error('Error fetching raw PDF:', err);

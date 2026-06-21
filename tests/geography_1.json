@@ -1,0 +1,2709 @@
+{
+  "meta": {
+    "source": "sectional",
+    "subject": "geography_1",
+    "created_at": "2026-02-26T19:15:28.387Z"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "It is known that the atmosphere is divided into some layers. In which one among the following layers, is the percentage composition of Helium gas maximum ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Troposphere"
+        },
+        {
+          "key": "B",
+          "text": "Stratosphere"
+        },
+        {
+          "key": "C",
+          "text": "Exosphere"
+        },
+        {
+          "key": "D",
+          "text": "Ionosphere"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Earth’s atmosphere is divided into layers: Troposphere, Stratosphere, Mesosphere, Thermosphere (includes Ionosphere), and Exosphere.Troposphere & Stratosphere: Dominated by Nitrogen (78%) and Oxygen (21%), with trace gases like CO₂, Argon, etc. Helium is negligible here. Ionosphere (part of Thermosphere): Characterized by ionized particles due to solar radiation, but not a region where Helium dominates. Exosphere (outermost layer): Extends beyond 500–1000 km above Earth. Here, lighter gases like Hydrogen and Helium are most abundant because heavier molecules (N₂, O₂) cannot reach these altitudes. Thus, the percentage composition of Helium is maximum in the Exosphere, along with Hydrogen.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "NDA II 2013"
+    },
+    {
+      "id": 2,
+      "question": "A person may bleed from the nose when at a great height above the sea level. With reference to this, which one of the following statements is correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The pressure exerted by the blood in blood capillaries is slightly less than the atmospheric pressure"
+        },
+        {
+          "key": "B",
+          "text": "The pressure exerted by the blood in blood capillaries is more than the atmospheric pressure"
+        },
+        {
+          "key": "C",
+          "text": "There is no difference in the internal and external pressures on the walls of the cells and blood capillaries"
+        },
+        {
+          "key": "D",
+          "text": "Blood capillaries in the nose can absorb less oxygen at greater height so it bursts"
+        }
+      ],
+      "answer": "B",
+      "explanation": "At high altitudes, atmospheric pressure falls sharply, but the blood pressure inside capillaries remains constant. This imbalance makes internal pressure greater than external pressure, causing delicate nasal capillaries to rupture and result in nosebleeds. Options A), C), and D) misrepresent the physiological cause, which is purely due to pressure difference.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 3,
+      "question": "Consider the following which can be found in the ambient atmosphere :\n1. Soot\n2. Sulphur hexafluoride\n3. Water vapour\nWhich of the above contribute to the warming up of the atmosphere ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "All three contribute to atmospheric warming. Soot (black carbon) absorbs solar radiation and enhances warming. Sulphur hexafluoride (SF₆) is a potent greenhouse gas with very high global warming potential. Water vapour is the most abundant greenhouse gas, trapping heat effectively. Hence, all three play a role in warming the atmosphere .",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "UPSC IES 2014"
+    },
+    {
+      "id": 4,
+      "question": "The main constituents of atmospheric air are Oxygen (O2) and Nitrogen (Ng). The composition of O2 and N2 is approximately :",
+      "options": [
+        {
+          "key": "A",
+          "text": "29% and 70% respectively."
+        },
+        {
+          "key": "B",
+          "text": "19% and 80% respectively."
+        },
+        {
+          "key": "C",
+          "text": "21% and 78% respectively."
+        },
+        {
+          "key": "D",
+          "text": "23% and 76% respectively."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Atmospheric air is primarily composed of Nitrogen (~78%) and Oxygen (~21%), with trace gases like Argon, CO₂, and water vapour. Options A), B), and D) are incorrect as they do not match the scientifically established proportions.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2022"
+    },
+    {
+      "id": 5,
+      "question": "The process by which heat is transmitted from the Sun to the Earth is called",
+      "options": [
+        {
+          "key": "A",
+          "text": "Conduction"
+        },
+        {
+          "key": "B",
+          "text": "Convection"
+        },
+        {
+          "key": "C",
+          "text": "Radiation"
+        },
+        {
+          "key": "D",
+          "text": "Cosmic disturbances"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Heat from the Sun reaches Earth through radiation, as space is a vacuum where conduction and convection cannot occur. Electromagnetic waves, mainly in the form of shortwave solar radiation, travel across space and are absorbed by the Earth’s atmosphere and surface. Hence, radiation is the correct process.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CAPF (AC) 2011 II"
+    },
+    {
+      "id": 6,
+      "question": "What is the major role of a green- house gas that contributes to temperature rise. of the Earth's surface?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Transparent to both incoming sunlight and outgoing infrared radiation"
+        },
+        {
+          "key": "B",
+          "text": "Stops both incoming sunlight and outgoing infrared radiation"
+        },
+        {
+          "key": "C",
+          "text": "Lets outgoing infrared radiation pass through but stops incoming sunlight"
+        },
+        {
+          "key": "D",
+          "text": "Lets incoming sunlight pass through but stops outgoing infrared radiation"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Greenhouse gases allow shortwave solar radiation to enter the Earth’s atmosphere but trap the longwave infrared radiation emitted by the Earth’s surface. This prevents heat from escaping, leading to a rise in surface temperature. Hence, their major role is to act like a “blanket,” causing the greenhouse effect.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 7,
+      "question": "Consider the following statements :\n1. The Earth receives the Sun's energy at the infrared end of the spectrum.\n2. The Earth re-radiates the Sun's heat as ultraviolet energy\nWhich of the above statements is/are correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Earth receives the Sun’s energy mainly as shortwave radiation (visible and some ultraviolet), not infrared. After absorption, the Earth re-radiates energy as longwave infrared radiation, not ultraviolet. Hence, both statements are incorrect, making “Neither 1 nor 2” the right answer.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2009"
+    },
+    {
+      "id": 8,
+      "question": "The term 'albedo' implies the",
+      "options": [
+        {
+          "key": "A",
+          "text": "capacity to absorb solar radiation."
+        },
+        {
+          "key": "B",
+          "text": "capacity to modify the path of solar radiation."
+        },
+        {
+          "key": "C",
+          "text": "proportion of the shortwave solar radiation reflected by a surface."
+        },
+        {
+          "key": "D",
+          "text": "amount of solar radiation returned to air by a surface."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Albedo refers to the fraction of incoming solar radiation reflected by a surface without being absorbed. Snow and ice have high albedo, while forests and oceans have low albedo. It is a key concept in climatology, as higher albedo reduces warming, while lower albedo enhances heat absorption.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "NDA II 2013"
+    },
+    {
+      "id": 9,
+      "question": "Consider the following statements :\n1. Black soil is considered suitable for growing rain-fed crops\n2. Black soil can retain moisture for a prolonged period, aiding crops to survive even in dry seasons\nWith regard to the statements given above which of the following is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are correct and statement 2 is the correct explanation of statement 1"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are correct and statement 2 is NOT the correct explanation of statement 1"
+        },
+        {
+          "key": "C",
+          "text": "Statement 1 is correct but statement 2 is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement 1 is false but statement 2 is correct"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Black soil (Regur soil) has high clay content and is known for its moisture-retentive capacity. This property makes it ideal for rain-fed crops like cotton, pulses, and oilseeds, as it supports crop survival even during dry spells. Hence, statement 2 correctly explains why black soil is suitable for rain-fed agriculture.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 10,
+      "question": "Halophytes are the plants that grow on which one, among the following categories of soil ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Acidic soil"
+        },
+        {
+          "key": "B",
+          "text": "Saline soil"
+        },
+        {
+          "key": "C",
+          "text": "Black soil"
+        },
+        {
+          "key": "D",
+          "text": "Sandy soil"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Halophytes are plants adapted to grow in saline or salt-rich soils, often found in coastal regions, marshes, and mangroves. They possess special physiological mechanisms to tolerate high salt concentration. Hence, the correct answer is saline soil, not acidic, black, or sandy soils.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2024"
+    },
+    {
+      "id": 11,
+      "question": "Which of the following soil formation process takes place in Phumdis (flouting fields) in Loktak Lake of Manipur ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Laterization"
+        },
+        {
+          "key": "B",
+          "text": "Podzolization"
+        },
+        {
+          "key": "C",
+          "text": "Gleization"
+        },
+        {
+          "key": "D",
+          "text": "Calcification"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Phumdis in Loktak Lake are floating biomass mats where soil formation occurs under waterlogged, anaerobic conditions. Such environments lead to gleization, a process marked by poor drainage, reduction of iron, and bluish-grey soil. Laterization, podzolization, and calcification occur in different climatic or soil settings, not in wetlands.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2023"
+    },
+    {
+      "id": 12,
+      "question": "Rain shadow effect is associated with",
+      "options": [
+        {
+          "key": "A",
+          "text": "Cyclonic rainfall"
+        },
+        {
+          "key": "B",
+          "text": "Orographic rainfall"
+        },
+        {
+          "key": "C",
+          "text": "Convectional rainfall"
+        },
+        {
+          "key": "D",
+          "text": "Frontal rainfall"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The rain shadow effect occurs when moist air rises over a mountain, cools, and causes orographic rainfall on the windward side. The leeward side receives little rain as the descending air becomes dry, creating a rain shadow region. This phenomenon is typical in areas like the Deccan Plateau behind the Western Ghats.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA I 2015"
+    },
+    {
+      "id": 13,
+      "question": "With reference to 'South Coast of Australia' which of the following statements is/are correct?\n1. It is situated along the Indian Ocean\n2. It experiences rain during its winter months of December and January\nSelect the answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The South Coast of Australia lies along the Southern Ocean, not the Indian Ocean. Its rainfall pattern is Mediterranean type, with rains in June–August (Australian winter), not in December–January (which is summer in the Southern Hemisphere). Hence, both statements are incorrect.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 14,
+      "question": "Statement I: El Nino is a temperature rising phenomenon over the Pacific Ocean and usually causes dry monsoon in South Asia.\nStatement II: Tsunamis are usually not noticed as the massive ocean waves move  silently but assume  destructive form as these travel through shallow waters of continental shelves.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and statement Il is the correct explanation of statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but statement II is not the correct explanation of statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but statement II is true"
+        }
+      ],
+      "answer": "B",
+      "explanation": "El Niño is indeed a warming phenomenon over the Pacific Ocean that disrupts monsoons, often causing dry conditions in South Asia. Tsunamis also behave as described—moving unnoticed in deep waters but becoming destructive in shallow continental shelves. However, tsunamis are unrelated to El Niño, so while both statements are true, statement II does not explain statement I",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2011"
+    },
+    {
+      "id": 15,
+      "question": "Which of the following statements is/are correct?\n1. The jet streams are high altitude easterly winds.\n2. El Nino is a warm ocean current.\n3. El Nino appears along the Peru coast.\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Jet streams are high-altitude westerly winds, not easterlies, so statement 1 is incorrect. El Niño is a warm ocean current that develops in the central and eastern Pacific, and it prominently appears along the Peru coast. Hence, statements 2 and 3 are correct, making option B) the right answer.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2022"
+    },
+    {
+      "id": 16,
+      "question": "Which one of the following is located at the southernmost latitude?",
+      "options": [
+        {
+          "key": "A",
+          "text": "South Africa"
+        },
+        {
+          "key": "B",
+          "text": "Australia"
+        },
+        {
+          "key": "C",
+          "text": "Chile"
+        },
+        {
+          "key": "D",
+          "text": "Polynesia"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Chile stretches deep into the Southern Hemisphere, with its southernmost point near the Diego Ramírez Islands (~56°S). Australia’s southern limit (Tasmania) is ~43°S, South Africa’s Cape Agulhas is ~34°S, and Polynesia lies mostly around tropical latitudes. Hence, Chile is located at the southernmost latitude among the given options.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2017"
+    },
+    {
+      "id": 17,
+      "question": "Horse latitudes lie within the atmospheric pressure belts of?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Polar high"
+        },
+        {
+          "key": "B",
+          "text": "Equatorial low"
+        },
+        {
+          "key": "C",
+          "text": "Sub-tropical high"
+        },
+        {
+          "key": "D",
+          "text": "Sub-polar low"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Horse latitudes are regions of calm winds and little precipitation found around 30° N and 30° S latitudes. They lie within the sub-tropical high pressure belts, where descending air suppresses cloud formation and rainfall. This zone is historically associated with stalled sailing ships, hence the term \"horse latitudes\".",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2011"
+    },
+    {
+      "id": 18,
+      "question": "Which one of the following cities is closest to the Equator?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Mogadishu"
+        },
+        {
+          "key": "B",
+          "text": "Singapore"
+        },
+        {
+          "key": "C",
+          "text": "Colombo"
+        },
+        {
+          "key": "D",
+          "text": "Manila"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Equator (0° latitude) passes very close to Singapore (~1°17′N), making it the closest among the given options. Mogadishu in Somalia lies around 2°N, Colombo in Sri Lanka around 6.9°N, and Manila in the Philippines around 14.6°N. Hence, Singapore is the city nearest to the Equator.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2020"
+    },
+    {
+      "id": 19,
+      "question": "Consider the following countries :\n1.Australia\n2.Namibia\n3.Brazil\n4.Chile\nThrough which of the above does the Tropic of Capricorn pass ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Tropic of Capricorn (23.5°S) passes through Australia, Namibia, and Brazil. It does not cross Chile, because Chile lies further south and west along the Pacific coast, outside the Tropic’s path. Hence, the correct option is C) 1, 2 and 3.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CSE 2018"
+    },
+    {
+      "id": 20,
+      "question": "The Earth is an oblate spheroid and not a perfect sphere. This is because\n1. The Earth has a rotational motion and the rotational speed increases as one goes from the Poles towards the Equator.\n2. The Equator experiences greater gravitational pull from the Sun.\n3. the intensity of sunlight received at the Equator is greater than that at the Poles.\nSelect the correct answer using the code, given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Earth is an oblate spheroid because its rotation causes centrifugal force, which is maximum at the Equator and zero at the Poles. This makes the Earth bulge at the Equator and flatten at the Poles. Statement 2 (gravitational pull from the Sun) and statement 3 (intensity of sunlight) have no role in shaping Earth’s geometry. Hence, only statement 1 is correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2010"
+    },
+    {
+      "id": 21,
+      "question": "Consider the following statements :\n1. International Date Line is  drawn zigzag to avoid landmass.\n2. International Date Line is 180° W as well as 180° E of Greenwich.\n3. A ship sailing westward from Greenwich when crossing International Date Line would put back the date by a day.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The International Date Line (IDL) is indeed drawn in a zigzag manner to avoid dividing countries and islands into different dates - Correct. The IDL roughly follows the 180° meridian, which is both 180°E and 180°W of Greenwich - Correct. When crossing the IDL westward, the date is advanced by one day, not put back - Incorrect.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA 2009"
+    },
+    {
+      "id": 22,
+      "question": "Consider the following statements :\n1. Prime Meridian passes through Greenwich and is at 0° Longitude.\n2. International Date Line, on the map appears as a straight line along 180° Longitude.\n3. While crossing International Date Line from east to west, one gains a day.\n4. Tropic of Cancer lies at 23° Latitude S.\nWhich of these statements are correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Prime Meridian indeed passes through Greenwich at 0° longitude - Correct. The International Date Line (IDL) is not a straight line; it zigzags to avoid landmasses - Incorrect. Crossing the IDL east to west, you gain a day (westward = add a day, eastward = lose a day) - Correct. The Tropic of Cancer lies at 23.5°N, not South – Incorrect",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CSE 2013"
+    },
+    {
+      "id": 23,
+      "question": "In which among the following states in India, the Sun rays are never perpendicular ?\n1. Bihar\n2. Chhattisgarh\n3. Manipur\n4. Rajasthan\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "2 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Sun’s rays are perpendicular only between the Equator (0°) and the Tropic of Cancer; regions located entirely north of this latitude never receive overhead Sun. Bihar lies completely north of 23.5°N, so the Sun is never perpendicular there. In contrast, the Tropic of Cancer passes through parts of Chhattisgarh, Manipur, and Rajasthan, meaning at least some portions of these states do experience overhead Sun. Therefore, strictly by geographical position, Bihar is the state where the Sun’s rays are never perpendicular. ANSWER GIVEN AS PER UPSC ANSWER KEY. USE DESCRITION.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2024"
+    },
+    {
+      "id": 24,
+      "question": "On 21st June, the Sun",
+      "options": [
+        {
+          "key": "A",
+          "text": "does not set below the horizon at the Arctic Circle"
+        },
+        {
+          "key": "B",
+          "text": "does not set below the horizon Antarctic Circle"
+        },
+        {
+          "key": "C",
+          "text": "shines vertically overhead at noon on the Equator"
+        },
+        {
+          "key": "D",
+          "text": "shines vertically overhead at the Tropic of Capricorn"
+        }
+      ],
+      "answer": "A",
+      "explanation": "On 21st June, the Summer Solstice occurs in the Northern Hemisphere. The Sun is directly overhead at the Tropic of Cancer (23.5°N), not the Equator or Tropic of Capricorn. During this time, regions around the Arctic Circle (66.5°N) experience 24 hours of daylight (Midnight Sun), meaning the Sun does not set below the horizon. Conversely, the Antarctic Circle experiences 24 hours of darkness.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CSE 2019"
+    },
+    {
+      "id": 25,
+      "question": "Under which of the following conditions is the phenomenon of solar constant the highest?",
+      "options": [
+        {
+          "key": "A",
+          "text": "When the rays of the Sun travel a greater distance"
+        },
+        {
+          "key": "B",
+          "text": "When the output of the energy is less"
+        },
+        {
+          "key": "C",
+          "text": "When there is a presence of larger amount of dust particles, water vapour, salt and smoke"
+        },
+        {
+          "key": "D",
+          "text": "When the duration of sunlight is more"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The solar constant refers to the amount of solar radiation received per unit area at the top of Earth’s atmosphere when the Sun is at mean distance. It is highest when the Sun’s rays travel the shortest distance through the atmosphere, i.e., during longer duration of sunlight with clear skies. Options A, B, and C reduce the effective solar radiation due to greater distance, lower output, or atmospheric absorption/scattering.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "UPSC SCRA 2014"
+    },
+    {
+      "id": 26,
+      "question": "Consider the following statements regarding 'fronts':\n1. The movement of a front causes a slow change in weather in the area over which it moves.\n2. Cold fronts are associated with thunderstorms.\n3. Warm front is the boundary between an advancing mass of warm air where it is overriding and rising above a masa of colder air.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The movement of a front usually causes a sudden and significant change in weather (temperature, wind, precipitation), not a slow change - Statement 1 is incorrect. Cold fronts are steep and force warm air to rise rapidly, often producing cumulonimbus clouds, heavy rain, and thunderstorms - Correct. A warm front occurs when warm air advances and overrides colder air, producing layered clouds and steady rainfall - Correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2024"
+    },
+    {
+      "id": 27,
+      "question": "Statement I: Despite the northerly latitude, the climate of U.K. is generally mild.\nStatement II: Warm air from North Atlantic Drift and Western Africa combines with cold wet air from the Arctic and Iceland.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and statement II is the correct explanation of statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but statement II is nor the correct explanation of statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but statement II is true"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement I: Correct — The U.K. climate is mild despite its northerly latitude because of the moderating influence of the warm North Atlantic Drift (extension of Gulf Stream) and prevailing westerlies. Statement II: Incorrect — The mildness is not due to a “combination” of warm air from Western Africa with cold Arctic air. In fact, the North Atlantic Drift alone plays the dominant role, while Arctic air brings cold spells.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 28,
+      "question": "What is the term used to denote the critical temperature at which the air becomes saturated with vapour and below which the condensation is likely to begin ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Condensation point"
+        },
+        {
+          "key": "B",
+          "text": "Evaporation point"
+        },
+        {
+          "key": "C",
+          "text": "Dew point"
+        },
+        {
+          "key": "D",
+          "text": "Point of critical temperature"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The dew point is the critical temperature at which the air becomes saturated with water vapour. When the air is cooled to this temperature, it cannot hold any more moisture, and condensation begins (forming dew, fog, or clouds). The other terms listed are either incorrect or not used in climatology.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA 2010"
+    },
+    {
+      "id": 29,
+      "question": "Plants, which survive by withdrawing water from their cells to prevent ice formation during extreme cold up to -40 C, are known as:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Frost sensitive"
+        },
+        {
+          "key": "B",
+          "text": "Frost tolerant"
+        },
+        {
+          "key": "C",
+          "text": "Frost resistant"
+        },
+        {
+          "key": "D",
+          "text": "Chilling resistant"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Plants that can withstand extreme cold (up to –40°C) do so by withdrawing water from their cells, which prevents ice crystal formation inside the protoplasm. This adaptation allows them to survive freezing conditions. Such plants are termed frost tolerant. Frost sensitive - easily damaged by frost. Frost resistant - can resist mild frost but not extreme cold. Frost tolerant - can survive very low temperatures by physiological adaptations.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2021"
+    },
+    {
+      "id": 30,
+      "question": "What is a cloudburst?",
+      "options": [
+        {
+          "key": "A",
+          "text": "It refers to sudden and copious rainfall over a small area which often lasts for only a few minutes"
+        },
+        {
+          "key": "B",
+          "text": "It refers to 50 mm rain over a period of time"
+        },
+        {
+          "key": "C",
+          "text": "It is. Caused by rapid condensation of very high clouds"
+        },
+        {
+          "key": "D",
+          "text": "It refers to a thunderstorm with little rain"
+        }
+      ],
+      "answer": "A",
+      "explanation": "A cloudburst is an extreme weather event characterized by sudden, very heavy rainfall over a localized area, often exceeding 100 mm per hour, and usually lasting only a few minutes. It occurs when saturated clouds release rain rapidly due to orographic lift or convective activity. Options B, C, and D, do not capture the intensity and suddenness of a cloudburst.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 31,
+      "question": "Which of the following are the main characteristics of temperate cyclones ?\n1. 30° N to 30° S latitude\n2. High air pressure in the Centre\n3. Low air pressure in the centre\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Temperate cyclones (extra-tropical cyclones) occur mainly between 35°–65° latitudes, not between 30°N–30°S - so Statement 1 is incorrect. They are characterized by a low-pressure centre, around which winds blow in an anti-clockwise direction in the Northern Hemisphere and clockwise in the Southern Hemisphere - Statement 3 is correct. Statement 2 is wrong because the centre is not high pressure but low pressure.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA"
+    },
+    {
+      "id": 32,
+      "question": "What is the name given to a tropical cyclone in the Western Pacific?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Cyclone"
+        },
+        {
+          "key": "B",
+          "text": "Hurricane"
+        },
+        {
+          "key": "C",
+          "text": "Typhoon"
+        },
+        {
+          "key": "D",
+          "text": "Willy-Willy"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Tropical cyclones are named differently depending on the ocean basin: Cyclone - Indian Ocean region. Hurricane - Atlantic Ocean & Eastern Pacific. Typhoon - Western Pacific Ocean. Willy-Willy - Australia",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CBI DSP 2023"
+    },
+    {
+      "id": 33,
+      "question": "Consider the following statements:\n1. Ocean currents are dominated by huge surface gyres that are driven by the global surface wind pattern.\n2. Equatorial currents move cold water westward and then poleward along the east coasts of continents.\nWith regard to the statements given above, which of the following is correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are correct and statement 2 is the correct explanation of statement 1."
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are correct, but statement 2 is not the correct explanation of statement 1."
+        },
+        {
+          "key": "C",
+          "text": "Statement 1 is correct, but statement 2 is false."
+        },
+        {
+          "key": "D",
+          "text": "Statement 1 is false, but statement 2 is correct."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct — Ocean currents are indeed dominated by large surface gyres (North Atlantic, South Atlantic, North Pacific, South Pacific, Indian Ocean), which are driven by global wind patterns like trade winds and westerlies. Statement 2: False — Equatorial currents move warm water westward, not cold water. After reaching the western margins, part of the water is deflected poleward along the east coasts of continents (e.g., Gulf Stream, Kuroshio Current).",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2024"
+    },
+    {
+      "id": 34,
+      "question": "Consider the following statements:\n1. The Humboldt Current (also called Peru Current) flows along the coast of Peru.\n2. The Agulhas Current flows along the coast of South Africa.\n3. The Falkland Current flows along the coast of Argentina.\n4. The Labrador Current flows along the coast of Canada.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "1. Peru – Humboldt Current - Correct. The cold Humboldt (Peru) Current flows along the western coast of South America. 2.South Africa – Agulhas Current - Correct. The warm Agulhas Current flows along the southeast coast of Africa. 3.Argentina – Falkland Current - Correct. The cold Falkland Current flows northward along Argentina’s coast 4.Canada – Labrador Current  Correct. The cold Labrador Current flows southward along the coast of Canada.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2016"
+    },
+    {
+      "id": 35,
+      "question": "The main cause of ocean acidification is",
+      "options": [
+        {
+          "key": "A",
+          "text": "carbon dioxide"
+        },
+        {
+          "key": "B",
+          "text": "carbon monoxide"
+        },
+        {
+          "key": "C",
+          "text": "hydrogen sulfide"
+        },
+        {
+          "key": "D",
+          "text": "chlorofluorocarbon"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The main cause of ocean acidification is the absorption of carbon dioxide (CO₂) from the atmosphere by seawater. When CO₂ dissolves, it forms carbonic acid (H₂CO₃), which lowers the pH of the ocean. This process reduces carbonate ion availability, threatening marine organisms like corals and shell-forming species. Carbon monoxide (CO) - does not dissolve significantly in oceans. Hydrogen sulfide (H₂S) - localized pollutant, not global acidification driver. Chlorofluorocarbons (CFCs) - cause ozone depletion, not ocean acidification.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "APFC 2023"
+    },
+    {
+      "id": 36,
+      "question": "Which one of the following are the most widespread inorganic pelagic deposits on the ocean floor?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Red clay"
+        },
+        {
+          "key": "B",
+          "text": "Radiolarian ooze"
+        },
+        {
+          "key": "C",
+          "text": "Volcanic dust"
+        },
+        {
+          "key": "D",
+          "text": "Calcareous ooze"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Pelagic deposits are sediments that accumulate on the deep ocean floor, far from land. Red clay is the most widespread inorganic pelagic deposit, covering nearly half of the ocean floor. It forms from very fine particles of dust, volcanic ash, and chemical precipitates that slowly settle in the deep sea. Radiolarian ooze and calcareous ooze are biogenic deposits (organic in origin, formed from shells of microorganisms). Volcanic dust is localized, not widespread.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2017"
+    },
+    {
+      "id": 37,
+      "question": "Which one of the following statements is correct about Spring tides ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "High tide is higher than average high tide and Low tide is higher than average low tide."
+        },
+        {
+          "key": "B",
+          "text": "High tide is lower than average high tide and Low tide is higher than average low tide."
+        },
+        {
+          "key": "C",
+          "text": "High tide is higher than average high tide and Low tide is lower than average low tide."
+        },
+        {
+          "key": "D",
+          "text": "High tide is lower than average high tide and Low tide is lower than average low tide."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Spring tides occur during full moon and new moon phases when the Sun, Moon, and Earth are aligned. The gravitational pull of the Sun and Moon combine, producing exceptionally high tides (higher than average high tide) and exceptionally low tides (lower than average low tide). This is different from neap tides, where high tides are lower and low tides are higher than average due to opposing gravitational forces.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2023"
+    },
+    {
+      "id": 38,
+      "question": "Tides occur in the oceans and seas due to which among the following?\n1. Gravitational force of the Sun\n2. Gravitational force of the Moon\n3. Centrifugal force of the Earth\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Gravitational force of the Moon - The primary cause of tides, as the Moon’s pull creates bulges of water on the Earth’s surface. Gravitational force of the Sun - Though weaker than the Moon’s effect, it also influences tides, leading to spring and neap tides when combined with lunar pull. Centrifugal force of the Earth–Moon system - Caused by Earth’s rotation around the Earth–Moon barycenter, it produces a balancing bulge on the opposite side of Earth.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CSE 2015"
+    },
+    {
+      "id": 39,
+      "question": "Consider the following statements with regard to atmospheric humidity :\n1. Absolute humidity is the amount of water vapour per unit volume.\n2. Hygrometer is used to measure relative humidity.\n3. Dew point is the temperature at which the relative humidity is 75%.\nWhich of the above statements are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Absolute humidity - Correct. It is the amount of water vapour per unit volume of air (g/m³). Hygrometer - Correct. It is the instrument used to measure relative humidity. Dew point - Incorrect. Dew point is the temperature at which air becomes saturated (relative humidity = 100%), not 75%.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC IES 2018"
+    },
+    {
+      "id": 40,
+      "question": "Relative humidity",
+      "options": [
+        {
+          "key": "A",
+          "text": "increases with increased temperature"
+        },
+        {
+          "key": "B",
+          "text": "decreases with increased temperature"
+        },
+        {
+          "key": "C",
+          "text": "decreases with decreased temperature"
+        },
+        {
+          "key": "D",
+          "text": "has no relation with increase or decrease of temperature"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Relative humidity (RH) is the ratio of the actual amount of water vapour in the air to the maximum amount the air can hold at a given temperature. As temperature increases, the air’s capacity to hold water vapour increases, but if the actual moisture content remains constant, the relative humidity decreases. Conversely, when temperature decreases, the air’s capacity reduces, so relative humidity increases.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2011"
+    },
+    {
+      "id": 41,
+      "question": "Why is hydrolysis an effective form of chemical decomposition of bed- rock in humid tropics?\n1. Humid tropics experience high temperature and humidity.\n2. There is high diurnal range in temperature.\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Hydrolysis is a chemical weathering process where minerals react with water, breaking down into new compounds. In the humid tropics, the combination of high temperature and abundant moisture accelerates hydrolysis, making it highly effective. - Statement 1 is correct. Statement 2 is incorrect because humid tropics generally have a low diurnal temperature range (small difference between day and night temperatures), not a high one.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2014"
+    },
+    {
+      "id": 42,
+      "question": "Which one among the following processes is not part of a chemical weathering ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Hydration"
+        },
+        {
+          "key": "B",
+          "text": "Exfoliation"
+        },
+        {
+          "key": "C",
+          "text": "Oxidation"
+        },
+        {
+          "key": "D",
+          "text": "Solution"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Hydration, Oxidation, and Solution are all chemical weathering processes because they involve chemical reactions that alter the mineral composition of rocks. Exfoliation, however, is a mechanical (physical) weathering process, caused by temperature changes and pressure release, leading to peeling or flaking of rock surfaces. Thus, exfoliation does not involve chemical alteration of minerals.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2015"
+    },
+    {
+      "id": 43,
+      "question": "Consider the following statements:\n1. The Damuda series of rock system contain all the metallurgical coal in India.\n2. Tamil Nadu is the chief producer of lignite coal in India.\n3. Tertiary coal is mainly confined to the peninsular India.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Damuda series (part of Gondwana system) - Correct. It contains all the metallurgical (coking) coal of India, found mainly in Jharkhand, West Bengal, and Odisha. Tamil Nadu – lignite - Correct that Tamil Nadu (Neyveli) is the chief producer of lignite, but lignite is not metallurgical coal. The statement is true in isolation, but the Qasks about correctness in relation to metallurgical coal.Tertiary coal - Incorrect. Tertiary coal is mainly found in Meghalaya, Assam, Nagaland, Arunachal Pradesh, Jammu & Kashmir, i.e., extra-Peninsular India, not Peninsular India.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2009"
+    },
+    {
+      "id": 44,
+      "question": "Which one among the following is a mechanically formed sedimentary rock?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Salt rock"
+        },
+        {
+          "key": "B",
+          "text": "Limestone"
+        },
+        {
+          "key": "C",
+          "text": "Sandstone"
+        },
+        {
+          "key": "D",
+          "text": "Gypsum"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Mechanically formed sedimentary rocks are created by the accumulation and compaction of rock fragments transported by agents like rivers, wind, or glaciers. Sandstone is formed from compacted sand grains, making it a classic example of mechanically formed sedimentary rock. Salt rock (halite), Limestone, and Gypsum are chemically or organically formed sedimentary rocks (precipitation or biological origin).",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2012"
+    },
+    {
+      "id": 45,
+      "question": "\"Viticulture\" is a common feature of which one of the following Australian cities ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Adelaide"
+        },
+        {
+          "key": "B",
+          "text": "Darwin"
+        },
+        {
+          "key": "C",
+          "text": "Hobart"
+        },
+        {
+          "key": "D",
+          "text": "Brisbane"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Viticulture means the cultivation of grapes, usually for wine production. In Australia, the Adelaide region (South Australia) is famous for its vineyards and wine industry, especially the Barossa Valley, McLaren Vale, and Clare Valley. Darwin (Northern Territory) has a tropical climate unsuitable for viticulture. Hobart (Tasmania) does have cool-climate vineyards, but it is not as widespread as Adelaide. Brisbane (Queensland) is also not a major viticulture hub.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2019"
+    },
+    {
+      "id": 46,
+      "question": "Where does podsolization take place?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Regions in high middle latitudes"
+        },
+        {
+          "key": "B",
+          "text": "Coastal regions in lower latitudes"
+        },
+        {
+          "key": "C",
+          "text": "Regions with hot and humid climate"
+        },
+        {
+          "key": "D",
+          "text": "Regions having arid climate"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Podsolization is a soil-forming process typical of cool, humid climates in the high middle latitudes (e.g., coniferous forest regions of Canada, Scandinavia, Russia). It occurs under acidic conditions, where leaching removes bases and iron/aluminium,  leaving behind a bleached, ash-grey horizon. It is not found in hot humid tropics (where laterization dominates), arid climates (where salinization is common), or coastal lower latitudes.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 47,
+      "question": "Tuareg is a pastoral nomad living in the desert of",
+      "options": [
+        {
+          "key": "A",
+          "text": "Kalahari"
+        },
+        {
+          "key": "B",
+          "text": "Sahara"
+        },
+        {
+          "key": "C",
+          "text": "Arabia"
+        },
+        {
+          "key": "D",
+          "text": "Patagonia"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Tuareg are a Berber-speaking pastoral nomadic people who inhabit the Sahara Desert, spread across countries like Mali, Niger, Algeria, Libya, and Burkina Faso. They are known as the “Blue Men of the Sahara” because of their indigo-dyed clothing. Their livelihood traditionally revolves around camel and goat herding, caravan trade, and adaptation to desert life. Hence, Tuareg nomads are associated with the Sahara Desert.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA 1 2014"
+    },
+    {
+      "id": 48,
+      "question": "During December and January, North India experiences excessive cold weather because\n1. these areas being far away from the moderating influence of sea, experience continental climate.\n2. the cold winds coming from Caspian Sea and Turkmenistan bring cold wave over the northern parts of India.\n3. low pressure develops over North India due to high temperatures.\n4. high pressure develops over North India due to low temperatures.\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - North India lies far from the moderating influence of the sea, so it experiences a continental climate with severe winters. Statement 2: Correct - Cold waves in December–January are intensified by northwest cold winds originating from the Caspian Sea and Turkmenistan. Statement 3: Incorrect - In winter, low temperatures prevail, so low pressure due to high temperatures is not possible. Statement 4: Correct - High pressure develops over North India due to low temperatures, leading to cold, stable conditions.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "UPSC SCRA 2014"
+    },
+    {
+      "id": 49,
+      "question": "Where is the Coriolis Effect the largest?",
+      "options": [
+        {
+          "key": "A",
+          "text": "At the Equator"
+        },
+        {
+          "key": "B",
+          "text": "At the Tropic of Capricorn and Tropic of Cancer"
+        },
+        {
+          "key": "C",
+          "text": "At the North Pole"
+        },
+        {
+          "key": "D",
+          "text": "At 45degree latitude in each hemisphere"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Coriolis Effect arises due to Earth’s rotation and affects the direction of moving air and water. It is zero at the Equator and increases progressively toward the poles. The effect is maximum at the poles (North and South Pole) because the rotational velocity difference is greatest there. At 45° latitude, the effect is significant but not maximum.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2024"
+    },
+    {
+      "id": 50,
+      "question": "Consider the following characteristics of a type of wind :\n1. They occur at upper levels in the atmosphere\n2. They are subjected to two forces, a pressure gradient force and the Coriolis force\n3. When the forces balance, air moves at right angles to the pressure gradient, parallel to the isobars\nIdentify the type of wind on the basis of the given characteristics:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Jet Stream"
+        },
+        {
+          "key": "B",
+          "text": "Geostrophic Wind"
+        },
+        {
+          "key": "C",
+          "text": "Westerlies"
+        },
+        {
+          "key": "D",
+          "text": "Easterlies"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Geostrophic winds occur at upper levels in the atmosphere, where friction is negligible. They are influenced by two forces only: the pressure gradient force and the Coriolis force. When these forces balance, the wind flows parallel to the isobars (at right angles to the pressure gradient). Jet streams are fast-moving geostrophic winds but specifically concentrated narrow bands. Westerlies and Easterlies are surface-level planetary winds, not defined by this balance.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 51,
+      "question": "Consider the following surface winds :\n1. Doldrums\n2. Trade winds\n3. Westerlies\n4. Polar winds\nWhich one among the following is the idealized global pattern of these winds from the Equator to the Pole?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1-2-3-4"
+        },
+        {
+          "key": "B",
+          "text": "1-3-2-4"
+        },
+        {
+          "key": "C",
+          "text": "2-1-4-3"
+        },
+        {
+          "key": "D",
+          "text": "3-1-2-4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Equator (0°–5°) - Doldrums (Inter-Tropical Convergence Zone, calm low-pressure belt). 5°–30° latitude - Trade winds (NE trades in Northern Hemisphere, SE trades in Southern Hemisphere). 30°–60° latitude - Westerlies (prevailing winds blowing from west to east). 60°–90° latitude - Polar winds (cold, dry winds blowing from poles toward sub-polar low). Doldrums - Trade winds - Westerlies - Polar winds.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDS I 2014"
+    },
+    {
+      "id": 52,
+      "question": "In which of the following States are the famous 'Living Root Bridges' found ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Arunachal Pradesh"
+        },
+        {
+          "key": "B",
+          "text": "Himachal Pradesh"
+        },
+        {
+          "key": "C",
+          "text": "Kerala"
+        },
+        {
+          "key": "D",
+          "text": "Meghalaya"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Living Root Bridges are unique bio-engineered structures found in the Meghalaya hills, especially in the Khasi and Jaintia tribes’ regions. They are made by guiding the roots of the rubber tree (Ficus elastica) across streams, which over time grow strong enough to form natural bridges. These bridges can last for centuries and are a striking example of traditional ecological knowledge and sustainable engineering.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2014"
+    },
+    {
+      "id": 53,
+      "question": "Which one of the following statements about North-facing slopes and South- facing slopes in the Northern Hemisphere is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "North-facing slopes are snow covered while South-facing slopes are bare."
+        },
+        {
+          "key": "B",
+          "text": "North-facing slopes get less intense radiation as compared to South- facing slopes."
+        },
+        {
+          "key": "C",
+          "text": "Snow on North-facing slopes is found at a lower altitude than South-facing slopes."
+        },
+        {
+          "key": "D",
+          "text": "Tree line characteristics on North- facing slopes and South-facing slopes are similar."
+        }
+      ],
+      "answer": "D",
+      "explanation": "In the Northern Hemisphere, north-facing slopes receive less solar radiation, making them cooler, moister, and often snow-covered. South-facing slopes get more intense radiation, so they are warmer, drier, and relatively bare. Because of this difference, snow persists at lower altitudes on north-facing slopes compared to south-facing slopes. The tree line (upper limit of tree growth) therefore differs between the two slopes, meaning statement D) is not correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CGS 2022"
+    },
+    {
+      "id": 54,
+      "question": "With reference to the continent of 'Antarctica' which of the following statements are correct ?\n1. It is larger than Europe in terms of area.\n2. It has the highest average elevation as compared to all other continents.\n3. Mt. Ross is the highest peak of this continent\n4. Waters of the Southern Ocean (West Wind Drift) move in an anticlockwise direction around it.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Antarctica larger than Europe - Correct. Antarctica (~14 million sq. km) is bigger than Europe (~10 million sq. km). Highest average elevation - Correct. Antarctica has the highest average elevation of all continents (~2,300 m). Mt. Ross as highest peak - Incorrect. The highest peak is Mount Vinson (4,892 m), not Mt. Ross. West Wind Drift anticlockwise - Incorrect. The West Wind Drift (Antarctic Circumpolar Current) moves clockwise around Antarctica due to the Coriolis effect in the Southern Hemisphere.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2024"
+    },
+    {
+      "id": 55,
+      "question": "The total fertility rate in an economy is defined as:",
+      "options": [
+        {
+          "key": "A",
+          "text": "the number of children born per 1000 people in the population in a year."
+        },
+        {
+          "key": "B",
+          "text": "the number of children born to a couple in their lifetime in a given population."
+        },
+        {
+          "key": "C",
+          "text": "the birth rate minus death rate."
+        },
+        {
+          "key": "D",
+          "text": "the average number of live births a woman would have by the end of her child-bearing age."
+        }
+      ],
+      "answer": "D",
+      "explanation": "Total Fertility Rate (TFR) is a demographic measure that estimates the average number of children a woman would bear during her reproductive years (15–49 years), assuming current age-specific fertility rates remain constant. It is different from Crude Birth Rate (children per 1000 population per year) and from Natural Growth Rate (birth rate minus death rate). TFR is a key indicator used to assess population growth potential and replacement levels (≈2.1 for most countries).",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2024"
+    },
+    {
+      "id": 56,
+      "question": "The term lotic facies' is used to denote water of",
+      "options": [
+        {
+          "key": "A",
+          "text": "rivers and streams"
+        },
+        {
+          "key": "B",
+          "text": "sag ponds"
+        },
+        {
+          "key": "C",
+          "text": "ponds"
+        },
+        {
+          "key": "D",
+          "text": "deep ocean floor"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The term “lotic” refers to flowing water systems, such as rivers and streams. In contrast, “lentic” facies refers to still water bodies like lakes, ponds, and swamps. Thus, lotic facies denotes dynamic, running water environments characterized by continuous movement and higher oxygenation.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2022"
+    },
+    {
+      "id": 57,
+      "question": "The term \"biotope' refers to",
+      "options": [
+        {
+          "key": "A",
+          "text": "a set of general physical conditions excluding chemical and biological conditions in a given geographic area"
+        },
+        {
+          "key": "B",
+          "text": "a homogeneous set of physical and chemical conditions in a given geographic area at a particular time"
+        },
+        {
+          "key": "C",
+          "text": "a homogeneous set of both biological and chemical conditions in a given geographic area"
+        },
+        {
+          "key": "D",
+          "text": "a particular type of biological assemblage in a given geographic area"
+        }
+      ],
+      "answer": "B",
+      "explanation": "A biotope is defined as a region with uniform environmental conditions (mainly physical and chemical) that provides a habitat for a specific biological community. It refers to the abiotic environment (soil, water, climate, chemistry) rather than the organisms themselves. The biotic community living in a biotope is called a biocenosis. Together, biotope + biocenosis = ecosystem.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CGS 2022"
+    },
+    {
+      "id": 58,
+      "question": "Lapland is a cultural region largely within the Arctic Circle in the north of the Scandinavian Peninsula. Who inhabited the Lapland?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Sami people"
+        },
+        {
+          "key": "B",
+          "text": "Padaung people"
+        },
+        {
+          "key": "C",
+          "text": "Hamar people"
+        },
+        {
+          "key": "D",
+          "text": "Himba people"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Lapland is a cultural region in the Arctic Circle, spanning northern parts of Norway, Sweden, Finland, and Russia’s Kola Peninsula. It is traditionally inhabited by the Sami people, an indigenous group known for reindeer herding, fishing, and handicrafts. The other groups listed (Padaung in Myanmar, Hamar in Ethiopia, Himba in Namibia) belong to entirely different regions and cultures",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA 2014"
+    },
+    {
+      "id": 59,
+      "question": "Consider the following statements about heritage :\n1. Heritage is that which has been or may be inherited.\n2. Heritage is anything given or received to be a proper possession.\nWhich of these statements is/are correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - By definition, heritage refers to something that has been or may be inherited from the past (tangible or intangible). Statement 2: Correct - Heritage also includes anything given or received as a proper possession, such as cultural traditions, monuments, artifacts, or values. Thus, both statements capture the essence of heritage: inheritance + possession",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "APFC 2012"
+    },
+    {
+      "id": 60,
+      "question": "Dardic group of language belongs to which language family ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Indo European"
+        },
+        {
+          "key": "B",
+          "text": "Austric"
+        },
+        {
+          "key": "C",
+          "text": "Sino-Tibetan"
+        },
+        {
+          "key": "D",
+          "text": "Dravidian"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Dardic languages are a subgroup of the Indo-Aryan branch of the Indo-European language family. They are spoken mainly in the northwestern Himalayas, including parts of Kashmir, Gilgit-Baltistan, and eastern Afghanistan. Examples include Kashmiri, Shina, Khowar, and Pashai. They are distinct from Austric, Sino-Tibetan, and Dravidian families, which belong to entirely different linguistic roots.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 61,
+      "question": "Lithosphere consists of",
+      "options": [
+        {
+          "key": "A",
+          "text": "upper and lower mantle."
+        },
+        {
+          "key": "B",
+          "text": "crust and core."
+        },
+        {
+          "key": "C",
+          "text": "crust and uppermost solid mantle."
+        },
+        {
+          "key": "D",
+          "text": "mantle and core."
+        }
+      ],
+      "answer": "C",
+      "explanation": "The lithosphere is the rigid outer shell of the Earth. It is composed of the crust (continental and oceanic) plus the uppermost solid part of the mantle. Beneath it lies the asthenosphere, which is partially molten and allows the lithospheric plates to move. Thus, lithosphere ≠ whole mantle or core, but specifically crust + uppermost mantle.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2019"
+    },
+    {
+      "id": 62,
+      "question": "Hydrogen is the most abundant element in the universe. However, the abundance of hydrogen in the earth's atmosphere is very less. This is because",
+      "options": [
+        {
+          "key": "A",
+          "text": "Earth's gravitational field is too big to hold so light an element"
+        },
+        {
+          "key": "B",
+          "text": "Earth's gravitational field is too small to hold so light an element"
+        },
+        {
+          "key": "C",
+          "text": "Hydrogen does not contain neutron"
+        },
+        {
+          "key": "D",
+          "text": "Hydrogen reactivity is very high"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Hydrogen is the lightest element, with very low molecular mass. Earth’s gravity is not strong enough to retain such light gases in its atmosphere; they tend to escape into space. This is why hydrogen and helium are abundant in the universe but scarce in Earth’s atmosphere. Options C) and D) are irrelevant here, and A) is the opposite of the correct reasoning.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CISF LDC 2013"
+    },
+    {
+      "id": 63,
+      "question": "Statement 1: The Earth is shaped more like a Langerine.\nStatement II: The Earth spins faster at the Poles.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and statement II is the correct explanation of statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but statement II is not the correct explanation of statement l"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but statement II is true"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement I: True - The Earth is an oblate spheroid, slightly flattened at the poles and bulging at the equator, resembling a tangerine (Langerine) more than a perfect sphere. Statement II: False - The Earth actually spins faster at the Equator (about 1670 km/h) compared to the poles (where rotational speed is nearly zero). Thus, while the Earth’s shape description is correct, the explanation about spinning faster at the poles is incorrect.  ANSWER GIVEN AS PER UPSC ANSWER KEY. USE DESCRITION.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2011"
+    },
+    {
+      "id": 64,
+      "question": "Which of the following statements relating to solar system is / are correct?\n1. Venus and Uranus rotate opposite to the direction of rotation of Earth\n2. Venus is the nearest planet to Earth\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Venus and Uranus rotation - Correct. Both planets exhibit retrograde rotation, meaning they rotate opposite to Earth’s rotation direction. Venus rotates very slowly in the opposite direction (one day ≈ 243 Earth days). Uranus rotates on its side, also retrograde relative to Earth. Nearest planet to Earth - Correct. While distances vary due to orbital positions, Venus is generally the closest planet to Earth on average.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2016"
+    },
+    {
+      "id": 65,
+      "question": "Which one of the following hypothesis/theories explains the origin of the universe?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Nebular hypothesis"
+        },
+        {
+          "key": "B",
+          "text": "Binary theory"
+        },
+        {
+          "key": "C",
+          "text": "Big Bang theory"
+        },
+        {
+          "key": "D",
+          "text": "Planetesimal hypothesis"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Big Bang Theory is the most widely accepted explanation for the origin of the universe. It states that the universe began about 13.8 billion years ago from a singularity — an extremely hot and dense state — and has been expanding ever since. Other theories like the Nebular hypothesis, Binary theory, and Planetesimal hypothesis explain the origin of the solar system, not the universe",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2019"
+    },
+    {
+      "id": 66,
+      "question": "Seasonal changes on the earth occur due to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Inclination of earth on its axis and rotation"
+        },
+        {
+          "key": "B",
+          "text": "Inclination of earth on its axis and revolution"
+        },
+        {
+          "key": "C",
+          "text": "Rotation and revolution of Earth"
+        },
+        {
+          "key": "D",
+          "text": "Revolution of the Earth only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Earth’s axis is tilted at 23.5° relative to its orbital plane. As the Earth revolves around the Sun, this tilt causes different parts of the Earth to receive varying amounts of solar energy during the year. This variation in sunlight intensity and duration leads to seasonal changes. Rotation of the Earth causes day and night, not seasons.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CISF AC 2010"
+    },
+    {
+      "id": 67,
+      "question": "Which of the following is/are environmental effects of Rotation of the Earth ?\n1. Daily or diurnal rhythm in daylight and air temperature\n2. Flow path of both air and water are turned consistently in a sideward direction\n3. The movement of the tides\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Daily/diurnal rhythm in daylight and air temperature - Correct. Caused by the rotation of the Earth, which produces day and night cycles. Flow path of air and water turned sideward - Correct. Due to the Coriolis effect, a direct consequence of Earth’s rotation, winds and ocean currents are deflected sideways. Movement of tides - Incorrect. Tides are primarily caused by the gravitational pull of the Moon and Sun, not Earth’s rotation (though rotation influences timing, it is not the main cause).",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2019"
+    },
+    {
+      "id": 68,
+      "question": "Seismic gaps are",
+      "options": [
+        {
+          "key": "A",
+          "text": "parts of plate boundaries in oceans where tsunamis occur frequently."
+        },
+        {
+          "key": "B",
+          "text": "sections of plate boundaries that have ruptured repeatedly in the recent past."
+        },
+        {
+          "key": "C",
+          "text": "sections of plate boundaries that have not ruptured in the recent past."
+        },
+        {
+          "key": "D",
+          "text": "plate boundaries having no volcanic activity."
+        }
+      ],
+      "answer": "C",
+      "explanation": "A seismic gap refers to a segment of an active fault or plate boundary that has not experienced an earthquake for a long time, even though surrounding segments have. These gaps are considered potential sites for future earthquakes, since stress continues to accumulate without release. They are important in earthquake prediction studies and hazard mapping.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS 2015"
+    },
+    {
+      "id": 69,
+      "question": "Which of the following statements about 'Truck farming' is/are correct?\n1. Growing vegetables around urban centres to meet the daily demand of people is known as Truck Farming\n2. It is governed by the distance a truck cover overnight between the farm and the market.\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - Truck farming refers to the practice of growing vegetables and perishable crops near urban centres to meet the daily demand of people. Statement 2: Correct - The term “truck” comes from the old meaning of exchange/commerce, but in practice, truck farming is also governed by the distance a truck can cover overnight to deliver fresh produce from farm to market.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "EPFO (EO/AO) 2023"
+    },
+    {
+      "id": 70,
+      "question": "Consider the following statements: Tornadoes are :\n1. Tropical cyclones\n2. Anticyclones\n3. Temperate cyclones\n4. Atmospheric disturbances\nSelect the correct answer from the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "1 and 4"
+        },
+        {
+          "key": "C",
+          "text": "2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Tornadoes are violent atmospheric disturbances, characterized by rotating columns of air extending from a thunderstorm to the ground. They are not tropical cyclones (which are large-scale systems over oceans), not anticyclones (which are high-pressure systems with outward winds), and not temperate cyclones (mid-latitude low-pressure systems). Tornadoes are localized atmospheric disturbances associated with severe thunderstorms.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF AC 2010"
+    },
+    {
+      "id": 71,
+      "question": "Q71) Consider the following statements : It is an extremely cold wind laden with dry snow. This wind has sub-freezing temperature and carries abundant supply of ice crystals and snow.\nThe statements are related to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Harmattan"
+        },
+        {
+          "key": "B",
+          "text": "Blizzard"
+        },
+        {
+          "key": "C",
+          "text": "Chinook"
+        },
+        {
+          "key": "D",
+          "text": "Tramontane"
+        }
+      ],
+      "answer": "B",
+      "explanation": "A blizzard is an extremely cold windstorm characterized by sub-freezing temperatures, strong winds, and heavy drifting snow/ice crystals. Harmattan is a dry, dusty wind from the Sahara affecting West Africa. Chinook is a warm, dry wind descending the eastern slopes of the Rockies. Tramontane is a cold wind from the north in the Mediterranean region, but it is not specifically laden with snow like a blizzard.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CGS 2025"
+    },
+    {
+      "id": 72,
+      "question": "Exfoliation in rocks can occur due to forces induced by\n1. carbonation\n2. oxidation\n3. temperature change\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Exfoliation is a mechanical weathering process where rocks peel off in layers, often seen in granitic rocks. It occurs mainly due to temperature changes (diurnal or seasonal), which cause expansion during heating and contraction during cooling - stress builds up - outer layers flake off. Carbonation and oxidation are chemical weathering processes, not responsible for exfoliation.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CGS 2025"
+    },
+    {
+      "id": 73,
+      "question": "Consider the following statements with regard to Australia :\n1.The Coral Sea separates the Great Barrier Reef from the South Pacific.\n2.The Great Dividing Range extends from Melbourne to Perth in Australia.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1: Correct - The Coral Sea lies off the northeast coast of Australia and indeed separates the Great Barrier Reef from the wider South Pacific Ocean. Statement 2: Incorrect - The Great Dividing Range runs along the eastern coast of Australia, extending from Queensland through New South Wales to Victoria (near Melbourne). It does not extend westward to Perth, which lies on the opposite side of the continent.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2025"
+    },
+    {
+      "id": 74,
+      "question": "Which of the following statements with reference to Humus is/are correct?\n1. It is a dark  coloured amorphous substance.\n2. Being colloidal in nature, it serves as a reservoir of nutrients.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - Humus is the dark-colored, amorphous organic matter formed by the decomposition of plant and animal remains in soil. Statement 2: Correct - Being colloidal in nature, humus has a high surface area and cation exchange capacity, making it an excellent reservoir of nutrients and water for plants.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2025"
+    },
+    {
+      "id": 75,
+      "question": "Which of the following statements with reference to tides is/are correct ?\n1. The time between the low tide and high tide, when the tide is rising, is called the flow or flood.\n2. Tides are helpful in desilting the sediments.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - The period between low tide and high tide, when the water level is rising, is indeed called the flow or flood tide. Statement 2: Correct - Tides play an important role in natural desilting of sediments in estuaries, harbors, and river mouths by periodically flushing and removing deposited material.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2025"
+    },
+    {
+      "id": 76,
+      "question": "Which of the following is the correct ascending order of the given minerals in terms of their presence in the Earth's crust ?\n1. Amphibolite\n2. Mica\n3. Pyroxene\nSelect the answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "2, 3, 1"
+        },
+        {
+          "key": "B",
+          "text": "1, 2, 3"
+        },
+        {
+          "key": "C",
+          "text": "2, 1, 3"
+        },
+        {
+          "key": "D",
+          "text": "1, 3,2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Earth’s crust is dominated by silicate minerals, but their relative abundance varies. Mica (like biotite, muscovite) occurs in smaller amounts compared to pyroxenes and amphiboles. Pyroxenes are more abundant than mica, being common in basaltic and gabbroic rocks. Amphiboles (amphibolite) are comparatively less abundant than pyroxenes in the crust.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA 2025"
+    },
+    {
+      "id": 77,
+      "question": "Which of the following ocean trenches are not located in the Pacific Ocean?\n1) Bonin Trench\n2) Cayman Trench\n3) Kermadec Trench\n4) South Sandwich Trench\nSelect the answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "2 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Bonin Trench - Located in the western Pacific Ocean, near Japan. Cayman Trench - Located in the Caribbean Sea (Atlantic Ocean), between Jamaica and the Cayman Islands - not in the Pacific. Kermadec Trench - Located in the South Pacific Ocean, northeast of New Zealand. South Sandwich Trench - Located in the South Atlantic Ocean, east of the South Sandwich Islands - not in the Pacific.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2025"
+    },
+    {
+      "id": 78,
+      "question": "Which of the following statements with reference to Richter scale is/are correct ?\n1. It is the intensity scale of an earthquake.\n2. Richter indicates the amount of energy released during the earthquake.\nSelect the answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Richter scale is a magnitude scale, not an intensity scale. It measures the amount of energy released at the source of the earthquake. Intensity refers to the effects of the earthquake on people, structures, and the environment, and is measured by the Modified Mercalli Intensity (MMI) scale, not Richter. Hence, Statement 1 is incorrect, while Statement 2 is correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2025"
+    },
+    {
+      "id": 79,
+      "question": "Which of the following statements with reference to Water Vapour in the atmosphere is/are correct ?\n1. It has a role to play in the stability and instability in the air.\n2. It acts like a blanket allowing the earth to neither become too cold nor too hot.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - Water vapour influences stability and instability of air masses. Rising moist air cools and condenses, releasing latent heat, which can make the atmosphere unstable and lead to cloud formation and storms. Statement 2: Correct - Water vapour acts like a greenhouse gas, trapping outgoing longwave radiation and preventing excessive cooling at night, while also moderating daytime heating. It thus acts like a blanket around the Earth.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2025"
+    },
+    {
+      "id": 80,
+      "question": "Consider the following statements with reference to structure of the Earth's atmosphere :\n1. Thickness of the troposphere is greatest at the equator\n2. The air temperature of the tropopause is highest above the poles\n3. The temperature in troposphere decreases at the rate of 1°F for every 165 m of height\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1: Correct - The troposphere is thickest at the equator (~16–18 km) due to strong convection and uplift, and thinnest at the poles (~8 km). Statement 2: Incorrect - The tropopause temperature is lowest above the poles (around –80°C) and relatively higher above the equator (around –50°C). Statement 3: Correct - In the troposphere, temperature decreases with height at an average lapse rate of 6.5°C per km, which is approximately 1°F per 165 m.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2025"
+    },
+    {
+      "id": 81,
+      "question": "Ogaden region has been a source of conflict between which countries?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Morocco and Algeria"
+        },
+        {
+          "key": "B",
+          "text": "Nigeria and Cameroon"
+        },
+        {
+          "key": "C",
+          "text": "Angola and Zambia"
+        },
+        {
+          "key": "D",
+          "text": "Ethiopia and Somalia"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Ogaden region is located in eastern Ethiopia, largely inhabited by ethnic Somalis. It has been a source of conflict between Ethiopia and Somalia, especially during the Ogaden War (1977–78) when Somalia attempted to annex the region. The dispute is rooted in ethnic, territorial, and political claims, with Somalia historically seeking to unite all Somali-inhabited areas (Greater Somalia).",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2008"
+    },
+    {
+      "id": 82,
+      "question": "Which of the following is/are coastal cities ?\n1. Hamburg\n2. Washington\n3. Berlin\n4. Cairo\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Hamburg - Yes, it is a major port city in northern Germany located on the River Elbe, connected to the North Sea, hence considered a coastal city. Washington, D.C. - No, it is inland, located on the Potomac River, not a coastal city. Berlin - No, it is inland, located on the River Spree, far from the coast. Cairo - Yes, though inland along the River Nile, it is considered a coastal city because of its proximity and connection to the Mediterranean Sea via the Nile Delta.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 83,
+      "question": "Which of the following cities are not situated along the Persian Gulf ?\n1. Doha\n2. Dubai\n3. Jeddah\n4. Yanbu\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "3 and 4 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Doha (Qatar) - Located directly on the Persian Gulf. Dubai (UAE) - Also situated along the Persian Gulf coast. Jeddah (Saudi Arabia) - Lies on the Red Sea coast, not the Persian Gulf. Yanbu (Saudi Arabia) - Also located on the Red Sea coast, not the Persian Gulf.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CISF LDC 2023"
+    },
+    {
+      "id": 84,
+      "question": "Going from the West of the United States of America to its East, which one of the following is the correct sequence of the given major American cities?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Houston-Los Angeles-San Francisco New York"
+        },
+        {
+          "key": "B",
+          "text": "San Francisco New York-Houston-Los Angeles"
+        },
+        {
+          "key": "C",
+          "text": "Houston-New York-San Francisco-Los Angeles"
+        },
+        {
+          "key": "D",
+          "text": "San Francisco-Los Angeles-Houston-New York"
+        }
+      ],
+      "answer": "D",
+      "explanation": "San Francisco - Los Angeles - Houston - New York.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "APFC-2004"
+    },
+    {
+      "id": 85,
+      "question": "The South China Sea Dispute involves which of the following countries?\n1. China\n2. Vietnam\n3. Malaysia\n4. Indonesia\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The South China Sea dispute involves overlapping territorial claims over islands, reefs, and waters. China, Vietnam, Malaysia, the Philippines, and Brunei are the main claimants. Indonesia is not a direct claimant, though it has concerns about Chinese activities near the Natuna Islands, but it is not formally part of the dispute.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 86,
+      "question": "Consider the following characteristics of a grassland :\n1. An extensive area of mid Iatitude grasslands are devoid of trees and shrubs.\n2. The climate is characterised by hot summers, cold winters and relatively low rainfall occurring mainly in spring and summer.\n3. In humid parts, grasses grow to a meter or more in height.\nOn the basis of the above characteristics, select the correct grassland from the options given below",
+      "options": [
+        {
+          "key": "A",
+          "text": "Steppes"
+        },
+        {
+          "key": "B",
+          "text": "Prairies"
+        },
+        {
+          "key": "C",
+          "text": "Savanna"
+        },
+        {
+          "key": "D",
+          "text": "Pampas"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Prairies are the mid-latitude temperate grasslands of North America. They are largely treeless, with a climate of hot summers, cold winters, and moderate rainfall (mostly in spring and summer. In humid parts, grasses can grow up to a meter or more in height, while in drier parts they remain shorter. Steppes (Eurasia) are more arid and have shorter grasses; Savannas are tropical grasslands with scattered trees; Pampas (South America) are similar to prairies but the description here matches prairies most closely.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2024"
+    },
+    {
+      "id": 87,
+      "question": "Which one of the following countries shares the territorial boundary with both Russia and Ukraine?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Estonia"
+        },
+        {
+          "key": "B",
+          "text": "Latvia"
+        },
+        {
+          "key": "C",
+          "text": "Belarus"
+        },
+        {
+          "key": "D",
+          "text": "Poland"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Estonia and Latvia share borders with Russia, but not with Ukraine. Poland shares a border with Ukraine, but not directly with Russia (it borders Kaliningrad, a Russian exclave, but not Russia proper). Belarus shares borders with both Russia and Ukraine, making it the correct answer.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2024"
+    },
+    {
+      "id": 88,
+      "question": "Which of the following countries is not a part of the Hom of Africa ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Eritrea"
+        },
+        {
+          "key": "B",
+          "text": "Ethiopia"
+        },
+        {
+          "key": "C",
+          "text": "Rwanda"
+        },
+        {
+          "key": "D",
+          "text": "Somalia"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Horn of Africa refers to the easternmost projection of the African continent, bordering the Red Sea and the Gulf of Aden. It traditionally includes Eritrea, Ethiopia, Somalia, and Djibouti. Rwanda is a landlocked country in East-Central Africa, far from the Horn region.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "UPSC IES 2014"
+    },
+    {
+      "id": 89,
+      "question": "Xeriscaping' is a concept related to",
+      "options": [
+        {
+          "key": "A",
+          "text": "landscaping related to save water"
+        },
+        {
+          "key": "B",
+          "text": "landscaping related to save soil erosion"
+        },
+        {
+          "key": "C",
+          "text": "weathering of rock surface"
+        },
+        {
+          "key": "D",
+          "text": "All of the above"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Xeriscaping comes from the Greek word xeros meaning \"dry.\" It is a landscaping method designed to reduce or eliminate the need for irrigation, especially in arid and semi-arid regions. The focus is on using drought-resistant plants, efficient irrigation, and soil management to conserve water. It is not related to soil erosion control or rock weathering directly.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2017"
+    },
+    {
+      "id": 90,
+      "question": "Which of the following statements regarding ice-cap climate is/are correct?\n1. In the Koeppen climate classification, the ice-cap climate is signified by the letters EF.\n2. It is the Earth's most severe climate, where the mean monthly temperature is never above O degree Celsius.\n3. This eliminate is found in the Pir Panjal and the Great Himalayas.\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1: Correct - In Köppen’s climate classification, the ice-cap climate is denoted by EF. Statement 2: Correct - It is the most severe climate on Earth, where the mean monthly temperature never rises above 0°C (found in Antarctica and Greenland). Statement 3: Incorrect - The Pir Panjal and Great Himalayas have highland climates, not true ice-cap climate. Ice-cap climate is restricted to polar regions, not mid-latitude mountains.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS 1 2024"
+    },
+    {
+      "id": 91,
+      "question": "Singapore is known as Port of Call because",
+      "options": [
+        {
+          "key": "A",
+          "text": "it deals in the processing and shipping of oil"
+        },
+        {
+          "key": "B",
+          "text": "it is a deep water port built away from the actual port"
+        },
+        {
+          "key": "C",
+          "text": "it is on main sea route where ships use to anchor for refueling, watering and taking food items"
+        },
+        {
+          "key": "D",
+          "text": "it serves the parent ports by receiving the ships which are unable to approach due to their large size"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Singapore lies strategically on the main sea route between the Indian Ocean and the Pacific Ocean, along the Strait of Malacca. Because of this location, it has historically served as a Port of Call, where ships stop temporarily for refueling, provisioning (food, water), and maintenance before continuing their journey. This function made Singapore one of the busiest and most important ports in the world.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 92,
+      "question": "Which of the following are the characteristics of organic farming?\n1. Use of chemical fertilizers to improve soil fertility.\n2. Frequent decomposing and fallowing.\n3. Use of herbs to control pests.\n4. Higher productivity per hectare.\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Incorrect - Organic farming avoids chemical fertilizers, instead relying on compost, manure, and biological methods. Statement 2: Correct - Organic farming emphasizes natural soil fertility management through decomposition, crop rotation, and fallowing. Statement 3: Correct - Organic farming uses biological pest control methods, including herbs, neem, and other natural agents. Statement 4: Incorrect - Organic farming generally produces lower yields per hectare compared to intensive chemical farming, though it is more sustainable.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "NDA 1 2015"
+    },
+    {
+      "id": 93,
+      "question": "Which one of the following statements about Earth's diameter is true?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Polar diameter is slightly less than the equatorial diameter."
+        },
+        {
+          "key": "B",
+          "text": "Polar and equatorial diameters are equal."
+        },
+        {
+          "key": "C",
+          "text": "Polar diameter is longer than the equatorial diameter."
+        },
+        {
+          "key": "D",
+          "text": "Polar diameter is half of the equatorial diameter."
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Earth is not a perfect sphere; it is an oblate spheroid. The equatorial diameter is about 12,756 km, while the polar diameter is about 12,714 km. This means the polar diameter is ~42 km shorter than the equatorial diameter due to the Earth’s rotation causing bulging at the equator. Hence, the correct statement is that the polar diameter is slightly less than the equatorial diameter.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "IES 2016"
+    },
+    {
+      "id": 94,
+      "question": "The earth's crust is the thinnest",
+      "options": [
+        {
+          "key": "A",
+          "text": "under the mountain ranges"
+        },
+        {
+          "key": "B",
+          "text": "under continental masses"
+        },
+        {
+          "key": "C",
+          "text": "at ocean bottoms"
+        },
+        {
+          "key": "D",
+          "text": "at mid-oceanic ridges"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Earth’s crust varies in thickness: Continental crust - thickest (average ~35 km, up to 70 km under mountains). Oceanic crust - thinner (average ~5–10 km). Mid-oceanic ridges - thinnest, only 1–2 km, because new crust is continuously formed by volcanic activity and spreading. Hence, the crust is thinnest at mid-oceanic ridges.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2009"
+    },
+    {
+      "id": 95,
+      "question": "Arrange the following features formed by rivers in its course starting from upstream :\n1. Meanders\n2. Falls\n3. Deita\n4. Oxbow Lake\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "2-1-3-4"
+        },
+        {
+          "key": "B",
+          "text": "2-1-4-3"
+        },
+        {
+          "key": "C",
+          "text": "1-2-3-4"
+        },
+        {
+          "key": "D",
+          "text": "1-4-2–3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Falls (Waterfalls) - Found in the upper course of rivers where vertical erosion dominates. Meanders - Develop in the middle course due to lateral erosion and deposition. Oxbow Lakes - Formed when meanders are cut off, also in the middle/lower course. Delta - Characteristic of the lower course, where the river meets the sea/ocean and deposits sediments.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2014"
+    },
+    {
+      "id": 96,
+      "question": "Dry point settlements are common in",
+      "options": [
+        {
+          "key": "A",
+          "text": "Deserts"
+        },
+        {
+          "key": "B",
+          "text": "Plateaus"
+        },
+        {
+          "key": "C",
+          "text": "Mountain regions"
+        },
+        {
+          "key": "D",
+          "text": "Deltas"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Dry point settlements are built on slightly raised ground in otherwise wet or flood-prone areas. They are common in river deltas, where people choose elevated patches of land to avoid flooding while still benefiting from fertile soils. In contrast, deserts, plateaus, and mountain regions have different settlement patterns (oases, plateau villages, valley settlements).",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA I 2009"
+    },
+    {
+      "id": 97,
+      "question": "New Zealand is considered part of which one of the following island groups?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Micronesia"
+        },
+        {
+          "key": "B",
+          "text": "Melanesia"
+        },
+        {
+          "key": "C",
+          "text": "Polynesia"
+        },
+        {
+          "key": "D",
+          "text": "Hawaii Island chain"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Pacific islands are divided into three cultural-geographic groups: Micronesia, Melanesia, and Polynesia. New Zealand lies in the southwestern Pacific Ocean and is culturally and geographically part of Polynesia, along with islands like Samoa, Tonga, and Hawaii. Micronesia (small islands, e.g., Guam, Palau) and Melanesia (e.g., Fiji, Papua New Guinea) are separate regions. The Hawaii Island chain is also Polynesian, but New Zealand is not part of Hawaii specifically.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2020"
+    },
+    {
+      "id": 98,
+      "question": "Which one of the following is a terrestrial type of ecosystem ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Limnetic"
+        },
+        {
+          "key": "B",
+          "text": "Estuary"
+        },
+        {
+          "key": "C",
+          "text": "Prairie"
+        },
+        {
+          "key": "D",
+          "text": "Reefs"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Limnetic zone - Part of a freshwater lake, hence aquatic. Estuary - Transitional ecosystem between river and sea, also aquatic. Reefs - Marine ecosystems (coral reefs), again aquatic. Prairies - Temperate grasslands found in North America, a classic terrestrial ecosystem.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC IES 2019"
+    },
+    {
+      "id": 99,
+      "question": "Consider the following statements:\n1. The Red Sea receives very little precipitation in any form.\n2. No water enters the Red Sea from rivers\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - The Red Sea region is arid, receiving very little rainfall throughout the year. Statement 2: Correct - The Red Sea has no significant river inflow; it is almost entirely dependent on seawater exchange with the Gulf of Aden and evaporation. This makes the Red Sea highly saline compared to other seas.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "UPSC CSE 2024"
+    },
+    {
+      "id": 100,
+      "question": "Asia has large areas of inland drainage. Why is it so?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Rainfall is seasonal and scanty"
+        },
+        {
+          "key": "B",
+          "text": "There is a number of inter-montane plateaus"
+        },
+        {
+          "key": "C",
+          "text": "River channels are obstructed by lava flows"
+        },
+        {
+          "key": "D",
+          "text": "It is a very large continent"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Asia has extensive inland drainage basins (e.g., Caspian Sea, Aral Sea, Tarim Basin). This is mainly because of the presence of large inter-montane plateaus and basins (like Tibet, Mongolia, Xinjiang), surrounded by high mountains that prevent rivers from reaching the sea. Rainfall is indeed scanty in many parts, but the primary reason is the topography—closed basins formed by mountains and plateaus.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS (I) 2011"
+    }
+  ]
+}

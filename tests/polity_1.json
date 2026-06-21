@@ -1,0 +1,2709 @@
+{
+  "meta": {
+    "source": "sectional",
+    "subject": "polity_1",
+    "created_at": "2026-02-22T19:37:10.662Z"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "The Provincial Autonomy was granted by:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Indian Councils Act, 1909"
+        },
+        {
+          "key": "B",
+          "text": "Government of India Act, 1919"
+        },
+        {
+          "key": "C",
+          "text": "Government of India Act, 1935"
+        },
+        {
+          "key": "D",
+          "text": "Indian Independence Act, 1947"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Government of India Act, 1935 introduced Provincial Autonomy, ending the system of dyarchy in provinces that was started under the Act of 1919. Provinces were allowed to function independently with responsible governments, although the Governor still retained discretionary powers. The 1909 Act was limited to councils, 1919 introduced dyarchy (not autonomy), and 1947 dealt with independence and dominion status.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2013"
+    },
+    {
+      "id": 2,
+      "question": "The locus standi rule to move the court was liberalized by the case of:",
+      "options": [
+        {
+          "key": "A",
+          "text": "S.R. Bommai v. Union of India"
+        },
+        {
+          "key": "B",
+          "text": "Minerva Mills v. Union of India"
+        },
+        {
+          "key": "C",
+          "text": "S.P. Gupta v. Union of India"
+        },
+        {
+          "key": "D",
+          "text": "Kesavananda Bharati v. State of Kerala"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The S.P. Gupta v. Union of India case is considered the foundation of Public Interest Litigation in India, as it liberalized the rule of locus standi and allowed public-spirited individuals to approach courts on behalf of others.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 3,
+      "question": "While according permission to treat a paper/document as laid on the Table of Lok Sabha, the Speaker is not guided by which one of the following?",
+      "options": [
+        {
+          "key": "A",
+          "text": "That matter contained in the paper or document was in some way connected with business before the House"
+        },
+        {
+          "key": "B",
+          "text": "That the document contained facts and was propagandist in nature"
+        },
+        {
+          "key": "C",
+          "text": "That the document was original and authentic"
+        },
+        {
+          "key": "D",
+          "text": "That the document contained nothing which was against the wider interest of the nation"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Speaker ensures that documents laid on the Table are relevant, authentic, and in national interest. Whether a document is propagandist in nature is not a guiding criterion for granting permission.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO (LDC) 2015"
+    },
+    {
+      "id": 4,
+      "question": "The Constitution of India is republican because it:",
+      "options": [
+        {
+          "key": "A",
+          "text": "provides for an elected Parliament"
+        },
+        {
+          "key": "B",
+          "text": "provides for adult franchise"
+        },
+        {
+          "key": "C",
+          "text": "contains a bill of rights"
+        },
+        {
+          "key": "D",
+          "text": "has no hereditary elements"
+        }
+      ],
+      "answer": "D",
+      "explanation": "A republic means the head of the State is elected and not hereditary. India is a republic because the President is elected, and no office is inherited by birth. Adult franchise and bill of rights are democratic features, not defining features of a republic.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 5,
+      "question": "Public Interest Litigation falls within the jurisdiction of the High Court provided certain conditions are fulfilled. Which one among the following conditions is not accepted by the courts?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Public is interested in vindication of some rights"
+        },
+        {
+          "key": "B",
+          "text": "Enforcement of public duty"
+        },
+        {
+          "key": "C",
+          "text": "Courts can examine previous records of public servants"
+        },
+        {
+          "key": "D",
+          "text": "Personal injury or loss is an essential element"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Personal injury or loss is not a mandatory requirement in Public Interest Litigation. PILs are entertained to protect public interest, enforce public duties, and uphold constitutional or legal rights of disadvantaged groups.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2012"
+    },
+    {
+      "id": 6,
+      "question": "Which Constitutional Amendment provided that the election of the President of India or Vice-President of India cannot be challenged on the ground of any vacancy in the appropriate electoral college?",
+      "options": [
+        {
+          "key": "A",
+          "text": "11th Amendment Act, 1961"
+        },
+        {
+          "key": "B",
+          "text": "12th Amendment Act, 1962"
+        },
+        {
+          "key": "C",
+          "text": "13th Amendment Act, 1962"
+        },
+        {
+          "key": "D",
+          "text": "14th Amendment Act, 1962"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The 11th Constitutional Amendment Act, 1961 amended Article 71 to clarify that the election of the President or Vice-President shall not be invalidated due to vacancies in the electoral college. This was done to ensure continuity and stability of constitutional offices.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2017"
+    },
+    {
+      "id": 7,
+      "question": "Which of the following statements with regard to the Anoop Baranwal v. Union of India (2023) case is/are correct ?\n1.\tThe case was heard by a Constitutional Bench\n2.\tAccording to the judgment, the grounds for removal of Election Commissioners shall be the same as the Chief Justice of India\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Anoop Baranwal case was decided by a Constitution Bench. However, the judgment held that the conditions of service and removal of Election Commissioners shall be the same as that of a Supreme Court Judge, not the Chief Justice of India specifically.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2024"
+    },
+    {
+      "id": 8,
+      "question": "The Sarkaria Commission, set up in 1983, is related to which one of the following?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Metropolitan planning"
+        },
+        {
+          "key": "B",
+          "text": "Centre-State relationship"
+        },
+        {
+          "key": "C",
+          "text": "Parliamentary committees"
+        },
+        {
+          "key": "D",
+          "text": "Reforms in bureaucracy"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Sarkaria Commission was constituted to examine Centre–State relations and to recommend measures for improving coordination and federal balance within the constitutional framework.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CBI-DSP 2023"
+    },
+    {
+      "id": 9,
+      "question": "Who can be appointed as a Judge of the Supreme Court?",
+      "options": [
+        {
+          "key": "A",
+          "text": "An advocate who has practiced for at least ten years in any court"
+        },
+        {
+          "key": "B",
+          "text": "A Judge of a High Court for at least three years"
+        },
+        {
+          "key": "C",
+          "text": "A distinguished jurist in the opinion of the President of India"
+        },
+        {
+          "key": "D",
+          "text": "A person who has held a judicial office for at least fifteen years"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 124 of the Constitution provides that a person may be appointed as a Judge of the Supreme Court if he is a distinguished jurist in the opinion of the President. This is an independent qualification separate from experience as a judge or advocate.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2021"
+    },
+    {
+      "id": 10,
+      "question": "Under which of the following grounds, the President may convene a joint sitting of Parliament?\n1.\tIf a Bill passed by one House is rejected by the other House\n2.\tMore than six months lapse from the date of receipt of the Bill by the other House without the Bill being passed by it\nSelect the answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 108 of the Constitution provides for a joint sitting of Parliament in case of a deadlock between the two Houses. A deadlock is deemed when (i) one House rejects a Bill passed by the other, or (ii) more than six months elapse without the Bill being passed by the other House. Hence, both conditions are valid grounds.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2015"
+    },
+    {
+      "id": 11,
+      "question": "Which of the following statements is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Legislature of a State may, by law, establish a Contingency Fund in the nature of imprest."
+        },
+        {
+          "key": "B",
+          "text": "The Contingency Fund of the State shall be placed at the disposal of the Chief Minister of the State."
+        },
+        {
+          "key": "C",
+          "text": "The fund shall be paid from time to time such sums as may be determined by such law."
+        },
+        {
+          "key": "D",
+          "text": "The Contingency Fund is meant to enable advances to be made for meeting unforeseen expenditure pending authorization by the Legislature."
+        }
+      ],
+      "answer": "B",
+      "explanation": "Under Article 267, the Contingency Fund of a State is placed at the disposal of the Governor, not the Chief Minister. All other statements correctly describe the nature, purpose, and replenishment of the Contingency Fund.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2016–17"
+    },
+    {
+      "id": 12,
+      "question": "The idea of social justice requires that\n1. Equal treatment be supplemented with principle of proportionality\n2. Due and equal consideration is given to all individuals\n3. Equality of treatment be transcended to recognize special needs\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 only"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Social justice means fairness that goes beyond simple equality. It requires giving due and equal consideration to all individuals so that no one is ignored or marginalized. At the same time, it recognizes that some groups have special needs, and treating everyone identically can perpetuate inequality. Therefore, social justice demands equity—ensuring disadvantaged groups receive support to achieve real fairness. This is why statements 2 and 3 are correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 13,
+      "question": "The citizenship means\n1. Full civil and political rights of the citizens\n2. The right of suffrage for election to the House of the People and the Legislative Assembly of\nevery State\n3. The right to become a Member of the Parliament and Member of Legislative Assemblies\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Citizenship implies full civil and political rights, which include freedom and equality before law. It also grants the right to vote in elections to the Lok Sabha and State Legislative Assemblies. Further, only citizens can contest elections and become members of Parliament or State Assemblies. Hence, all three statements are correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2014"
+    },
+    {
+      "id": 14,
+      "question": "Which of the following statements about the Constitution of India are correct?\n1. Article 15 of the Constitution of India is available to both citizens of India and the foreigners.\n2. Article 16 of the Constitution of India is available to the citizens of India only.\n3. Article 21 of the Constitution of India is available to both citizens of India and the foreigners alike within the territory of India.\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Article 15 prohibits discrimination and is available only to Indian citizens. Article 16, which deals with equality of opportunity in public employment, is also restricted to citizens. However, Article 21—protection of life and personal liberty—is available to all persons, including foreigners, within Indian territory. Therefore, statements 2 and 3 are correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2017"
+    },
+    {
+      "id": 15,
+      "question": "Against whom can a writ be issued?\n1. A central University for violation of terms and conditions of service of a teacher\n2. A private University\n3. A private trust running a college affiliated to a university\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Writs under Article 226 can be issued against authorities performing public duties. A central university is a statutory body and falls under the purview of writ jurisdiction. A private trust running an affiliated college performs public functions, making it amenable to writs. However, a private university not discharging public duties is generally not subject to writ jurisdiction. Hence, statements 1 and 3 are correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC ED 2020"
+    },
+    {
+      "id": 16,
+      "question": "The vesting of 'residuary' powers in the central government by the Constitution of India\nindicates:",
+      "options": [
+        {
+          "key": "A",
+          "text": "That India is a federal polity"
+        },
+        {
+          "key": "B",
+          "text": "That India is neither federal nor unitary"
+        },
+        {
+          "key": "C",
+          "text": "That India is quasi federal"
+        },
+        {
+          "key": "D",
+          "text": "Unitary character of Indian polity"
+        }
+      ],
+      "answer": "C",
+      "explanation": "In a true federal system, residuary powers are typically vested in the states. However, the Indian Constitution assigns these powers to the Union government under Article 248 and Entry 97 of the Union List. This central dominance reflects a strong unitary bias, especially during emergencies, making India a quasi-federal polity—federal in structure but unitary in spirit.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 17,
+      "question": "Arrange the following events in the correct chronological order:\n1. Passage of the Anti-defection law by the Parliament of India\n2. Mizoram was made a state\n3. Voting age was reduced from 21 to 18\n4. Maithili was added to the Eighth Schedule of the Constitution of India\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "2, 3, 1, 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 3, 2, 4"
+        },
+        {
+          "key": "C",
+          "text": "4, 3, 2, 1"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3, 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Anti-defection law was enacted through the 52nd Amendment Act in 1985. Mizoram attained statehood in 1987. Voting age was reduced through the 61st Amendment Act in 1989. Maithili was added through the 92nd Amendment Act in 2003.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CGS 2024"
+    },
+    {
+      "id": 18,
+      "question": "Which one of the following does not describe the procedure or substance of the amendments to the Indian Constitution?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Bill to amend the Constitution has to be laid in any House of the Union Parliament."
+        },
+        {
+          "key": "B",
+          "text": "The basic features of the Constitution cannot be amended."
+        },
+        {
+          "key": "C",
+          "text": "In the event of a deadlock between the two Houses of the Parliament, there is no provision for a joint session."
+        },
+        {
+          "key": "D",
+          "text": "The President cannot veto a Bill for the amendment of the Constitution."
+        }
+      ],
+      "answer": "B",
+      "explanation": "While Parliament can amend most parts of the Constitution under Article 368, the Supreme Court in the Kesavananda Bharati case ruled that the basic structure cannot be altered. This is a judicial limitation, not a procedural one defined in the Constitution itself.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CISF LDC 2020"
+    },
+    {
+      "id": 19,
+      "question": "Which of the following States/UTs are included in the Northern Zonal Council?\n\nRajasthan and NCT of Delhi under the States Reorganization Act, 1956.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Uttarakhand, Uttar Pradesh, Haryana, Punjab, Jammu and Kashmir"
+        },
+        {
+          "key": "B",
+          "text": "Haryana, Punjab, Himachal Pradesh, Rajasthan and NCT of Delhi"
+        },
+        {
+          "key": "C",
+          "text": "Uttar Pradesh, Uttarakhand, Punjab, Haryana and Rajasthan"
+        },
+        {
+          "key": "D",
+          "text": "Uttarakhand, Uttar Pradesh, Himachal Pradesh, Punjab and Haryana"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Northern Zonal Council includes Haryana, Punjab, Himachal Pradesh,\nRajasthan and NCT of Delhi under the States Reorganization Act, 1956.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2023"
+    },
+    {
+      "id": 20,
+      "question": "Which of the following statements about National Emergency is/are correct?\n1. A Proclamation of Emergency may be made by the President only when the security of India or any part thereof is threatened by war or external aggression or armed rebellion.\n2. The Government of India acquires power to give directions to a State on any matter.\n3. The Proclamation of Emergency does not suspend the State legislature.\n4. The Proclamation of Emergency can continue for a maximum period of six months at a time only if approved by resolutions of both the Houses of Parliament.\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Under Article 352, National Emergency can be proclaimed when India’s security is threatened by war, external aggression, or armed rebellion. During such emergency, the Centre gains overriding powers to direct states. State legislatures continue unless separately dissolved. The emergency can be extended with parliamentary approval.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2023"
+    },
+    {
+      "id": 21,
+      "question": "Which of the following statements is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "A person who is not qualified to be a member of the Parliament is not qualified to be the President."
+        },
+        {
+          "key": "B",
+          "text": "Every person who is qualified to be a member of the Parliament is eligible to be elected as the President of India."
+        },
+        {
+          "key": "C",
+          "text": "A person qualified to be a member of the House of the People is qualified to be the President."
+        },
+        {
+          "key": "D",
+          "text": "A person qualified to be a member of the House of the People is qualified to be the President if he/she fulfils other prescribed requirements."
+        }
+      ],
+      "answer": "D",
+      "explanation": "As per Article 58 of the Constitution, a person is eligible to be elected as President if they are a citizen of India, at least 35 years old, and qualified to be elected as a member of the Lok Sabha. Hence, the last statement is correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 22,
+      "question": "Statement I: Impeachment procedure is a quasi-judicial procedure and the President of India can be impeached only on the grounds of violation of the Constitution. Statement II: The impeachment procedure can be initiated in either House of the Parliament.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and Statement II is the correct explanation of Statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but Statement II is not the correct explanation of Statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but Statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but Statement II is true"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The impeachment of the President is governed by Article 61 of the Constitution and is a quasi-judicial process. The President can be impeached only for violation of the Constitution and the process can be initiated in either House of Parliament.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2014"
+    },
+    {
+      "id": 23,
+      "question": "Which of the following statements relating to the Government of India Act, 1858 is/are correct?\n1. The British Crown assumed sovereignty over India from the East India Company.\n2. The British Parliament enacted the first statute for the governance of India under the direct rule of the British.\n3. This Act was dominated by the principle of absolute imperial control without any popular participation in the administration of the country.\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Act of 1858 ended Company rule and transferred power to the British Crown. It marked the beginning of direct imperial control with no provision for Indian representation.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2018"
+    },
+    {
+      "id": 24,
+      "question": "Who among the following gave evidence before the Joint Select Committee on the Government of India Bill, 1919 in favor of female franchise?\n1. Mrs. Annie Besant\n2. Mrs. Sarojini Naidu\n3. Mrs. Hirabai Tata\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Annie Besant, Sarojini Naidu and Hirabai Tata were among the women who supported female suffrage before the Joint Select Committee on the Government of India Bill, 1919.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2020"
+    },
+    {
+      "id": 25,
+      "question": "Which of the following statements about the Montagu-Chelmsford Reforms is/are correct?\n1. It was approved by King George V.\n2. It made the Central Legislature bicameral.\n3. The Act explicitly mentioned the appointment of three Indian members to the Council.\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The 1919 Act approved by King George V introduced bicameralism at the Centre. It did not explicitly mention appointment of three Indian members to the Council.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 26,
+      "question": "Which of the following statements regarding the residuary powers under the Constitution of India is/are correct?\n1. Residuary powers have been given to the Union Parliament\n2. In the matter of residuary power, the Constitution of India follows the Constitution of Australia\n3. Schedule 7 of the Constitution of India provides a list of residuary powers\n4. The Government of India Act 1935 placed residuary powers in the hands of the Governor\nGeneral\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "1 and 4"
+        },
+        {
+          "key": "D",
+          "text": "4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 248 vests residuary powers in Parliament. The Government of India Act 1935 placed such powers in the Governor General. Schedule 7 does not list residuary powers and India does not follow the Australian model in this regard.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2014"
+    },
+    {
+      "id": 27,
+      "question": "Consider the following statements about the Constitution of India:\n1. A Member of Parliament enjoys freedom of speech in the Parliament as a Parliamentary Privilege protected by the Constitution of India.\n2. The Constitution has vested the power to amend the Constitution in the Parliament.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 105 grants MPs freedom of speech in Parliament. Article 368 vests the amending power in Parliament, subject to constitutional limitations.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2016"
+    },
+    {
+      "id": 28,
+      "question": "Which of the following statements relating to the historic Objectives Resolution is/are correct?\n1. The Objectives Resolution inspired the shaping of the Constitution through all its subsequent\nstages.\n2. It was not just a resolution, but a declaration, a firm resolve and a pledge.\n3. It provided the underlying philosophy of our Constitution.\nSelect the ANSWER using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Objectives Resolution moved by Jawaharlal Nehru guided constitution-making and laid down the philosophy later reflected in the Preamble.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2018"
+    },
+    {
+      "id": 29,
+      "question": "Which one of the following statements regarding an Overseas Citizen of India (OCI) is not\ncorrect?",
+      "options": [
+        {
+          "key": "A",
+          "text": "An OCI is a citizen of another country."
+        },
+        {
+          "key": "B",
+          "text": "An OCI possesses multiple-entry long-term visa for visiting India."
+        },
+        {
+          "key": "C",
+          "text": "An OCI is at par with NRIs in all matters."
+        },
+        {
+          "key": "D",
+          "text": "An OCI is not entitled to the fundamental right to equality of opportunity in public employment."
+        }
+      ],
+      "answer": "C",
+      "explanation": "OCI cardholders are foreign citizens with lifelong visa benefits but are not at par with NRIs in all matters and cannot vote or hold public office.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "EPFO AO/EO 2017"
+    },
+    {
+      "id": 30,
+      "question": "Consider the following statements:\n1. In India, the Special Marriage Act protects an individual if one enters into an interreligious\nmarriage.\n2. Right to marry a person of one's choice is an integral aspect of one's Fundamental Rights under Article 21 of the Constitution of India.\n3. The Universal Declaration of Human Rights also resonates marital rights of every adult consenting individuals.\nWhich of the statements given above is/are correct?\n\nright to marry with free consent.",
+      "options": [
+        {
+          "key": "A",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Special Marriage Act enables civil marriages. The Supreme Court has held that the right to marry a person of choice is part of Article 21. Article 16 of the UDHR affirms the\nright to marry with free consent.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2024"
+    },
+    {
+      "id": 31,
+      "question": "Which of the following statements with regard to preventive detention in India is / are correct?\n1.\tThe detinue has no rights other than those mentioned in clauses (4) and (5) of Article 22 of Constitution of India\n2.\tThe detinue has a right to challenge the detention order on the ground that he was already in jail when the detention order was passed\n3.\tThe detinue can claim bail on the ground that he has been in prison beyond twenty-four hours without an order of the magistrate\nSelect the ANSWER: using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Article 22(4) and 22(5) provide limited safeguards in preventive detention cases. A detention order can be challenged if the person was already in custody at the time of its issue. The 24-hour rule applies to ordinary arrest, not preventive detention. Hence, statements 1 and 2 are correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 32,
+      "question": "Consider the following statements with regard to the Fundamental Rights:\n1.\tThe Parliament has power to modify the rights conferred by Part III of the Constitution of India with regard to persons employed in telecommunication systems of certain categories.\n2.\tDuring the course of enforcement of martial law in any area, restrictions can be imposed on the exercise of the Fundamental Rights.\n3.\tThe Fundamental Rights cannot be overridden for implementing any of the Directive Principles of State Policy.\nWhich of the above statements is/are not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 33 empowers Parliament to modify Fundamental Rights for armed forces and related services. Rights may be restricted during martial law. However, through Article 31C, certain Directive Principles can override Fundamental Rights. Hence, statement 3 is not correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 33,
+      "question": "Consider the following statements:\n1.\tConferment of Padma Awards does not amount to conferring title under Article 18 of the Constitution of India.\n2.\tNo citizen of India shall accept any title from any foreign State.\n3.\tA person not being a citizen of India can be appointed by the Government of India to any office of profit and he/she can accept any title from any foreign State.\nWhich of the above statements is/are not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Padma Awards are national honors and not titles under Article 18. Citizens are prohibited from accepting foreign titles. Even non-citizens holding office under the Government cannot freely accept foreign titles without permission. Hence, statement 3 is incorrect.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 34,
+      "question": "Which of the following statements about the Writ of Mandamus is/are correct?\n1.\tMandamus lies against the Government.\n2.\tMandamus lies against inferior Courts and Tribunals.\n3.\tMandamus lies against individuals in cases where a public duty is imposed on them.\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Mandamus compels a public authority to perform a legal duty. It can be issued against government authorities, inferior courts and tribunals. It may also be issued against individuals performing public duties. Therefore, all three statements are correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CISF-LDC 2018"
+    },
+    {
+      "id": 35,
+      "question": "Which of the following statements regarding the fundamental duties is/are correct?\n1.\tThere is no provision in the Constitution for direct enforcement of any of the duties nor for any sanction to prevent their violation.\n2.\tDuties are obligatory for a citizen and that the state should also strive to achieve the same.\n3.\tThe fundamental duties in Article 51A is confined to all persons and not to citizens only.\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Fundamental Duties are non-justiciable and cannot be directly enforced by courts. They apply only to citizens, not to all persons. The State promotes these duties through laws and education. Hence, statements 1 and 2 are correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 36,
+      "question": "Consider the following statements and identify the district:\n1.\tIt is the first District Administration in North East India to receive ISO 9001:2000 certificate.\n2.\tThe district enjoys autonomy under the provision of Sixth Schedule of the Indian Constitution.\n3.\tThe district is known for world's finest organic ginger produced by small and marginal farmers.\nCode:",
+      "options": [
+        {
+          "key": "A",
+          "text": "North Cachar Hills"
+        },
+        {
+          "key": "B",
+          "text": "Karbi Anglong"
+        },
+        {
+          "key": "C",
+          "text": "Ri Bhoi"
+        },
+        {
+          "key": "D",
+          "text": "Ukhrul"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Karbi Anglong is an autonomous district under the Sixth Schedule. It was the first in Northeast India to receive ISO certification for administration. The district is also known for high-quality organic ginger production.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SCRA 2009"
+    },
+    {
+      "id": 37,
+      "question": "The Constituent Assembly appointed a sub-committee headed by Gopinath Bordoloi. Which of the following recommendations was/were made by the Committee?\n1.\tFifth Schedule for the North-East Frontier (Assam) Tribal and Excluded Areas\n2.\tConstitution of District Councils in all autonomous districts of Assam\n3.\tSixth Schedule for the North-East Frontier (Assam) Tribal and Excluded Areas\n4.\tDemarcation of territories in North-East India\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Bordoloi Committee recommended autonomous District Councils for tribal areas of Assam. Its recommendations led to inclusion of the Sixth Schedule in the Constitution. The Fifth Schedule applies to mainland tribal areas. Hence, statements 2 and 3 are correct.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2013"
+    },
+    {
+      "id": 38,
+      "question": "Which among the following provisions of the Constitution of India is/are fulfilled by the National Social Assistance Programme launched by the Government of India?\n1.\tFundamental Rights\n2.\tFundamental Duties\n3.\tDirective Principles of State Policy\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The National Social Assistance Programme provides support in old age and disability. It reflects Article 41 under Directive Principles. It does not directly enforce Fundamental Rights or Duties. Hence, only statement 3 is correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2012"
+    },
+    {
+      "id": 39,
+      "question": "Which one of the following subjects does not fall within List-I of the Seventh Schedule under the control of Department of Agricultural Research and Education?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Cess for financing ICAR and commodity research"
+        },
+        {
+          "key": "B",
+          "text": "Coordination and determination of standards in agricultural higher education"
+        },
+        {
+          "key": "C",
+          "text": "Liaison and cooperation with international organizations in livestock, poultry and fisheries development"
+        },
+        {
+          "key": "D",
+          "text": "Sugarcane research"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Union List covers agricultural research and coordination of standards. Financing ICAR and sugarcane research fall under Union jurisdiction. Liaison with international organizations is primarily handled by external affairs authorities. Hence, option C) is correct.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2018"
+    },
+    {
+      "id": 40,
+      "question": "Which one of the following is the correct sequence of different stages a Budget has to go through in the Parliament?\n1.\t1.Presentation of the Budget\n2.\t2.Scrutiny by Departmental Committees\n3.\t3.Passing of Finance Bill\n4.\t4.Passing of Appropriation Bill",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 � 2 � 4 � 3"
+        },
+        {
+          "key": "B",
+          "text": "1 � 3 � 2 � 4"
+        },
+        {
+          "key": "C",
+          "text": "2 � 1 � 3 � 4"
+        },
+        {
+          "key": "D",
+          "text": "4 � 3 � 2 � 1"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Step 1: Presentation of the Budget � The Finance Minister presents the Union Budget in Parliament. Step 2: Scrutiny by Departmental Committees � After presentation, the Budget is examined by various Departmentally Related Standing Committees (DRSCs). Step 3: Passing of Appropriation Bill � Parliament passes the Appropriation Bill to authorize withdrawal of funds from the Consolidated Fund of India for government expenditure. Step 4: Passing of Finance Bill � Finally, the Finance Bill is passed to give effect to taxation proposals.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2017"
+    },
+    {
+      "id": 41,
+      "question": "Which of the following statements is/are correct with reference to the Constitution (One Hundred and Sixth Amendment) Act, 2023?\nI. It has made provisions for the reservation of seats for women in the Legislative Assembly of NCT of Delhi.\nII. It has made provisions for the reservation of seats for women in the Lok Sabha and the Rajya Sabha.\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "I only"
+        },
+        {
+          "key": "B",
+          "text": "II only"
+        },
+        {
+          "key": "C",
+          "text": "Both I and II"
+        },
+        {
+          "key": "D",
+          "text": "Neither I nor II"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The 106th Constitutional Amendment provides one-third reservation for women in the Lok Sabha and State Legislative Assemblies, including Delhi Assembly. It does not provide reservation in the Rajya Sabha. Hence, statement II is incorrect and only I is correct as per constitutional provision.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "EPFO-PA 2024"
+    },
+    {
+      "id": 42,
+      "question": "Under Article 355 of the Constitution of India, it is the duty of the Union to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "protect States against external aggression and internal disturbance"
+        },
+        {
+          "key": "B",
+          "text": "allow the extension of executive powers of the Union to any State"
+        },
+        {
+          "key": "C",
+          "text": "declare that the powers of the legislature of a State shall be exercisable by or under the authority of the Parliament"
+        },
+        {
+          "key": "D",
+          "text": "allow the Parliament to include or exclude any caste, race or tribe into the list of the Scheduled Castes or Scheduled Tribes"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Article 355 imposes a duty on the Union to protect every State against external aggression and internal disturbance. It also ensures that governance in States is carried on according to the Constitution. Other options relate to Articles 258, 356, and 341–342 respectively.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 43,
+      "question": "Which of the following statements is/are correct?\n1.\tThe President may resign by writing addressed to the Chief Justice of India.\n2.\tA person who has held the office of the President shall be eligible for re-election.\n3.\tElection to fill vacancy of Vice President must be completed within thirty days.\n4.\tElection of President or Vice President may be challenged on the ground of vacancy in electoral college.\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The President resigns by writing to the Vice President, not the Chief Justice. There is no constitutional limit on re-election of the President. The thirty-day rule is not constitutionally mandated. Election cannot be challenged on ground of vacancy in electoral college. Hence only statement 2 is correct.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2012–13"
+    },
+    {
+      "id": 44,
+      "question": "Consider the following statements:\n1.\tThe idea of Fundamental Duties is inspired by the Constitution of Ireland.\n2.\tFundamental Duties were incorporated on recommendation of the Swaran Singh Committee.\n3.\tFundamental Duties are justiciable through a Writ.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Fundamental Duties were inspired by the Constitution of the USSR, not Ireland. They were added by the 42nd Amendment on recommendation of the Swaran Singh Committee. They are non-justiciable and cannot be enforced through writs. Hence only statement 2 is correct.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "GEO SC 2025"
+    },
+    {
+      "id": 45,
+      "question": "Which one of the following statements about the Tashkent Agreement is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "It was an agreement between India and the Soviet Union"
+        },
+        {
+          "key": "B",
+          "text": "It was an agreement between India and Pakistan"
+        },
+        {
+          "key": "C",
+          "text": "It led to formation of Bangladesh"
+        },
+        {
+          "key": "D",
+          "text": "It was an agreement between India and Mongolia"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Tashkent Agreement was signed in 1966 between India and Pakistan after the 1965 war. It was brokered by the Soviet Union but not signed by it as a party. It did not relate to the creation of Bangladesh.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2025"
+    },
+    {
+      "id": 46,
+      "question": "Identify the change made in Article 74(1) through the 42nd Amendment Act, 1976.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Executive powers vested in President"
+        },
+        {
+          "key": "B",
+          "text": "PM must brief the President"
+        },
+        {
+          "key": "C",
+          "text": "President shall act on advice of Council of Ministers"
+        },
+        {
+          "key": "D",
+          "text": "President may summon or prorogue Parliament"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The 42nd Amendment made the advice of the Council of Ministers binding on the President. This reinforced the parliamentary system and removed ambiguity about discretionary powers. Other options relate to different constitutional provisions.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2025"
+    },
+    {
+      "id": 47,
+      "question": "Consider the following statements about the Preamble:\n1.\t‘Secular’ comes before ‘Socialist’.\n2.\t‘Justice’ comes before ‘Equality’.\n3.\t‘Fraternity’ comes after ‘Liberty’.\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The correct order is Socialist, Secular, Democratic. Justice appears before Equality in the Preamble. Fraternity comes after Liberty. Hence statements 2 and 3 are correct.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS 2025"
+    },
+    {
+      "id": 48,
+      "question": "Under which of the following conditions can citizenship be provided in India?\n1.\tBorn in India\n2.\tEither parent born in India\n3.\tOrdinary resident for not less than five years\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "Either 1 or 2 or 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Citizenship can be acquired by birth, descent and naturalization under the Citizenship Act, 1955. Being born in India or having Indian parentage qualifies subject to conditions. Naturalization requires prescribed period of residence. Hence all three conditions are valid modes.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2010"
+    },
+    {
+      "id": 49,
+      "question": "Which of the following ideas are closely associated with secularism in India?\n1.\tEquality of citizenship and non-discrimination\n2.\tNon-involvement of State in religious matters including personal law\n3.\tFreedom of belief and worship\n4.\tEqual and free access to educational institutions till 10th standard\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Indian secularism ensures equality and non-discrimination on religious grounds. Freedom of belief and worship is guaranteed under Article 25. The State may intervene in religious matters for reform. Educational access is not directly part of secularism.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "SCRA 2013"
+    },
+    {
+      "id": 50,
+      "question": "The original jurisdiction of the Supreme Court of India extends to",
+      "options": [
+        {
+          "key": "A",
+          "text": "treaties signed by Government of India"
+        },
+        {
+          "key": "B",
+          "text": "disputes between Government of India and one or more States"
+        },
+        {
+          "key": "C",
+          "text": "disputes relating to Directive Principles"
+        },
+        {
+          "key": "D",
+          "text": "bill passed by Parliament violative of Constitution"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Article 131 provides original jurisdiction to the Supreme Court in disputes between the Union and States or between States. Matters relating to treaties or constitutional validity of laws fall under other jurisdictions. Hence option B) is correct.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2011"
+    },
+    {
+      "id": 51,
+      "question": "Statement I: A public expression of dissatisfaction with democracy indicates the success of the democratic project: it transforms people from the status of a subject into that of a citizen.\nStatement II: The fact that people are complaining is itself an affirmation of the success of democracy: it shows that people have developed awareness and the ability to look critically at the government.\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and Statement II is the correct explanation of Statement I."
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but Statement II is not the correct explanation of Statement I."
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but Statement II is false."
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but Statement II is true."
+        }
+      ],
+      "answer": "A",
+      "explanation": "In a democracy, citizens have the right to criticize and question the government. This reflects transformation from passive subjects to active citizens. Public complaints show political awareness and accountability. Hence, Statement II correctly explains Statement I.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2011"
+    },
+    {
+      "id": 52,
+      "question": "Seventh Schedule of the Constitution of India deals with",
+      "options": [
+        {
+          "key": "A",
+          "text": "Allocation of seats in the Council of States"
+        },
+        {
+          "key": "B",
+          "text": "Distribution of power between the Union and the States"
+        },
+        {
+          "key": "C",
+          "text": "Power and authority of the Municipalities"
+        },
+        {
+          "key": "D",
+          "text": "Powers of the Governor of the State"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Seventh Schedule contains the Union List, State List and Concurrent List. It defines legislative subjects for Union and States. This division forms the basis of Indian federalism. Hence, it deals with distribution of powers.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2023"
+    },
+    {
+      "id": 53,
+      "question": "Which one of the following concerns has found a place in both Fundamental Duties and Directive Principles of State Policy?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Safeguard of public property"
+        },
+        {
+          "key": "B",
+          "text": "Protection and improvement of environment, forests and wildlife"
+        },
+        {
+          "key": "C",
+          "text": "Respect for the rich heritage of our composite culture"
+        },
+        {
+          "key": "D",
+          "text": "Promotion of cooperative societies"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Article 48A directs the State to protect and improve the environment. Article 51A(g) makes environmental protection a Fundamental Duty of citizens. Thus, environmental protection appears in both DPSP and Fundamental Duties.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2018"
+    },
+    {
+      "id": 54,
+      "question": "As per the Constitution of India, the Writ of Prohibition relates to an order:\n1.\tIssued against judicial and quasi-judicial authority\n2.\tTo prohibit an inferior Court from proceeding in a particular case where it has no jurisdiction to try\n3.\tTo restrain a person from holding a public office to which he is not entitled\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Writ of Prohibition is issued by a higher court to prevent lower courts or tribunals from exceeding jurisdiction. It is preventive in nature. It does not relate to public office disputes, which fall under Quo Warranto.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 55,
+      "question": "Which of the following statements is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Prime Minister may call for papers from any Department"
+        },
+        {
+          "key": "B",
+          "text": "The finance minister may call for papers from any Department in which financial consideration is involved"
+        },
+        {
+          "key": "C",
+          "text": "The Law Minister may call for status report from the Chief Justice of India on any allegation against a sitting Judge of that Court"
+        },
+        {
+          "key": "D",
+          "text": "Any Minister may ask to see papers in any other Department if related to a case before him"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Judicial independence prevents executive interference in judicial matters. The Law Minister cannot seek status reports from the Chief Justice regarding allegations. Other provisions are allowed under the Government of India (Transaction of Business) Rules.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2019"
+    },
+    {
+      "id": 56,
+      "question": "A member who has resigned the office of Minister may, with the consent of the Speaker, make a personal statement during the session in which the resignation has been accepted by",
+      "options": [
+        {
+          "key": "A",
+          "text": "the Prime Minister"
+        },
+        {
+          "key": "B",
+          "text": "the Secretary-General"
+        },
+        {
+          "key": "C",
+          "text": "the Vice President"
+        },
+        {
+          "key": "D",
+          "text": "the President"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Under Article 75, a Minister holds office during the pleasure of the President. Resignation becomes effective only after acceptance by the President. Hence, the personal statement can be made after such acceptance.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS 2010"
+    },
+    {
+      "id": 57,
+      "question": "If a President is impeached and removed by the Parliament, can he continue in office till election of the new President?",
+      "options": [
+        {
+          "key": "A",
+          "text": "No, the Vice-President shall act as the President"
+        },
+        {
+          "key": "B",
+          "text": "He can continue till new incumbent is sworn in"
+        },
+        {
+          "key": "C",
+          "text": "He can remain as caretaker President"
+        },
+        {
+          "key": "D",
+          "text": "He may remain but without immunity"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Upon removal, the President immediately vacates office. Article 65 provides that the Vice-President shall act as President. There is no provision for caretaker continuation after impeachment.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA 2016"
+    },
+    {
+      "id": 58,
+      "question": "Consider the following statements:\n1.\tThe Ministries/Departments of the Union Government are created by the Prime Minister.\n2.\tThe Cabinet Secretary is the Ex-officio Chairman of the Civil Services Board.\nSelect the ANSWER:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Ministries are created by the President under the Allocation of Business Rules. The Cabinet Secretary serves as Ex-officio Chairman of the Civil Services Board. Hence, only statement 2 is correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS 2008"
+    },
+    {
+      "id": 59,
+      "question": "The Union Executive can issue directions to a State in respect of which one of the following matters?",
+      "options": [
+        {
+          "key": "A",
+          "text": "To ensure minorities are protected"
+        },
+        {
+          "key": "B",
+          "text": "To expedite disposal of criminal cases"
+        },
+        {
+          "key": "C",
+          "text": "To observe financial propriety during Financial Emergency"
+        },
+        {
+          "key": "D",
+          "text": "To ensure cleanliness of inter-State rivers"
+        }
+      ],
+      "answer": "C",
+      "explanation": "During a Financial Emergency under Article 360, the Union may direct States to observe financial discipline. Other matters do not fall under constitutionally permitted directive authority of the Union Executive.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2014"
+    },
+    {
+      "id": 60,
+      "question": "Which one of the following statements relating to the Constitution of India is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Articles 324 to 329 apply to States and Union Territories"
+        },
+        {
+          "key": "B",
+          "text": "Only some provisions apply to one Union Territory"
+        },
+        {
+          "key": "C",
+          "text": "Articles 124(4) and 124(5) apply to both Supreme Court and High Courts"
+        },
+        {
+          "key": "D",
+          "text": "Definition of ‘State’ under Article 12 applies to both Fundamental Rights and DPSPs"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Articles 124(4) and 124(5) deal only with removal of Supreme Court judges. Removal of High Court judges is governed by Article 217. Hence, these provisions do not directly apply to High Courts.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2019–20"
+    },
+    {
+      "id": 61,
+      "question": "Consider the following statements:\n1.\tOnly a member of the Rajya Sabha can be made the Chairman of the Rajya Sabha.\n2.\tOnly a member of the Lok Sabha can be made a Cabinet Minister.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Chairman of the Rajya Sabha is the Vice-President of India, who is not a member of either House. A Cabinet Minister can be a member of either Lok Sabha or Rajya Sabha. Hence, both statements are incorrect.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CISF-LDC 2015"
+    },
+    {
+      "id": 62,
+      "question": "Consider the following statements regarding Money Bill:\n1.\tA Money Bill can be introduced only in the Lok Sabha.\n2.\tA Money Bill has to be certified by the Speaker, Lok Sabha.\n3.\tA Money Bill can be introduced without the recommendation of the President of India.\n4.\tThere cannot be a joint sitting of the Lok Sabha and Rajya Sabha over a Money Bill.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "A Money Bill is introduced only in Lok Sabha and requires prior recommendation of the President, making statement 3 incorrect. It must be certified by the Speaker. No joint sitting is permitted in case of disagreement over a Money Bill.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2012–13"
+    },
+    {
+      "id": 63,
+      "question": "Consider the following statements relating to short notice questions asked in the Legislature:\n1.\tThese relate to matters of urgent public importance and can be asked for oral answer at a notice less than 10 days.\n2.\tShort notice questions can be admissible if the Minister concerned agrees to answer it.\n3.\tShort notice questions are asked during Question Hour.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Short notice questions deal with urgent matters and can be asked at short notice with the consent of the concerned Minister. They are not part of the regular Question Hour and are taken up separately. Hence, statements 1 and 2 are correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2019"
+    },
+    {
+      "id": 64,
+      "question": "Consider the following statements with regard to the Members of Parliament:\n1.\tNominated and elected Members get Nomination/Election certificate from the Returning Officer.\n2.\tNominated Member gets the Letter of Nomination from the Ministry of Law.\n3.\tA nominated Member can join any political party only within 6 months of his nomination.\nWhich of the above statements is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Elected members receive certificates from the Returning Officer. Nominated members receive a Letter of Nomination from the Ministry of Law. Under the Tenth Schedule, a nominated member may join a political party within six months of taking seat without disqualification.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2016–17"
+    },
+    {
+      "id": 65,
+      "question": "The President of India may resign from his post by writing under his hand addressed to",
+      "options": [
+        {
+          "key": "A",
+          "text": "the Chief Justice of the Supreme Court of India"
+        },
+        {
+          "key": "B",
+          "text": "the Speaker of the Lok Sabha"
+        },
+        {
+          "key": "C",
+          "text": "the Vice President of India"
+        },
+        {
+          "key": "D",
+          "text": "the Prime Minister of India"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 56 provides that the President may resign by writing addressed to the Vice-President of India.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2022"
+    },
+    {
+      "id": 66,
+      "question": "Which one of the following qualifications is not necessary to become qualified to be a member of Council of States?",
+      "options": [
+        {
+          "key": "A",
+          "text": "He/She is a citizen of India"
+        },
+        {
+          "key": "B",
+          "text": "He/She is not less than 30 years of age"
+        },
+        {
+          "key": "C",
+          "text": "He/She is a voter"
+        },
+        {
+          "key": "D",
+          "text": "He/She is a resident of the area from which he/she is seeking election"
+        }
+      ],
+      "answer": "D",
+      "explanation": "A Rajya Sabha member must be an Indian citizen, at least 30 years old, and a registered voter. After the 2003 amendment to the Representation of the People Act, residence in the concerned State is not mandatory.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2014"
+    },
+    {
+      "id": 67,
+      "question": "Which one among the following Committees of the Parliament of India has no members of the Rajya Sabha?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Public Accounts Committee"
+        },
+        {
+          "key": "B",
+          "text": "Estimates Committee"
+        },
+        {
+          "key": "C",
+          "text": "Public Undertakings Committee"
+        },
+        {
+          "key": "D",
+          "text": "Departmentally Related Standing Committee on Finance"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Estimates Committee consists only of members of the Lok Sabha. Other major financial committees include members from both Houses.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS (I) 2013"
+    },
+    {
+      "id": 68,
+      "question": "The Public Accounts Committee consists of not more than:",
+      "options": [
+        {
+          "key": "A",
+          "text": "22 Members, 15 from Lok Sabha and not more than 7 from Rajya Sabha"
+        },
+        {
+          "key": "B",
+          "text": "23 Members, 16 from Lok Sabha and not more than 7 from Rajya Sabha"
+        },
+        {
+          "key": "C",
+          "text": "22 Members, 7 from Lok Sabha and not more than 15 from Rajya Sabha"
+        },
+        {
+          "key": "D",
+          "text": "23 Members, 7 from Lok Sabha and not more than 16 from Rajya Sabha"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Public Accounts Committee has a maximum strength of 22 members, with 15 elected from the Lok Sabha and not more than 7 from the Rajya Sabha.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO (LDC) 2021–22"
+    },
+    {
+      "id": 69,
+      "question": "Which one among the following statements with regard to the legal facilities in India is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Tele-Law is a pre-litigation advice mechanism."
+        },
+        {
+          "key": "B",
+          "text": "The President of India is Patron-in-Chief of National Legal Services Authority (NALSA)."
+        },
+        {
+          "key": "C",
+          "text": "There are dedicated Commercial Courts in India."
+        },
+        {
+          "key": "D",
+          "text": "Some courts in India are paperless Digital Commercial Courts."
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Patron-in-Chief of NALSA is the Chief Justice of India, not the President. Tele-Law provides pre-litigation advice, and commercial courts including digital courts exist in India.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF (AC) 2024"
+    },
+    {
+      "id": 70,
+      "question": "Which one of the following is not a part of Article 51 of the Constitution of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Promote international peace and security"
+        },
+        {
+          "key": "B",
+          "text": "Maintain just and honorable relations between nations"
+        },
+        {
+          "key": "C",
+          "text": "Use of UN peacekeeping force for resolution of international disputes"
+        },
+        {
+          "key": "D",
+          "text": "Encourage settlement of international disputes by arbitration"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 51 directs the State to promote international peace, maintain just relations, respect international law, and encourage arbitration. It does not mention the use of UN peacekeeping forces.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS (I) 2023"
+    },
+    {
+      "id": 71,
+      "question": "Parliament of India consists of",
+      "options": [
+        {
+          "key": "A",
+          "text": "the President of India only"
+        },
+        {
+          "key": "B",
+          "text": "the House of the People and the Council of States only"
+        },
+        {
+          "key": "C",
+          "text": "The President of India, the House of the People and the Council of States"
+        },
+        {
+          "key": "D",
+          "text": "the Vice-President of India, the House of the People and the Council of States"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 79 of the Constitution provides that Parliament consists of the President, Lok Sabha and Rajya Sabha. The President is an integral part of Parliament though not a member of either House.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO (LDC) 2016–17"
+    },
+    {
+      "id": 72,
+      "question": "On 26th November, 1949, which of the following provisions of the Constitution of India came into effect?\n1.\tCitizenship\n2.\tElections\n3.\tProvisional Parliament\n4.\tFundamental Rights\nSelect the correct answer:",
+      "options": [
+        {
+          "key": "A",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Provisions relating to Citizenship, Elections and Provisional Parliament came into force on 26 November 1949. Fundamental Rights became effective on 26 January 1950.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS (II) 2016"
+    },
+    {
+      "id": 73,
+      "question": "The Preamble of the Constitution of India reflects the ideals of",
+      "options": [
+        {
+          "key": "A",
+          "text": "equality, liberty and fraternity"
+        },
+        {
+          "key": "B",
+          "text": "sovereignty, socialism and secularism"
+        },
+        {
+          "key": "C",
+          "text": "justice, liberty, equality and fraternity"
+        },
+        {
+          "key": "D",
+          "text": "socialism, secularism and democracy"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Preamble explicitly mentions Justice, Liberty, Equality and Fraternity as the core ideals of the Indian Constitution.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO (LDC) 2019–20"
+    },
+    {
+      "id": 74,
+      "question": "Which of the following words/phrases was not incorporated into the Preamble by the Forty-second Amendment?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Socialist"
+        },
+        {
+          "key": "B",
+          "text": "Secular"
+        },
+        {
+          "key": "C",
+          "text": "Unity and integrity of the nation"
+        },
+        {
+          "key": "D",
+          "text": "Dignity of the individual"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The 42nd Amendment Act, 1976 added Socialist, Secular and Unity and Integrity of the Nation. The phrase Dignity of the individual was part of the original Preamble.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2023"
+    },
+    {
+      "id": 75,
+      "question": "Under which of the following Acts is the National Population Register being created?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Citizenship Act, 1955 (as amended in 2004)"
+        },
+        {
+          "key": "B",
+          "text": "The Census Act, 1948"
+        },
+        {
+          "key": "C",
+          "text": "The UID Act, 2010"
+        },
+        {
+          "key": "D",
+          "text": "None of the above"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The National Population Register is prepared under the Citizenship Act, 1955 after its amendment in 2004. It is separate from Census and Aadhaar mechanisms.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA (I) 2014"
+    },
+    {
+      "id": 76,
+      "question": "In relation to the Fundamental Duties, which one of the following is NOT correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "They were not originally part of the Constitution"
+        },
+        {
+          "key": "B",
+          "text": "To safeguard public property and abjure violence are Fundamental Duties"
+        },
+        {
+          "key": "C",
+          "text": "They are not enforceable through writs"
+        },
+        {
+          "key": "D",
+          "text": "They may not be used for determining constitutionality of laws"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Fundamental Duties were added by the 42nd Amendment in 1976. They are non-justiciable, but courts have used them to interpret and determine constitutionality of laws. Hence, option D) is incorrect.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 77,
+      "question": "Which Schedule contains the oath or affirmation for members of the Union Council of Ministers?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Second Schedule"
+        },
+        {
+          "key": "B",
+          "text": "Third Schedule"
+        },
+        {
+          "key": "C",
+          "text": "Fourth Schedule"
+        },
+        {
+          "key": "D",
+          "text": "Ninth Schedule"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Third Schedule contains forms of oaths and affirmations for Ministers, Members of Parliament, Judges and other constitutional authorities.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO (LDC) 2021–22"
+    },
+    {
+      "id": 78,
+      "question": "Which one of the following does not figure in the Eighth Schedule?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Dogri"
+        },
+        {
+          "key": "B",
+          "text": "Bhoti"
+        },
+        {
+          "key": "C",
+          "text": "Maithili"
+        },
+        {
+          "key": "D",
+          "text": "Santhali"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Dogri, Maithili and Santhali are included in the Eighth Schedule. Bhoti is not a scheduled language under the Constitution.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "EPFO AO/EO 2020"
+    },
+    {
+      "id": 79,
+      "question": "What does the Ninth Schedule of the Constitution contain?",
+      "options": [
+        {
+          "key": "A",
+          "text": "List of Official Languages"
+        },
+        {
+          "key": "B",
+          "text": "Panchayati Raj provisions"
+        },
+        {
+          "key": "C",
+          "text": "Laws protected from judicial review"
+        },
+        {
+          "key": "D",
+          "text": "Allocation of seats in the Rajya Sabha"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Ninth Schedule includes laws placed beyond judicial review to protect them from challenge on the ground of violation of Fundamental Rights.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "SO (LDC) 2021–22"
+    },
+    {
+      "id": 80,
+      "question": "For which judgment is the Kesavananda Bharati case considered a landmark?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Religion cannot be mobilized for political ends"
+        },
+        {
+          "key": "B",
+          "text": "Abolishing untouchability"
+        },
+        {
+          "key": "C",
+          "text": "The basic structure of the Constitution cannot be changed"
+        },
+        {
+          "key": "D",
+          "text": "Right to life and liberty cannot be suspended"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Kesavananda Bharati case (1973) laid down the Basic Structure Doctrine, holding that Parliament cannot amend the basic structure of the Constitution.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS (I) 2010"
+    },
+    {
+      "id": 81,
+      "question": "Emergency proclaimed under Article 356 of the Constitution, duly approved by Parliament, lasts at a stretch for the duration of:",
+      "options": [
+        {
+          "key": "A",
+          "text": "two months"
+        },
+        {
+          "key": "B",
+          "text": "six months"
+        },
+        {
+          "key": "C",
+          "text": "one year"
+        },
+        {
+          "key": "D",
+          "text": "three years"
+        }
+      ],
+      "answer": "B",
+      "explanation": "President’s Rule under Article 356 operates for six months at a time after approval by Parliament. It can be extended further subject to constitutional conditions, but each extension is for six months.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2012–13"
+    },
+    {
+      "id": 82,
+      "question": "The term ‘Lok Sabha’ is borrowed from which language?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Hindi"
+        },
+        {
+          "key": "B",
+          "text": "Sanskrit"
+        },
+        {
+          "key": "C",
+          "text": "Urdu"
+        },
+        {
+          "key": "D",
+          "text": "English"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The term ‘Lok Sabha’ is derived from Sanskrit. ‘Lok’ means people and ‘Sabha’ means assembly.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 83,
+      "question": "An All-India Service can be created",
+      "options": [
+        {
+          "key": "A",
+          "text": "in accordance with the procedure prescribed under Article 312 of the Constitution"
+        },
+        {
+          "key": "B",
+          "text": "by the President under Article 309"
+        },
+        {
+          "key": "C",
+          "text": "by executive order"
+        },
+        {
+          "key": "D",
+          "text": "by directions of the court"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Under Article 312, Parliament can create a new All-India Service if the Rajya Sabha passes a resolution supported by not less than two-thirds of members present and voting.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "UPSC ED 2020"
+    },
+    {
+      "id": 84,
+      "question": "Which one of the following Bills can the Governor not return for reconsideration?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Constitutional Amendment Bill"
+        },
+        {
+          "key": "B",
+          "text": "Money Bill"
+        },
+        {
+          "key": "C",
+          "text": "Ordinary Bill"
+        },
+        {
+          "key": "D",
+          "text": "Finance Bill"
+        }
+      ],
+      "answer": "B",
+      "explanation": "A Money Bill passed by the State Legislature cannot be returned by the Governor for reconsideration. The Governor may either give assent or reserve it for the President.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2023"
+    },
+    {
+      "id": 85,
+      "question": "Zero Hour in the Indian Parliament starts at",
+      "options": [
+        {
+          "key": "A",
+          "text": "first hour of the sitting"
+        },
+        {
+          "key": "B",
+          "text": "last hour of the sitting"
+        },
+        {
+          "key": "C",
+          "text": "12:00 noon"
+        },
+        {
+          "key": "D",
+          "text": "no fixed timings"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Zero Hour begins at 12 noon immediately after the Question Hour. It is an informal device to raise urgent matters.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS II 2010"
+    },
+    {
+      "id": 86,
+      "question": "Under which provision is it prescribed that proceedings in the Supreme Court shall be in English?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Supreme Court Rules, 1966"
+        },
+        {
+          "key": "B",
+          "text": "A legislation made by Parliament"
+        },
+        {
+          "key": "C",
+          "text": "Article 145 of the Constitution"
+        },
+        {
+          "key": "D",
+          "text": "Article 348 of the Constitution"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Article 348 provides that proceedings in the Supreme Court shall be in English unless Parliament provides otherwise. Parliament has prescribed English through legislation.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS I 2012"
+    },
+    {
+      "id": 87,
+      "question": "Which motion is moved to express want of confidence in the Council of Ministers?",
+      "options": [
+        {
+          "key": "A",
+          "text": "No-Confidence Motion"
+        },
+        {
+          "key": "B",
+          "text": "Confidence Motion"
+        },
+        {
+          "key": "C",
+          "text": "Censure Motion"
+        },
+        {
+          "key": "D",
+          "text": "Adjournment Motion"
+        }
+      ],
+      "answer": "A",
+      "explanation": "A No-Confidence Motion is moved in the Lok Sabha to test whether the Council of Ministers enjoys the confidence of the House.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 88,
+      "question": "Joint Parliamentary Sessions in India are chaired by the",
+      "options": [
+        {
+          "key": "A",
+          "text": "President of India"
+        },
+        {
+          "key": "B",
+          "text": "Vice-President of India"
+        },
+        {
+          "key": "C",
+          "text": "Speaker of the Lok Sabha"
+        },
+        {
+          "key": "D",
+          "text": "Prime Minister of India"
+        }
+      ],
+      "answer": "C",
+      "explanation": "A joint sitting of Parliament is presided over by the Speaker of the Lok Sabha or, in his/her absence, the Deputy Speaker.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA I 2013"
+    },
+    {
+      "id": 89,
+      "question": "Which one of the following formed the basic premise for developing the Indian Constitution?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Government of India Act, 1935"
+        },
+        {
+          "key": "B",
+          "text": "The U.S. Constitution"
+        },
+        {
+          "key": "C",
+          "text": "The British Constitution"
+        },
+        {
+          "key": "D",
+          "text": "The UN Charter"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Government of India Act, 1935 provided the structural and administrative framework for the Indian Constitution, including federal features and emergency provisions.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "APFC 2016"
+    },
+    {
+      "id": 90,
+      "question": "Who among the following was not a member of the Drafting Committee of the Constitution of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "B. R. Ambedkar"
+        },
+        {
+          "key": "B",
+          "text": "K. M. Munshi"
+        },
+        {
+          "key": "C",
+          "text": "Krishnaswamy Iyer"
+        },
+        {
+          "key": "D",
+          "text": "M. K. Gandhi"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Drafting Committee was chaired by Dr. B. R. Ambedkar. K. M. Munshi and Alladi Krishnaswamy Iyer were members. Mahatma Gandhi was not a member of the Drafting Committee.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA (II) 2011"
+    },
+    {
+      "id": 91,
+      "question": "Which among the following was made responsible for framing of the Constitution of Free India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Parliament of India"
+        },
+        {
+          "key": "B",
+          "text": "Constituent Assembly"
+        },
+        {
+          "key": "C",
+          "text": "Supreme Court of India"
+        },
+        {
+          "key": "D",
+          "text": "British Parliament"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Constitution was framed by the Constituent Assembly of India, constituted under the Cabinet Mission Plan, 1946. After Independence, it functioned as a sovereign body and completed the Constitution.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2021"
+    },
+    {
+      "id": 92,
+      "question": "Which one of the following statements about the Constitution of India is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "It was framed between December 1946 and December 1949."
+        },
+        {
+          "key": "B",
+          "text": "The drafts were discussed in public meetings."
+        },
+        {
+          "key": "C",
+          "text": "It is the shortest Constitution in the world."
+        },
+        {
+          "key": "D",
+          "text": "It came fully into operation immediately after drafting in December 1949."
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Constitution was framed from 9 December 1946 to 26 November 1949. It came into force on 26 January 1950. It is one of the lengthiest written constitutions in the world.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2018"
+    },
+    {
+      "id": 93,
+      "question": "The original copies of the Constitution of India are kept in the Parliament Library in cases filled with which inert gas?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Helium"
+        },
+        {
+          "key": "B",
+          "text": "Nitrogen"
+        },
+        {
+          "key": "C",
+          "text": "Argon"
+        },
+        {
+          "key": "D",
+          "text": "Hydrogen"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The original handwritten Constitution is preserved in helium-filled cases to prevent oxidation and deterioration, as helium is an inert gas.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2021–22"
+    },
+    {
+      "id": 94,
+      "question": "The federation of which one of the following States has been described as “an indestructible union of indestructible states”?",
+      "options": [
+        {
+          "key": "A",
+          "text": "India"
+        },
+        {
+          "key": "B",
+          "text": "U.S.A."
+        },
+        {
+          "key": "C",
+          "text": "Canada"
+        },
+        {
+          "key": "D",
+          "text": "Australia"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The phrase was used by the U.S. Supreme Court in the Texas v. White case, describing the federal structure of the United States as permanent and indestructible.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS (II) 2021"
+    },
+    {
+      "id": 95,
+      "question": "In the Constitution of India, the word ‘Federal’ is used in",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Preamble"
+        },
+        {
+          "key": "B",
+          "text": "Part III"
+        },
+        {
+          "key": "C",
+          "text": "Article 368"
+        },
+        {
+          "key": "D",
+          "text": "nowhere"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The word “Federal” does not appear in the Constitution. However, India follows a federal system with strong unitary features.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CAPF (AC) 2011"
+    },
+    {
+      "id": 96,
+      "question": "The landmark Supreme Court judgment in Subhash Sharma v. Union of India (1991) refers to which basic feature of the Constitution?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Judicial Review"
+        },
+        {
+          "key": "B",
+          "text": "Rule of Law"
+        },
+        {
+          "key": "C",
+          "text": "Free and fair elections"
+        },
+        {
+          "key": "D",
+          "text": "Fundamental Rights"
+        }
+      ],
+      "answer": "A",
+      "explanation": "In Subhash Sharma v. Union of India, the Supreme Court reaffirmed that Judicial Review is a basic feature of the Constitution and cannot be curtailed.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS (II) 2023"
+    },
+    {
+      "id": 97,
+      "question": "Which one among the following disputes is not included in the original jurisdiction of the Supreme Court of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Between the Government of India and one or more States"
+        },
+        {
+          "key": "B",
+          "text": "Between the Government of India and one or more citizens of India"
+        },
+        {
+          "key": "C",
+          "text": "Between the Government of India and one or more States on one side and one or more States on the other"
+        },
+        {
+          "key": "D",
+          "text": "Between two or more States"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Under Article 131, original jurisdiction covers disputes between the Union and States or inter-State disputes. Disputes between the Government and private citizens fall under writ or appellate jurisdiction, not original jurisdiction.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CAPF (AC) 2010"
+    },
+    {
+      "id": 98,
+      "question": "Which one of the following subjects does not fall under the control of the Department of Official Language?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Implementation of constitutional provisions relating to Official Language"
+        },
+        {
+          "key": "B",
+          "text": "Matters relating to Kendriya Hindi Samiti"
+        },
+        {
+          "key": "C",
+          "text": "Cadre management of the Central Secretariat Official Language Service"
+        },
+        {
+          "key": "D",
+          "text": "Implementation of model rules of business in Official Language for State Governments/UTs"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Department of Official Language under the Ministry of Home Affairs implements constitutional provisions regarding official language, manages Kendriya Hindi Samiti, and oversees the Official Language Service cadre. It does not control model rules of business for States/UTs.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2018"
+    },
+    {
+      "id": 99,
+      "question": "Which amendment introduced the concept of separate Constitutional bodies for SCs and STs?",
+      "options": [
+        {
+          "key": "A",
+          "text": "42nd Amendment"
+        },
+        {
+          "key": "B",
+          "text": "73rd Amendment"
+        },
+        {
+          "key": "C",
+          "text": "89th Amendment"
+        },
+        {
+          "key": "D",
+          "text": "97th Amendment"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Constitution (Eighty-ninth Amendment) Act, 2003 bifurcated the National Commission for SCs and STs into two separate constitutional bodies — one for Scheduled Castes and one for Scheduled Tribes.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2021–22"
+    },
+    {
+      "id": 100,
+      "question": "Which one of the following is a characteristic of Presidential form of Government?",
+      "options": [
+        {
+          "key": "A",
+          "text": "President is not a part of legislative body"
+        },
+        {
+          "key": "B",
+          "text": "It does not separate Legislative and Executive functions"
+        },
+        {
+          "key": "C",
+          "text": "President follows collective responsibility"
+        },
+        {
+          "key": "D",
+          "text": "Tenure of President depends on Legislature"
+        }
+      ],
+      "answer": "A",
+      "explanation": "In a Presidential system, the President is independently elected and not a member of the legislature. There is a clear separation of powers, fixed tenure, and no concept of collective responsibility.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CAPF 2016"
+    }
+  ]
+}

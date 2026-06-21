@@ -1,0 +1,2709 @@
+{
+  "meta": {
+    "source": "sectional",
+    "subject": "geography_2",
+    "created_at": "2026-02-26T19:18:07.978Z"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "The Shompens are the vulnerable tribal group of",
+      "options": [
+        {
+          "key": "A",
+          "text": "Jharkhand"
+        },
+        {
+          "key": "B",
+          "text": "Odisha"
+        },
+        {
+          "key": "C",
+          "text": "West Bengal"
+        },
+        {
+          "key": "D",
+          "text": "Andaman and Nicobar Islands"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Shompens are one of the Particularly Vulnerable Tribal Groups (PVTGs) of India. They inhabit the interior of the Great Nicobar Island in the Andaman and Nicobar Islands. They are a small, isolated community, traditionally practicing hunting, gathering, and shifting cultivation.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 2,
+      "question": "Which of the following does NOT show an improvement in rural areas from the National Family Health Survey 4 to National Family Health Survey 5?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Infant mortality rate"
+        },
+        {
+          "key": "B",
+          "text": "Obesity in women"
+        },
+        {
+          "key": "C",
+          "text": "Anaemia in children"
+        },
+        {
+          "key": "D",
+          "text": "Total fertility rate"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Infant mortality rate has declined from NFHS-4 to NFHS-5 showing improvement. Total fertility rate has also declined, which is considered an improvement. Obesity in women has increased, but this is not considered an indicator of improvement. Anaemia in children has worsened in NFHS-5 compared to NFHS-4, showing no improvement.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS 2012"
+    },
+    {
+      "id": 3,
+      "question": "Which of the following statements about India's scientific and research mission in Antarctica is / are correct?\n1. The first scientific base station in Antarctica was Dakshin Gangotri\n2. Dakshin Gangotri is now being used as supply base and transit camp\n3. The Maitri station is manned throughout the year for scientific activities\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Dakshin Gangotri: It was India’s first scientific research station in Antarctica, established in 1983. Present status of Dakshin Gangotri: Due to heavy ice accumulation, it became non-functional as a permanent research station. It is currently used as a supply base and transit camp. Maitri Research Station: Maitri was established in 1989 as India’s second Antarctic station. It is permanently manned throughout the year and supports continuous scientific research in geology, meteorology, biology, etc.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 4,
+      "question": "The terms \"Patan Patola\" and \"Madurai Sungudi\" are related to :",
+      "options": [
+        {
+          "key": "A",
+          "text": "Brassware"
+        },
+        {
+          "key": "B",
+          "text": "Fabrics"
+        },
+        {
+          "key": "C",
+          "text": "Building designs"
+        },
+        {
+          "key": "D",
+          "text": "Wooden handicrafts"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Patan Patola: A famous handwoven silk fabric from Patan, Gujarat. Known for its double-ikat technique, where both warp and weft are tie-dyed before weaving. Madurai Sungudi: A traditional cotton fabric from Madurai, Tamil Nadu. Produced using tie-and-dye (bandhani-like) technique, mainly for sarees.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF AC 2020"
+    },
+    {
+      "id": 5,
+      "question": "Which one among the following is a peat-producing wetland?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Swamps"
+        },
+        {
+          "key": "B",
+          "text": "Marshes"
+        },
+        {
+          "key": "C",
+          "text": "Bogs"
+        },
+        {
+          "key": "D",
+          "text": "Lakes"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Peat is formed from the accumulation of partially decayed plant material in waterlogged conditions. Bogs are wetlands that are nutrient-poor, acidic, and waterlogged, making them ideal for peat formation. Swamps and marshes are wetlands too, but they do not typically produce significant peat deposits. Lakes are water bodies, not peat-producing wetlands.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CGS 2021"
+    },
+    {
+      "id": 6,
+      "question": "Consider the following statements regarding Ramsar sites and their States:\n1.\tKolleru Lake is a Ramsar site located in Telangana.\n2.\tSatkosia Gorge is a Ramsar site located in Odisha.\n3.\tKanjli Wetland is a Ramsar site located in Punjab.\n4.\tPala Wetland is a Ramsar site located in Mizoram.\nWhich of the statements given above is/are not correctly matched?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "4 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Kolleru Lake is an important freshwater Ramsar site located between the Krishna and Godavari deltas in Andhra Pradesh, not Telangana—this is a common prelims trap. Satkosia Gorge is correctly located in Odisha and is part of the Mahanadi river system. Kanjli Wetland is a Ramsar site in Punjab, associated with the Beas river. Pala Wetland is correctly located in Mizoram, a lesser-known Ramsar site.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CGS 2024"
+    },
+    {
+      "id": 7,
+      "question": "Which of the following are products of Agro Based Industry ?\n1.Silk yarn\n2.Cotton yarn\n3.Polyfibre yarn\n4.Polyester yarn\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Agro-based industries use raw materials obtained from agriculture and allied activities. Silk yarn is obtained from silkworm rearing (sericulture), and cotton yarn is produced from cotton, an agricultural crop—hence both are agro-based. Polyfibre yarn and polyester yarn are synthetic fibres derived from petrochemicals, not from agricultural sources. In prelims, natural fibres = agro-based, while synthetic fibres = petrochemical-based is a key elimination rule.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2018"
+    },
+    {
+      "id": 8,
+      "question": "Which one of the following pairs of city and industry is NOT correctly matched ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Saharanpur: Paper industry"
+        },
+        {
+          "key": "B",
+          "text": "Chanderi: Cotton textile industry"
+        },
+        {
+          "key": "C",
+          "text": "Bhadohi: Carpet industry"
+        },
+        {
+          "key": "D",
+          "text": "Raniganj: Iron and steel industry"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Saharanpur is correctly associated with the paper and pulp industry, based on forest raw material availability. Chanderi is a well-known centre of cotton and silk textiles, famous for Chanderi sarees. Bhadohi is correctly called the “Carpet City of India”, a major hub of carpet weaving and exports. Raniganj, however, is primarily famous for the Raniganj Coalfield, India’s oldest coalfield, and not for iron and steel production.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2023"
+    },
+    {
+      "id": 9,
+      "question": "Which one among the following places in India is known for its association with the pharmaceutical industry?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ballarpur"
+        },
+        {
+          "key": "B",
+          "text": "Pimpri"
+        },
+        {
+          "key": "C",
+          "text": "Sindri"
+        },
+        {
+          "key": "D",
+          "text": "Mettur"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Pimpri, located near Pune in Maharashtra, is well known for its association with the pharmaceutical industry. Ballarpur is famous for its paper industry. Sindri in Jharkhand is known for fertilizer production. Mettur in Tamil Nadu is known for its chemical and power industries.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CISF AC 2024"
+    },
+    {
+      "id": 10,
+      "question": "Consider the following statements regarding cities and their major industrial products:\n1.\tDetroit is associated with motorcar manufacturing.\n2.\tAntwerp is known for diamond cutting and trading.\n3.\tTokyo is an important centre of steel production.\n4.\tHarbin is associated with shipbuilding.\nWhich of the statements given above are correctly matched?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Detroit in the United States is famously known as the \"Motor City\" because of its automobile manufacturing industry. Antwerp in Belgium is globally recognized as a major centre for diamond cutting and trading. Tokyo is not primarily known for steel production; Japan’s major steel centres are located in cities like Kobe and Kitakyushu. Harbin in China is not a major shipbuilding centre; shipbuilding is associated with cities like Shanghai and Dalian.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 11,
+      "question": "Krishna Raja Sagara Dam/Reservoir is developed on",
+      "options": [
+        {
+          "key": "A",
+          "text": "river Krishna"
+        },
+        {
+          "key": "B",
+          "text": "river Tungabhadra"
+        },
+        {
+          "key": "C",
+          "text": "river Godavari"
+        },
+        {
+          "key": "D",
+          "text": "river Kavery"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Krishna Raja Sagara (KRS) Dam and Reservoir is built across the river Kavery in Mandya district of Karnataka. It was constructed under the guidance of Sir M. Visvesvaraya and is one of the major irrigation and water supply projects in southern India. The dam supports agriculture in the Mysuru and Mandya regions and also provides drinking water to Bengaluru.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA 2020"
+    },
+    {
+      "id": 12,
+      "question": "What is common to the places called 'Aliyar, Idukki, Mettur, Parambikulam'?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Buddhist archaeological sites"
+        },
+        {
+          "key": "B",
+          "text": "Underground cave systems"
+        },
+        {
+          "key": "C",
+          "text": "Pre-historic cave paintings"
+        },
+        {
+          "key": "D",
+          "text": "Water reservoirs Only PYQS"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Aliyar, Idukki, Mettur, and Parambikulam are all well-known for their large dams and reservoirs in South India. Aliyar Dam is in Tamil Nadu, Idukki Dam is in Kerala, Mettur Dam is in Tamil Nadu, and Parambikulam Dam is in Kerala. These places are associated with major water reservoirs used for irrigation, hydroelectric power, and drinking water supply.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CGS 2022"
+    },
+    {
+      "id": 13,
+      "question": "Consider the following statements about irrigation in Punjab :\n1. Intensity of irrigation is the highest among all Indian States.\n2. Area under canal irrigation is the highest among all Indian States.\n3. There has been severe land degradation in Punjab owing to agricultural modernization including high intensity of irrigation.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1 is correct. Punjab has the highest intensity of irrigation among all Indian states, with most of its cultivated area under irrigation. Statement 2 is incorrect. The largest area under canal irrigation is in Uttar Pradesh, not Punjab. Punjab relies more on tubewells than canals. Statement 3 is correct. Punjab has experienced severe land degradation due to overuse of groundwater, excessive use of fertilizers and pesticides, and high intensity of irrigation linked to agricultural modernization.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2012"
+    },
+    {
+      "id": 14,
+      "question": "The number of people per unit area of arable land is termed as",
+      "options": [
+        {
+          "key": "A",
+          "text": "agricultural density"
+        },
+        {
+          "key": "B",
+          "text": "arithmetic density"
+        },
+        {
+          "key": "C",
+          "text": "physiological density"
+        },
+        {
+          "key": "D",
+          "text": "economic density"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Arithmetic density refers to the total population divided by total land area. Agricultural density refers to the number of farmers per unit of arable land. Physiological density refers to the number of people per unit area of arable land, showing the pressure of population on productive land. Economic density is not a standard demographic measure in this context.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2020"
+    },
+    {
+      "id": 15,
+      "question": "Pesticide treadmill refers to :",
+      "options": [
+        {
+          "key": "A",
+          "text": "Increase in concentration of pesticides in the body of the organism"
+        },
+        {
+          "key": "B",
+          "text": "Increase in doses of pesticides to prevent the resurgence of pests that were being controlled"
+        },
+        {
+          "key": "C",
+          "text": "Development of resistance in plant due to excessive and prolonged use of pesticide"
+        },
+        {
+          "key": "D",
+          "text": "Production of more synthetic pesticides"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Pesticide treadmill refers to a situation where pests develop resistance to pesticides after repeated use. As a result, farmers are forced to apply pesticides in larger doses or switch to stronger chemicals to control the same pests. This cycle of resistance and increased pesticide use leads to environmental damage, higher costs, and declining effectiveness of pest control.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2014"
+    },
+    {
+      "id": 16,
+      "question": "Statement I: Agriculture in Monsoon Asia is characterized by the predominance of food crop cultivation.\nStatement II: Farming in Monsoon Asia is mainly meant for subsistence purpose.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and Statement II is the correct explanation of Statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but Statement Il is not the correct explanation of Statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement 1 is true but Statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but Statement II is true"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Agriculture in Monsoon Asia is dominated by food crop cultivation such as rice, wheat, and millets because of the climatic conditions and population pressure. Farming in this region is largely subsistence-oriented, with small landholdings and traditional practices aimed at meeting household needs rather than commercial production. Thus, Statement II correctly explains Statement I.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "UPSC SCRA 2012"
+    },
+    {
+      "id": 17,
+      "question": "Which of the following statements about farming in India is/are correct?\n1. Dryland farming is confined to the regions having annual rainfall less than 100 cm.\n2. Wetland farming regions are often susceptible to flood and soil erosion hazards.\nSelect the correct answer using the code given below.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Dryland farming in India is practiced in regions with annual rainfall less than 100 cm, mainly in areas dependent on monsoon rains and prone to drought. Wetland farming is carried out in regions with high rainfall or assured irrigation, often involving paddy cultivation. These regions are indeed susceptible to flood and soil erosion hazards due to excess water.  ANSWER AS PER UPSC OFFCIAL ANSWER KEY. USE DESCRITION.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CGS 2023"
+    },
+    {
+      "id": 18,
+      "question": "Statement 1: Plantation farming has mostly been practised in humid tropics\nStatement II: The soil of humid tropics is fertile.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both the statements are individually true and statement II is the correct explanation of statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both the statements are individually true but statement II is not the correct explanation of statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but statement II is true"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Plantation farming is indeed mostly practised in the humid tropics, where crops like tea, coffee, rubber, and sugarcane are grown. However, the soils of humid tropics are generally not fertile. They are often highly leached, acidic, and poor in nutrients due to heavy rainfall and rapid decomposition. Therefore, while Statement I is true, Statement II is false.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA 2013"
+    },
+    {
+      "id": 19,
+      "question": "Which one of the following climatic regions of the world have a typical characteristic of seasonal reversal of wind?",
+      "options": [
+        {
+          "key": "A",
+          "text": "British type Climate"
+        },
+        {
+          "key": "B",
+          "text": "Mediterranean Climate"
+        },
+        {
+          "key": "C",
+          "text": "China type Climate"
+        },
+        {
+          "key": "D",
+          "text": "Monsoon Climate"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The monsoon climate is characterized by a distinct seasonal reversal of winds. During summer, winds blow from sea to land bringing heavy rainfall, while in winter they reverse direction, blowing from land to sea with dry conditions. British type climate (marine west coast), Mediterranean climate, and China type climate do not exhibit this typical seasonal wind reversal.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA I 2013"
+    },
+    {
+      "id": 20,
+      "question": "Consider the following statements:\n1.\tIn India, intensity of cropping is high in the States of the peninsular plateau.\n2.\tIn India, the States of Punjab and Haryana have the highest proportion of net sown area to total geographical area.\n3.\tSouth-west monsoon season is termed as the Kharif season of crops.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1 is incorrect. Intensity of cropping is not highest in the peninsular plateau; it is highest in Punjab, Haryana, and western Uttar Pradesh due to assured irrigation and fertile soils. Statement 2 is correct. Punjab and Haryana have the highest proportion of net sown area to total geographical area in India. Statement 3 is correct. The south-west monsoon season corresponds to the Kharif season, when crops like rice, maize, and cotton are sown.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "APFC 2004"
+    },
+    {
+      "id": 21,
+      "question": "Which of the following statements with regard to rainfall in India is/are correct?\n1.\tMost of the rainfall in India is due to the south-west monsoon.\n2.\tIn South India, rainfall decreases away from the Eastern Ghats.\nSelect the correct answer using the code given below:\nCode:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1 is correct. Most of the rainfall in India is indeed due to the south-west monsoon, which contributes nearly 75–80% of the annual rainfall. Statement 2 is incorrect. In South India, rainfall actually increases towards the windward side of the Western Ghats, while the Eastern Ghats do not play a major role in reducing rainfall in the same way. Rainfall does not systematically decrease away from the Eastern Ghats; instead, regions like Tamil Nadu receive significant rainfall from the north-east monsoon, not the south-west monsoon.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2020"
+    },
+    {
+      "id": 22,
+      "question": "Which of the following is/are the most likely cause/causes of sheet-flood found in western part of Rajasthan?\n1.\tScanty rainfall\n2.\tSudden high-intensity rain\n3.\tLoose sandy soil with scanty vegetation\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Sheet-floods in western Rajasthan occur due to a combination of factors: Scanty rainfall – The region is arid, so the soil remains dry and less absorbent. Sudden high-intensity rain – When heavy downpours occur, the dry soil cannot absorb water quickly, leading to surface runoff. Loose sandy soil with scanty vegetation – The sandy texture and lack of vegetation reduce infiltration and binding capacity, causing water to spread as sheet flow.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "NDA I 2014"
+    },
+    {
+      "id": 23,
+      "question": "Which one of the following is not an important reason behind the prevailing variation in cropping patterns in the country?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Variation in rainfall"
+        },
+        {
+          "key": "B",
+          "text": "Variation in soil type"
+        },
+        {
+          "key": "C",
+          "text": "Variation in irrigation facilities"
+        },
+        {
+          "key": "D",
+          "text": "Variation in altitude"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Cropping patterns in India vary mainly due to rainfall, soil type, and availability of irrigation facilities. These factors directly influence the choice of crops grown in different regions. Altitude, however, is not considered a major factor behind the broad variation in cropping patterns across the country, though it may affect local microclimates in limited areas.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 24,
+      "question": "Consider the following statements regarding El Nino effect on Indian Monsoon:\n1.\tThe surface temperature goes up in the Southern Pacific Ocean and there is deficient rainfall in India.\n2.\tThe Walker Circulation shifts eastward from its normal position and reduces monsoon rainfall in India.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "During El Niño, the surface temperature of the central and eastern Pacific Ocean rises. This warming disrupts normal climatic patterns and is often associated with deficient rainfall in India, leading to weak monsoons and sometimes drought. The Walker Circulation (east–west atmospheric circulation over the equatorial Pacific) shifts eastward during El Niño. This weakens the rising motion over the Indian Ocean region and reduces moisture transport, thereby reducing monsoon rainfall in India.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2012"
+    },
+    {
+      "id": 25,
+      "question": "Which one of the following is not a resultant of the El Nino effect?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Distortion of equatorial atmospheric circulation"
+        },
+        {
+          "key": "B",
+          "text": "Flow of the South-East Trade Winds towards the Indian Ocean"
+        },
+        {
+          "key": "C",
+          "text": "Irregularities in the evaporation of sea water"
+        },
+        {
+          "key": "D",
+          "text": "Reduction in the amount of planktons which reduces the number of fish in the sea"
+        }
+      ],
+      "answer": "B",
+      "explanation": "El Niño results in: Distortion of equatorial atmospheric circulation (true). Irregularities in the evaporation of sea water due to warming of the Pacific (true). Reduction in planktons and fish population because warm water suppresses nutrient upwelling (true). However, El Niño weakens or reverses the South-East Trade Winds in the Pacific Ocean, rather than directing them towards the Indian Ocean. Hence option B) is not a resultant of El Niño.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2022"
+    },
+    {
+      "id": 26,
+      "question": "M wants to visit a place in a Union Territory, which is located at 34° N and 77° E. Which one of the following Union Territories must he have planned to visit?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Andaman and Nicobar Islands"
+        },
+        {
+          "key": "B",
+          "text": "Lakshadweep"
+        },
+        {
+          "key": "C",
+          "text": "Puducherry"
+        },
+        {
+          "key": "D",
+          "text": "Ladakh"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The coordinates 34° N and 77° E lie in the northern Himalayas, which correspond to the Union Territory of Ladakh. The other Union Territories are located much further south: Andaman and Nicobar Islands in the Bay of Bengal (around 10–13° N), Lakshadweep in the Arabian Sea (around 8–12° N), and Puducherry on the southeastern coast (around 11–12° N). Only Ladakh matches the given coordinates.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2021"
+    },
+    {
+      "id": 27,
+      "question": "Which one of the following is the longest latitude?",
+      "options": [
+        {
+          "key": "A",
+          "text": "90 degree latitude"
+        },
+        {
+          "key": "B",
+          "text": "23.5 degree latitude"
+        },
+        {
+          "key": "C",
+          "text": "0.0 degree latitude"
+        },
+        {
+          "key": "D",
+          "text": "66.5 degree latitude"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The equator, located at 0° latitude, is the longest latitude circle on Earth. All other latitudes are smaller circles, decreasing in length as we move towards the poles. At 90° latitude (the poles), the circle reduces to a single point. Therefore, the equator is the longest latitude.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2021"
+    },
+    {
+      "id": 28,
+      "question": "Which one among the following places in India is nearest to the Tropic of Cancer?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Aizawl"
+        },
+        {
+          "key": "B",
+          "text": "Rajkot"
+        },
+        {
+          "key": "C",
+          "text": "Kolkata"
+        },
+        {
+          "key": "D",
+          "text": "Imphal"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Tropic of Cancer (23.5° N latitude) passes through several states in India, including Mizoram, where Aizawl is located. Aizawl lies very close to this latitude. Rajkot in Gujarat and Kolkata in West Bengal are farther north of the Tropic of Cancer, while Imphal in Manipur lies further east but not as close to the Tropic of Cancer as Aizawl. Therefore, Aizawl is the nearest among the given options.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2013"
+    },
+    {
+      "id": 29,
+      "question": "Identify from the following states of India through which the Tropic of Cancer passes and arrange them from east to west:\n1.\tGujarat\n2.\tWest Bengal\n3.\tUttar Pradesh\n4.\tJharkhand\n5.\tMadhya Pradesh\n6.\tBihar\n7.\tChhattisgarh\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "2–5–7–4–1"
+        },
+        {
+          "key": "B",
+          "text": "2–4–7–5–1"
+        },
+        {
+          "key": "C",
+          "text": "3–2–6–7–5"
+        },
+        {
+          "key": "D",
+          "text": "3–7–4–6–2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "West Bengal - Jharkhand - Chhattisgarh - Madhya Pradesh - Gujarat.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2011"
+    },
+    {
+      "id": 30,
+      "question": "Which of the following statements is/are correct?\n1.\tInter-Tropical Convergence Zone is a low pressure belt which forms an important zone of contact over Northern India and Pakistan.\n2.\tInter-Tropical Convergence Zone invites inflow of winds from different directions.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1 is incorrect. The Inter-Tropical Convergence Zone (ITCZ) is a low-pressure belt near the equator, not specifically over Northern India and Pakistan. Its northward shift during summer influences the Indian monsoon, but it is not described as forming a permanent zone of contact there. Statement 2 is correct. The ITCZ is a convergence zone where trade winds from both hemispheres meet, inviting inflow of winds from different directions, leading to rising air and heavy rainfall.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2012"
+    },
+    {
+      "id": 31,
+      "question": "Which one of the following countries has the maximum time difference from Greenwich Mean Time (GMT)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "India"
+        },
+        {
+          "key": "B",
+          "text": "Nepal"
+        },
+        {
+          "key": "C",
+          "text": "Sri Lanka"
+        },
+        {
+          "key": "D",
+          "text": "Bhutan"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Bhutan is 30 minutes ahead of India and Sri Lanka, and 15 minutes ahead of Nepal. Therefore, among the given countries, it has the largest offset from GMT.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2021"
+    },
+    {
+      "id": 32,
+      "question": "Sunrise in eastern Arunachal Pradesh would be about how many hours before the sunrise in western Gujarat?",
+      "options": [
+        {
+          "key": "A",
+          "text": "One hour"
+        },
+        {
+          "key": "B",
+          "text": "Two hours"
+        },
+        {
+          "key": "C",
+          "text": "Three hours"
+        },
+        {
+          "key": "D",
+          "text": "Four hours"
+        }
+      ],
+      "answer": "B",
+      "explanation": "India has a single time zone (Indian Standard Time, IST) based on 82.5° E longitude. However, the country spans longitudes from about 68° E (western Gujarat) to about 97° E (eastern Arunachal Pradesh). This difference of nearly 29° in longitude translates to about 2 hours (since every 15° equals 1 hour). In practice, sunrise in eastern Arunachal Pradesh occurs about 3 hours earlier than in western Gujarat due to the combined effect of longitude difference and local terrain.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2017"
+    },
+    {
+      "id": 33,
+      "question": "Carbon dioxide emissions from land entering the oceans\n1.\tmake oceanic water acidic\n2.\tmake oceanic water basic\n3.\thelp some marine organisms to make their carbonate shells by drawing carbonate from the sea-water\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "When carbon dioxide enters the oceans, it reacts with water to form carbonic acid. This process increases the acidity of ocean water, a phenomenon known as ocean acidification. Statement 1 is correct because CO₂ makes oceanic water acidic. Statement 2 is incorrect because CO₂ does not make the water basic. Statement 3 is also incorrect because ocean acidification reduces the availability of carbonate ions in seawater, making it harder (not easier) for marine organisms like corals and shellfish to build their carbonate shells.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC GEOS 2022"
+    },
+    {
+      "id": 34,
+      "question": "Consider the following statements regarding Himalayan peaks and their location:\n1.\tK2 is located in the region of Jammu & Kashmir.\n2.\tNanda Devi is located in the state of Uttarakhand.\n3.\tTara Pahar is located in Himachal Pradesh.\n4.\tKanchenjunga is located in the state of Sikkim.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2, 3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "K2, the second highest peak in the world, is located in the Karakoram range in the region of Jammu & Kashmir (now part of Ladakh). Nanda Devi is the second highest peak in India and is located in Uttarakhand. Tara Pahar is not located in Himachal Pradesh, so statement 3 is incorrect. Kanchenjunga, the third highest peak in the world, is located in Sikkim.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2012"
+    },
+    {
+      "id": 35,
+      "question": "Which of the following tree species is/are found on Himalayas?\n1.\tOak\n2.\tRhododendron\n3.\tRosewood\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Oak and Rhododendron are commonly found in the Himalayan region. Oak forests are widespread in the middle Himalayas, while Rhododendron is a characteristic species of higher altitudes, especially in Sikkim and Uttarakhand. Rosewood, however, is a tropical tree species found mainly in the plains and peninsular India, not in the Himalayas.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2023"
+    },
+    {
+      "id": 36,
+      "question": "Which of the following have coral reefs?\n1.\tAndaman and Nicobar Islands\n2.\tGulf of Kachchh\n3.\tGulf of Mannar\n4.\tSunderbans\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Coral reefs in India are found in the Andaman and Nicobar Islands, the Gulf of Kachchh, and the Gulf of Mannar. The Sunderbans, however, is a mangrove ecosystem and does not have coral reefs.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CSE 2014"
+    },
+    {
+      "id": 37,
+      "question": "Considering the locations of mountains in India, which one among the following is in right sequence from south to north?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Doddabetta, Kailash, Dhaulagiri, Vindhyachal"
+        },
+        {
+          "key": "B",
+          "text": "Doddabetta, Vindhyachal, Dhaulagiri, Kailash"
+        },
+        {
+          "key": "C",
+          "text": "Dhaulagiri, Kailash, Doddabetta, Vindhyachal"
+        },
+        {
+          "key": "D",
+          "text": "Dhaulagiri, Vindhyachal, Doddabetta, Kailash"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Doddabetta: Located in the Nilgiri Hills of Tamil Nadu, southern India. Vindhyachal: A range in central India, mainly Madhya Pradesh. Dhaulagiri: A Himalayan peak in Nepal, north of the Vindhyas.  Mount Kailash: Located further north in the Trans-Himalaya region (Tibet, near India’s boundary). Thus, the correct south-to-north order is: Doddabetta - Vindhyachal - Dhaulagiri - Kailash.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2014"
+    },
+    {
+      "id": 38,
+      "question": "Brahmaputra and Indus rivers are antecedent rivers. Which one of the following may be the true definition of an antecedent drainage?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Which follows the initial slope of the Himalaya"
+        },
+        {
+          "key": "B",
+          "text": "Which existed before the Himalayan range came into existence"
+        },
+        {
+          "key": "C",
+          "text": "Which followed the dip of rock beds of the Himalaya"
+        },
+        {
+          "key": "D",
+          "text": "Which followed the strikes of rock beds of the Himalaya"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Antecedent rivers are those that originated and established their course before the uplift of the Himalayas. As the mountains rose due to tectonic activity, these rivers maintained their original course by cutting through the rising terrain, forming deep gorges and valleys. The Brahmaputra and Indus are classic examples of antecedent rivers.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2019"
+    },
+    {
+      "id": 39,
+      "question": "Which one of the following is not a correct statement?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The height of the Western half of the Himalayas is greater than that of the Eastern half"
+        },
+        {
+          "key": "B",
+          "text": "The Himalayas are young fold mountains"
+        },
+        {
+          "key": "C",
+          "text": "The Shivalik ranges are made of unconsolidated river deposits"
+        },
+        {
+          "key": "D",
+          "text": "The Himalayas are wide in Kashmir and become narrow towards the East"
+        }
+      ],
+      "answer": "A",
+      "explanation": "A) This statement is not correct because the Eastern Himalayas are generally higher than the Western Himalayas. For example, Kanchenjunga (8,586 m) in Sikkim and Namcha Barwa in Arunachal Pradesh are taller than most western Himalayan peaks (except K2, which lies in the Karakoram, not the main Himalayan range). B) True: The Himalayas are young fold mountains formed during the Tertiary period. C) True: The Shivalik ranges consist of unconsolidated river deposits (alluvium, gravel, etc.). D)True: The Himalayas are broad in Kashmir and gradually narrow towards the east in Arunachal Pradesh.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "APFC 2002"
+    },
+    {
+      "id": 40,
+      "question": "Which of the following statements with regard to the Indian Peninsular Plateau is/are correct?\n1.\tThe Southern plateau block is formed mainly of granite and gneiss.\n2.\tThe Deccan lava plateau is an elevated tableland consisting of horizontally arranged lava sheets.\n3.\tThe Malwa plateau dominates the Vindhyan scarps, forming the eastern flank of the plateau.\n4.\tThe trough of the Narmada and Tapti is interposed between the Vindhyan and the Satpura ranges.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "D",
+          "text": "4 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The southern plateau block is mainly made of granite and gneiss. The Deccan lava plateau is formed of horizontally arranged lava sheets. The Narmada and Tapti troughs lie between the Vindhyan ranges in the north and the Satpura ranges in the south. The Malwa plateau does not form the eastern flank, so statement 3 is incorrect.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2014"
+    },
+    {
+      "id": 41,
+      "question": "Which one of the following is the correct order of Himalayan ranges from North to South?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Karakoram, Ladakh, Zaskar, Pir Panjal, Siwalik"
+        },
+        {
+          "key": "B",
+          "text": "Ladakh, Zaskar, Pir Panjal, Karakoram, Siwalik"
+        },
+        {
+          "key": "C",
+          "text": "Pir Panjal, Zaskar, Karakoram, Ladakh, Siwalik"
+        },
+        {
+          "key": "D",
+          "text": "Siwalik, Zaskar, Pir Panjal, Ladakh, Karakoram"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Himalayan ranges are arranged in parallel belts from north to south. At the extreme north lies the Karakoram range, which is famous for peaks like K2. Just south of it is the Ladakh range, followed by the Zaskar range. Moving further south, the Pir Panjal range forms part of the Lesser Himalayas and is associated with the Kashmir Valley. Finally, the southernmost belt is the Siwalik range, also called the Outer Himalayas, which forms the foothills near the plains. Hence, the correct north to south order is Karakoram, Ladakh, Zaskar, Pir Panjal, Siwalik.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2019"
+    },
+    {
+      "id": 42,
+      "question": "Which among the following mountain peaks are not situated in India?\nI. Dhaulagiri\nII. Kamet\nIII. Makalu\nIV. Nanda Devi\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "I and II"
+        },
+        {
+          "key": "B",
+          "text": "I and III"
+        },
+        {
+          "key": "C",
+          "text": "II and III"
+        },
+        {
+          "key": "D",
+          "text": "III and IV"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Dhaulagiri is located in Nepal and not in India. Kamet lies in Uttarakhand, India. Makalu is situated on the Nepal–Tibet border, outside India. Nanda Devi is in Uttarakhand, India. Hence, the peaks not in India are Dhaulagiri and Makalu.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "EPFO 2024"
+    },
+    {
+      "id": 43,
+      "question": "Consider the following statements:\n1.\tSnowline occurs at a higher altitude in Eastern Himalayas than in the Western Himalayas.\n2.\tMangrove forests in India occur along the coastal areas of West Bengal and Odisha only.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The snowline is higher in the Eastern Himalayas because of the warmer and wetter climate, while in the Western Himalayas it is lower due to colder and drier conditions. Mangrove forests in India are not restricted to West Bengal and Odisha; they are also found in Gujarat, Maharashtra, Andhra Pradesh, Tamil Nadu, and the Andaman & Nicobar Islands. Therefore, statement 1 is correct and statement 2 is incorrect.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2016"
+    },
+    {
+      "id": 44,
+      "question": "Statement I: Portions of glacial troughs may exhibit remarkably flat floors.\nStatement II: The flat floor in a glacial trough is produced by uniform glacial erosion.\nChoose the correct answer:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both statements are true and Statement II is the correct explanation of Statement I"
+        },
+        {
+          "key": "B",
+          "text": "Both statements are true but Statement II is not the correct explanation of Statement I"
+        },
+        {
+          "key": "C",
+          "text": "Statement I is true but Statement II is false"
+        },
+        {
+          "key": "D",
+          "text": "Statement I is false but Statement II is true"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Glacial troughs often have flat valley floors, so Statement I is correct. However, the flat floor is not due to uniform glacial erosion. It is mainly formed by processes like over-deepening, deposition of glacial till, and later action of meltwater streams. Therefore, Statement II is false.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2018"
+    },
+    {
+      "id": 45,
+      "question": "Consider the following statements regarding types of lakes:\n1.\tOligotrophic lakes have low nutrient concentration.\n2.\tDystrophic lakes have low pH and high humic acid content.\n3.\tMeromictic lakes are rich in salts and remain permanently stratified.\n4.\tImpoundments are created due to construction of dams.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Oligotrophic lakes are nutrient-poor and usually have clear water, so statement 1 is correct. Dystrophic lakes are acidic with high humic acid content, so statement 2 is also correct. Meromictic lakes are permanently stratified but not necessarily rich in salts, hence statement 3 is not fully correct. Impoundments are indeed created by dams, but that is not included in the correct option here. Therefore, the right answer is 1 and 2 only.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC IES 2021"
+    },
+    {
+      "id": 46,
+      "question": "Consider the following statements regarding floristic regions of India:\n1.\tDarjeeling and Kurseong are part of the Western Himalayan region.\n2.\tThe Eastern Himalayan region extends from Kashmir to Kumaon.\n3.\tThe Indus Plain region includes Punjab, western Rajasthan and northern Gujarat.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Darjeeling and Kurseong are part of the Eastern Himalayan region, not the Western Himalayas, so statement 1 is incorrect. The Eastern Himalayan region extends from Sikkim to Arunachal Pradesh, not from Kashmir to Kumaon, so statement 2 is also incorrect. The Indus Plain region does include Punjab, western Rajasthan and northern Gujarat, so statement 3 is correct. Therefore, only statement 3 is correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2021"
+    },
+    {
+      "id": 47,
+      "question": "Consider the following statements regarding mountain ranges and countries:\n1.\tThe Caucasus Mountains are located in Georgia.\n2.\tThe Carpathian Mountains extend into Ukraine.\n3.\tThe Apennine Mountains are located in Italy.\n4.\tThe Pindus Mountains are located in Greece.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Caucasus Mountains lie between the Black Sea and the Caspian Sea, and a major portion is in Georgia, so statement 1 is correct. The Carpathian Mountains extend across several countries including Ukraine, so statement 2 is correct. The Apennine Mountains run the length of Italy, so statement 3 is correct. The Pindus Mountains are located in Greece, so statement 4 is correct.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CISF LDC 2022"
+    },
+    {
+      "id": 48,
+      "question": "Consider the following statements regarding Indian rivers and their sources:\n1.\tThe Ganga originates from Gaumukh.\n2.\tThe Son River originates from Amarkantak.\n3.\tThe Godavari originates from Mahabaleshwar.\n4.\tThe Krishna originates from Trimbakeshwar.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Ganga originates from Gaumukh in Uttarakhand, so statement 1 is correct. The Son River rises from Amarkantak in Madhya Pradesh, so statement 2 is correct. The Godavari originates from Trimbakeshwar in Maharashtra, not Mahabaleshwar, so statement 3 is incorrect. The Krishna originates from Mahabaleshwar in Maharashtra, not Trimbakeshwar, so statement 4 is incorrect. Therefore, only statements 1, 2 are correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2009"
+    },
+    {
+      "id": 49,
+      "question": "Consider the following statements regarding cities and rivers:\n1.\tNashik is located on the banks of the Godavari River.\n2.\tSurat is located on the banks of the Tapi River.\n3.\tUjjain is located on the banks of the Shipra River.\n4.\tVijayawada is located on the banks of the Krishna River.\nWhich of the statements given above are correct?\n\nRiver, and Vijayawada is on the Krishna River. All four statements are correct.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Nashik lies on the Godavari River, Surat is situated on the Tapi River, Ujjain is located on the Shipra\nRiver, and Vijayawada is on the Krishna River. All four statements are correct.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "APFC 2002"
+    },
+    {
+      "id": 50,
+      "question": "The tourism phrase Paradise Unexplored refers to",
+      "options": [
+        {
+          "key": "A",
+          "text": "Jammu and Kashmir"
+        },
+        {
+          "key": "B",
+          "text": "North-East India"
+        },
+        {
+          "key": "C",
+          "text": "Chhattisgarh"
+        },
+        {
+          "key": "D",
+          "text": "Uttarakhand"
+        }
+      ],
+      "answer": "B",
+      "explanation": "North East India is popularly described in tourism literature as the “Unexplored Paradise” because of: Its relative remoteness and late opening to mass tourism.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA I 2009"
+    },
+    {
+      "id": 51,
+      "question": "With reference to Lakshadweep, which of the following statements is/are correct?\n1.\tIt is an archipelago consisting of coral islands and reefs.\n2.\tIt is the smallest Union Territory of India in terms of area.\n3.\tThe main occupation of people is tourism and allied activities.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Lakshadweep is an archipelago made up of small coral islands and reefs, so statement 1 is correct. It is also the smallest Union Territory of India in terms of area, so statement 2 is correct. The main occupation of the people is not tourism; it is fishing and coconut cultivation, with tourism being secondary. Hence, statement 3 is incorrect. Therefore, the correct answer is 1 and 2 only.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CISF LDC 2023"
+    },
+    {
+      "id": 52,
+      "question": "Which one of the following is the largest fresh water lake in India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Chilika"
+        },
+        {
+          "key": "B",
+          "text": "Loktak"
+        },
+        {
+          "key": "C",
+          "text": "Dal"
+        },
+        {
+          "key": "D",
+          "text": "Wular"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS II 2019"
+    },
+    {
+      "id": 53,
+      "question": "Which of the following is/are east flowing rivers in India?\n1.\tPalar\n2.\tPeriyar\n3.\tPennar\n4.\tKalinadi\nSelect the answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "4 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Palar River flows eastward into the Bay of Bengal. Pennar River also flows eastward into the Bay of Bengal. Periyar River flows westward into the Arabian Sea, and Kali Nadi also flows westward into the Arabian Sea. Therefore, the correct east flowing rivers are Palar and Pennar.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2024"
+    },
+    {
+      "id": 54,
+      "question": "Which one of the following is not a tributary of the river Godavari?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Koyna"
+        },
+        {
+          "key": "B",
+          "text": "Manjra"
+        },
+        {
+          "key": "C",
+          "text": "Pranhita"
+        },
+        {
+          "key": "D",
+          "text": "Wardha"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Godavari has several important tributaries such as Manjra, Pranhita, and Wardha, all of which join it in the Deccan region. The Koyna River, however, is a tributary of the Krishna River, not the Godavari. Hence, the correct answer is Koyna.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "APFC 2002"
+    },
+    {
+      "id": 55,
+      "question": "Consider the following statements regarding the rivers of India:\n1.\tThe Barak River, the head stream of the Meghna, rises in the hills of Meghalaya.\n2.\tThe Ghaggar River does not drain out to the sea and gets lost in the Rajasthan desert.\n3.\tPuthimari and Manas are important tributaries of the Brahmaputra.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Barak River rises in the hills of Manipur, not Meghalaya, so statement 1 is incorrect. The Ghaggar River is an inland river that does not reach the sea and disappears in the Rajasthan desert, so statement 2 is correct. Puthimari and Manas are indeed important tributaries of the Brahmaputra, so statement 3 is correct. Therefore, the correct answer is 2 and 3.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2024"
+    },
+    {
+      "id": 56,
+      "question": "Consider the following statements:\n1.\tThe Great Northern Plains are formed by basins of three distinct river systems — the Indus, the Ganga and the Brahmaputra.\n2.\tThey are one of the most densely populated areas on Earth.\n3.\tBetween Yamuna at Delhi and the Bay of Bengal, nearly 1600 km away, there is a drop of only 200 metres in elevation.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Great Northern Plains are indeed formed by the basins of three river systems — the Indus, the Ganga, and the Brahmaputra, so statement 1 is correct. These plains are among the most densely populated regions in the world due to fertile soil and availability of water, so statement 2 is correct. The slope of the plains is very gentle, with only about 200 metres drop in elevation between Delhi and the Bay of Bengal over a distance of nearly 1600 km, so statement 3 is also correct. Therefore, all three statements are correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2023"
+    },
+    {
+      "id": 57,
+      "question": "With reference to the Himalayan rivers joining the Ganga downstream of Prayagraj from West to East, which one of the following sequences is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ghaghara – Gomati – Gandak – Kosi"
+        },
+        {
+          "key": "B",
+          "text": "Gomati – Ghaghara – Gandak – Kosi"
+        },
+        {
+          "key": "C",
+          "text": "Ghaghara – Gomati – Kosi – Gandak"
+        },
+        {
+          "key": "D",
+          "text": "Gomati – Ghaghara – Kosi – Gandak"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Gomati – Ghaghara – Gandak – Kosi.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2024"
+    },
+    {
+      "id": 58,
+      "question": "In the context of agricultural revolution in India, which of the following statements is/are correct?\n1.\tWhite revolution in the field of agricultural development is associated with modernization of sheep farming.\n2.\tSecond green revolution is associated with development of horticulture.\n3.\tBlue revolution in the field of agriculture is associated with improvement in the production of fish and marine products.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The White Revolution in India is associated with dairy development and milk production, not sheep farming, so statement 1 is incorrect. The Second Green Revolution focuses on sustainable agriculture, biotechnology, and productivity improvements, not specifically horticulture, so statement 2 is incorrect. The Blue Revolution is correctly associated with increasing fish and marine product production, so statement 3 is correct. Therefore, only statement 3 is correct.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2012"
+    },
+    {
+      "id": 59,
+      "question": "Which one among the following is a peat-producing wetland?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Swamps"
+        },
+        {
+          "key": "B",
+          "text": "Marshes"
+        },
+        {
+          "key": "C",
+          "text": "Bogs"
+        },
+        {
+          "key": "D",
+          "text": "Lakes"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Peat is formed from the accumulation of partially decayed plant material in waterlogged conditions. Among wetlands, bogs are acidic, nutrient-poor environments where decomposition is slow, leading to thick deposits of peat. Swamps and marshes are more nutrient-rich and do not typically produce peat, while lakes are open water bodies without peat accumulation.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2021"
+    },
+    {
+      "id": 60,
+      "question": "Which of the statements about the dams on the Chenab river is/are correct ?\n1.\tSalal dam,  and Baglihar dams are on the Chenab river.\n2.\tBaglihar dam has a greater height than Salal dam.\n3.\tSalal dam is operated by Jammu and Kashmir Power Development Corporation and Baglihar dam is operated by NHPC Limited.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 only"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Salal Dam and Baglihar Dam are indeed on the Chenab River. Baglihar Dam has a height of about 143 m, which is greater than Salal Dam’s height of about 48 m, so statement 2 is correct. Salal Dam is operated by NHPC Limited, not by the Jammu and Kashmir Power Development Corporation. Baglihar Dam is operated by the Jammu and Kashmir Power Development Corporation, not NHPC. Hence, statement 3 is incorrect.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2025"
+    },
+    {
+      "id": 61,
+      "question": "Consider the following statements with reference to location of Major Ports in India :\n1.\tDeendayal Port is situated at the head of Gulf of Khambhat.\n2.\tCochin Port is situated at the head of Vembanad Kayal.\n3.\tMormugao Port is situated at the entrance of the Zuari estuary.\n4.\tParadip Port is situated in the Godavari delta.\nWhich of the statements given above are correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Deendayal Port (Kandla) is located in the Gulf of Kachchh, not the Gulf of Khambhat, so statement 1 is incorrect. Cochin Port lies at the head of Vembanad Kayal, so statement 2 is correct. Mormugao Port is situated at the entrance of the Zuari estuary, so statement 3 is correct. Paradip Port is located in the Mahanadi delta, not the Godavari delta, so statement 4 is incorrect. Therefore, the correct answer is 2 and 3.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2025"
+    },
+    {
+      "id": 62,
+      "question": "Which of the following statements with reference to the Indian Tectonic Plate is/are correct ?\n1.\tThe subduction zone along the Himalayas, forms its northern boundary.\n2.\tThe eastern margin is a spreading site, lying to the west of Australia in the form of an oceanic ridge in Southwest Pacific Ocean.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The northern boundary of the Indian Plate is indeed marked by the subduction zone along the Himalayas, where the plate collides with the Eurasian Plate. So statement 1 is correct. The eastern margin of the Indian Plate is not a spreading site; instead, it is a convergent boundary where the plate interacts with the Indo-Burma ranges and the Sunda Plate. The spreading sites are located in the Indian Ocean, not in the Southwest Pacific near Australia. Hence, statement 2 is incorrect.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CISFAC 2025"
+    },
+    {
+      "id": 63,
+      "question": "Which one of the following rivers marks the western boundary of the Ganga Plains ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Chambal"
+        },
+        {
+          "key": "B",
+          "text": "Ghaggar"
+        },
+        {
+          "key": "C",
+          "text": "Luni"
+        },
+        {
+          "key": "D",
+          "text": "Yamuna"
+        }
+      ],
+      "answer": "B",
+      "explanation": "SELF EXPLANATORY",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF AC 2025"
+    },
+    {
+      "id": 64,
+      "question": "Which one among the following Biosphere Reserves is spread over three states in India ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Dehang Debang"
+        },
+        {
+          "key": "B",
+          "text": "Nilgiris"
+        },
+        {
+          "key": "C",
+          "text": "Nokrek"
+        },
+        {
+          "key": "D",
+          "text": "Seshachalam"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Nilgiri Biosphere Reserve is the first biosphere reserve in India and it spreads across three states — Tamil Nadu, Kerala, and Karnataka. Dehang Debang is in Arunachal Pradesh, Nokrek is in Meghalaya, and Seshachalam is in Andhra Pradesh. Hence, the correct answer is Nilgiris.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2025"
+    },
+    {
+      "id": 65,
+      "question": "Which of the following statements with reference to saline soil in India is/are correct ?\n1.\tThey are rich in nitrogen.\n2.\tThey occur in arid and semi-arid regions, and in waterlogged and swampy areas.\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Saline soils in India are poor in nitrogen and calcium, so statement 1 is incorrect. They are found in arid and semi-arid regions as well as in waterlogged and swampy areas, so statement 2 is correct. Hence, the right answer is 2 only.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2025"
+    },
+    {
+      "id": 66,
+      "question": "Temperate forests of South India, known as ‘Sholas’ are found in which of the following hills ?\n1.\tAnaimalai\n2.\tNilgiris\n3.\tPalani\nSelect the answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The temperate montane forests of South India, known as Sholas, are found in the higher reaches of the Anaimalai Hills, Nilgiri Hills, and Palani Hills. These forests occur in valleys separated by rolling grasslands at elevations above 1500 meters in the Western Ghats. Hence, all three given hill ranges host Shola forests.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA 2025"
+    },
+    {
+      "id": 67,
+      "question": "Which one among the following is NOT a major oil field located in Gujarat ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ankaleshwar"
+        },
+        {
+          "key": "B",
+          "text": "Kosamba"
+        },
+        {
+          "key": "C",
+          "text": "Mehsana"
+        },
+        {
+          "key": "D",
+          "text": "Moran"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Ankaleshwar, Kosamba, and Mehsana are all major oil fields located in Gujarat. Moran, however, is an oil field located in Assam, not Gujarat.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA 2025"
+    },
+    {
+      "id": 68,
+      "question": "India is still a young country as the median age of its population is",
+      "options": [
+        {
+          "key": "A",
+          "text": "Less than 25 years"
+        },
+        {
+          "key": "B",
+          "text": "Between 25 to 30 years"
+        },
+        {
+          "key": "C",
+          "text": "Between 30 to 35 years"
+        },
+        {
+          "key": "D",
+          "text": "Between 35 to 40 years"
+        }
+      ],
+      "answer": "B",
+      "explanation": "India’s median age is about 29 years, which means half the population is younger than this.This places India in the 25–30 years range, making it one of the youngest countries in the world. A young population gives India a demographic dividend with a large working-age group.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS II 2022"
+    },
+    {
+      "id": 69,
+      "question": "Which among the following constitutes the largest minority within India ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Buddhists"
+        },
+        {
+          "key": "B",
+          "text": "Christians"
+        },
+        {
+          "key": "C",
+          "text": "Jains"
+        },
+        {
+          "key": "D",
+          "text": "Sikhs"
+        }
+      ],
+      "answer": "B",
+      "explanation": "In India, Christians form the largest minority community among the options given, constituting about 2.3% of the population. Sikhs make up around 2%, Buddhists about 0.7%, and Jains about 0.4%.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CISF LDC 2013"
+    },
+    {
+      "id": 70,
+      "question": "The ‘Golden Quadrilateral’ which connects Delhi, Mumbai, Chennai and Kolkata passes through",
+      "options": [
+        {
+          "key": "A",
+          "text": "Amritsar—Ahmedabad—Pune—Patna"
+        },
+        {
+          "key": "B",
+          "text": "Jaipur—Porbandar—Hyderabad—Varanasi"
+        },
+        {
+          "key": "C",
+          "text": "Vadodara—Pune—Visakhapatnam—Varanasi"
+        },
+        {
+          "key": "D",
+          "text": "Nagpur—Bhopal—Surat—Amritsar"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Golden Quadrilateral (GQ) is India’s largest highway project connecting Delhi, Mumbai, Chennai, and Kolkata. It passes through major cities such as Jaipur, Ahmedabad, Vadodara, Pune, Bengaluru, Visakhapatnam, Bhubaneswar, and Varanasi.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2013"
+    },
+    {
+      "id": 71,
+      "question": "In which one of the following places, was Asia’s first Export Processing Zone (EPZ) set up in 1965 ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ahmedabad"
+        },
+        {
+          "key": "B",
+          "text": "Kandla"
+        },
+        {
+          "key": "C",
+          "text": "Mumbai"
+        },
+        {
+          "key": "D",
+          "text": "Jaipur"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Asia’s first Export Processing Zone (EPZ) was established in Kandla, Gujarat in 1965. It was set up to promote exports by providing infrastructure and facilities for manufacturing goods exclusively for export markets.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "EPFO AO/EO 2020"
+    },
+    {
+      "id": 72,
+      "question": "Consider the following railway zones :\n1.\tNorth-Eastern Railway\n2.\tCentral Railway\n3.\tNorth-Western Railway\n4.\tSouth-Eastern Railway\nWhich one of the following is the correct order of locations of the headquarters of the above railway zones from west to east?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1–2–3–4"
+        },
+        {
+          "key": "B",
+          "text": "2–3–1–4"
+        },
+        {
+          "key": "C",
+          "text": "3–2–1-4"
+        },
+        {
+          "key": "D",
+          "text": "3–4–2–1"
+        }
+      ],
+      "answer": "C",
+      "explanation": "North-Eastern Railway - Gorakhpur (Uttar Pradesh). Central Railway - Mumbai (Maharashtra),North-Western Railway - Jaipur (Rajasthan). South-Eastern Railway - Kolkata (West Bengal) From west to east: Jaipur (North-Western Railway) - Mumbai (Central Railway) - Gorakhpur (North-Eastern Railway) - Kolkata (South-Eastern Railway).",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 73,
+      "question": "The Bum La Pass is located in",
+      "options": [
+        {
+          "key": "A",
+          "text": "Sikkim"
+        },
+        {
+          "key": "B",
+          "text": "Arunachal Pradesh"
+        },
+        {
+          "key": "C",
+          "text": "Himachal Pradesh"
+        },
+        {
+          "key": "D",
+          "text": "Uttarakhand"
+        }
+      ],
+      "answer": "B",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF AC 2017"
+    },
+    {
+      "id": 74,
+      "question": "Which one among the following States in India shares a boundary with the most number of States ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Uttar Pradesh"
+        },
+        {
+          "key": "B",
+          "text": "Telangana"
+        },
+        {
+          "key": "C",
+          "text": "Chhattisgarh"
+        },
+        {
+          "key": "D",
+          "text": "Assam"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Uttar Pradesh shares its boundary with 9 states: Uttarakhand, Himachal Pradesh, Haryana, Delhi, Rajasthan, Madhya Pradesh, Chhattisgarh, Bihar.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CISF AC 2024"
+    },
+    {
+      "id": 75,
+      "question": "Which one among the following is the northernmost located city of India ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Patna"
+        },
+        {
+          "key": "B",
+          "text": "Kolkata"
+        },
+        {
+          "key": "C",
+          "text": "Guwahati"
+        },
+        {
+          "key": "D",
+          "text": "Kohima"
+        }
+      ],
+      "answer": "C",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2021"
+    },
+    {
+      "id": 76,
+      "question": "Which of the following main types of iron ores are found in India ?\n1.\tHaematite\n2.\tMagnetite\n3.\tLimonite\n4.\tSiderite\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "India mainly has two important types of iron ore: haematite and magnetite. Haematite is the most abundant and widely used, while magnetite is found in smaller amounts. Limonite and siderite are not significant in India’s reserves.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2021"
+    },
+    {
+      "id": 77,
+      "question": "Which of the following States in India has the largest producer of coffee crop ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Kerala"
+        },
+        {
+          "key": "B",
+          "text": "Maharashtra"
+        },
+        {
+          "key": "C",
+          "text": "Telangana"
+        },
+        {
+          "key": "D",
+          "text": "Karnataka"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2019"
+    },
+    {
+      "id": 78,
+      "question": "Consider the following States :\n1.\tAndhra Pradesh\n2.\tKerala\n3.\tHimachal Pradesh\n4.\tTripura\nHow many of the above are generally known as tea-producing States ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Only one State"
+        },
+        {
+          "key": "B",
+          "text": "Only two States"
+        },
+        {
+          "key": "C",
+          "text": "Only three States"
+        },
+        {
+          "key": "D",
+          "text": "All four States"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2022"
+    },
+    {
+      "id": 79,
+      "question": "Why western coast of India receives heavy rainfall but the Deccan Plateau receives very little ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Deccan Plateau is situated on the leeward side of the Western Ghats"
+        },
+        {
+          "key": "B",
+          "text": "The region is simply bypassed by the south-west monsoon"
+        },
+        {
+          "key": "C",
+          "text": "There is lack of high mountains in the Deccan Plateau"
+        },
+        {
+          "key": "D",
+          "text": "None of the above"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The southwest monsoon winds hit the Western Ghats first, causing heavy rainfall on the western coast. By the time these winds cross the mountains, most of the moisture is lost. So, the Deccan Plateau lies in the rain shadow (leeward side) and receives very little rainfall.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF AC 2010"
+    },
+    {
+      "id": 80,
+      "question": "Which of the following statements is/are correct ?\n1.\tMumbai receives more rainfall than Pune because it is located at the windward side of Western Ghats.\n2.\tVidarbha region experiences semi-arid climate as it is located in a rain shadow region.\n3.\tIn India monsoon reaches Kashmir valley at the last.\nSelect the correct answer using the code given below :\n\nThus, all three statements are correct - 1, 2 and 3.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Mumbai vs Pune: Mumbai lies on the windward side of the Western Ghats, so it gets heavy rainfall. Pune lies on the leeward side, so it gets less.  Vidarbha: This region in Maharashtra is in the rain shadow zone, so it has a semi-arid climate.  Kashmir Valley: The southwest monsoon reaches Kashmir last in India.\nThus, all three statements are correct - 1, 2 and 3.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2010"
+    },
+    {
+      "id": 81,
+      "question": "Arrange the following States on the basis of ascending dates of the onset of monsoon :\n1.\tUttar Pradesh\n2.\tWest Bengal\n3.\tKerala\n4.\tRajasthan\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "2–3–1–4"
+        },
+        {
+          "key": "B",
+          "text": "3–2–1–4"
+        },
+        {
+          "key": "C",
+          "text": "3–1–2–4"
+        },
+        {
+          "key": "D",
+          "text": "1–2–3–4"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The monsoon first hits Kerala (around 1st June). Then it moves to the eastern region (West Bengal) in early June. After that, it reaches Uttar Pradesh by mid to late June. Finally, it arrives in Rajasthan, usually by the end of June or early July. So the correct ascending order is: Kerala - West Bengal - Uttar Pradesh - Rajasthan.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2010"
+    },
+    {
+      "id": 82,
+      "question": "Consider the following statements about industries and their locations in India:\n1.\tPetrochemicals industry is located at Vadodara.\n2.\tAluminium industry is located at Koraput.\n3.\tElectronics industry is located at Hyderabad.\n4.\tHeavy Engineering industry is located at Ranchi.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 3 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Petrochemicals at Vadodara (Gujarat): Yes, Vadodara is a major petrochemical hub.  Aluminium at Koraput (Odisha): The NALCO plant is located here.  Electronics at Hyderabad (Telangana): Hyderabad is a major electronics and IT hub.  Heavy Engineering at Ranchi (Jharkhand): Heavy Engineering Corporation (HEC) is based here.  All four statements are correct - 1, 2, 3 and 4.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2013"
+    },
+    {
+      "id": 83,
+      "question": "The largest geographical area of India is covered by which one of the following types of soils ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Inceptisols"
+        },
+        {
+          "key": "B",
+          "text": "Entisols"
+        },
+        {
+          "key": "C",
+          "text": "Alfisols"
+        },
+        {
+          "key": "D",
+          "text": "Vertisols"
+        }
+      ],
+      "answer": "A",
+      "explanation": "In India, the largest geographical area is covered by Inceptisols, which include alluvial soils found mainly in the Indo-Gangetic plains. These soils are young, fertile, and widely spread, making them the most dominant soil type in the country. Other types like Entisols, Alfisols, and Vertisols cover smaller areas compared to Inceptisols.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2020"
+    },
+    {
+      "id": 84,
+      "question": "Which one among the following atmospheric gases filters out most of the ultraviolet radiation of the Sun ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Oxygen"
+        },
+        {
+          "key": "B",
+          "text": "Nitrogen"
+        },
+        {
+          "key": "C",
+          "text": "Helium"
+        },
+        {
+          "key": "D",
+          "text": "Ozone"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2013"
+    },
+    {
+      "id": 85,
+      "question": "Consider the following regions of India :\n1.\tWestern Ghats\n2.\tAravali Hills\n3.\tEastern Himalayas\nWhich of the above is/are biodiversity hot spot/hot spots ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "India has four biodiversity hotspots: Himalaya (including Eastern Himalayas and Indo-Burma region). Indo-Burma (North-East and Andaman & Nicobar Islands). Indo-Malayan (Nicobar Islands). Western Ghats. Western Ghats --Biodiversity hotspot. Eastern Himalayas -- Biodiversity hotspot. Aravali Hills -- Not a biodiversity hotspot.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2020"
+    },
+    {
+      "id": 86,
+      "question": "Consider the following pairs:\n1.\tLoktak National Park — Manipur\n2.\tNamdapha National Park — Meghalaya\n3.\tValley of Flowers National Park — Sikkim\nWhich of the pairs given above is/are correctly matched?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Loktak National Park — Manipur. Correct. It is famous for the floating phumdis in Loktak Lake. Namdapha National Park — Meghalaya. Wrong. It is actually in Arunachal Pradesh. Valley of Flowers National Park — Sikkim. It is located in Uttarakhand.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF LDC 2014"
+    },
+    {
+      "id": 87,
+      "question": "Dry land farming in India is largely confined to areas with rainfall less than",
+      "options": [
+        {
+          "key": "A",
+          "text": "100 cm"
+        },
+        {
+          "key": "B",
+          "text": "85 cm"
+        },
+        {
+          "key": "C",
+          "text": "80 cm"
+        },
+        {
+          "key": "D",
+          "text": "75 cm"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Dry land farming in India is practiced in regions with low and uncertain rainfall. It is largely confined to areas receiving less than 75 cm of rainfall annually. Such farming depends on moisture conservation and drought-resistant crops.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2020"
+    },
+    {
+      "id": 88,
+      "question": "South Arcot and Ramanathapuram receive over 50 percent of their annual rainfall from which one of the following?",
+      "options": [
+        {
+          "key": "A",
+          "text": "South-west monsoon"
+        },
+        {
+          "key": "B",
+          "text": "North-east monsoon"
+        },
+        {
+          "key": "C",
+          "text": "Bay of Bengal branch of summer monsoon"
+        },
+        {
+          "key": "D",
+          "text": "Western disturbances"
+        }
+      ],
+      "answer": "B",
+      "explanation": "South Arcot and Ramanathapuram are in Tamil Nadu, where the southwest monsoon gives little rainfall because of the rain shadow of the Western Ghats. Instead, these regions get over 50% of their annual rainfall from the north-east monsoon (October–December). So the correct answer is North-east monsoon.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CDS II 2018"
+    },
+    {
+      "id": 89,
+      "question": "Which of the following are the major factors responsible for the monsoon type of climate in India ?\n1.\tLocation\n2.\tThermal contrast\n3.\tUpper air circulation\n4.\tThe Himalayan Mountains\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "2, 3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Location: India’s position in the tropical zone influences monsoon winds. Thermal contrast: Differential heating of land and sea creates pressure differences that drive monsoon winds. Upper air circulation: Jet streams and upper air patterns guide the monsoon currents. Himalayan Mountains: They block cold winds from Central Asia and help trap monsoon winds, causing rainfall.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2015"
+    },
+    {
+      "id": 90,
+      "question": "The Indian Standard Time is ahead of Greenwich Mean Time by",
+      "options": [
+        {
+          "key": "A",
+          "text": "3 hrs and 30 minutes"
+        },
+        {
+          "key": "B",
+          "text": "4 hrs and 30 minutes"
+        },
+        {
+          "key": "C",
+          "text": "5 hrs and 30 minutes"
+        },
+        {
+          "key": "D",
+          "text": "6 hrs and 30 minutes"
+        }
+      ],
+      "answer": "C",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA II 2013"
+    },
+    {
+      "id": 91,
+      "question": "The National Tsunami Early Warning System has been set up by the Government of India at :",
+      "options": [
+        {
+          "key": "A",
+          "text": "Indian National Centre for Ocean Information Services (INCOIS), Hyderabad"
+        },
+        {
+          "key": "B",
+          "text": "National Disaster Management Authority, New Delhi"
+        },
+        {
+          "key": "C",
+          "text": "National Institute of Ocean Technology, Chennai"
+        },
+        {
+          "key": "D",
+          "text": "Ministry of Earth Sciences, New Delhi"
+        }
+      ],
+      "answer": "A",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CISF AC 2011"
+    },
+    {
+      "id": 92,
+      "question": "Consider the following statements regarding Himalayan peaks and their locations:\n1.\tK2 is located in Jammu & Kashmir.\n2.\tNanda Devi is located in Uttarakhand.\n3.\tTara Phahar is located in Sikkim.\n4.\tKanchenjunga is located in Himachal Pradesh.\nWhich of the statements given above are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "K2 -- Located in Gilgit-Baltistan (PoK region), not in Jammu & Kashmir. Nanda Devi- Located in Uttarakhand.  Tara Phahar - Located in Sikkim Kanchenjunga - Located in Sikkim, not Himachal Pradesh.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA II 2012"
+    },
+    {
+      "id": 93,
+      "question": "Assertion A: The Himalayan meadows are suitable for transhumance.\nReason R: In these areas transport facility to move from one place to another is good.",
+      "options": [
+        {
+          "key": "A",
+          "text": "Both A and R are individually true and R is the correct explanation of A"
+        },
+        {
+          "key": "B",
+          "text": "Both A and R are individually true but R is not the correct explanation of A"
+        },
+        {
+          "key": "C",
+          "text": "A is true but R is false"
+        },
+        {
+          "key": "D",
+          "text": "A is false but R is true"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Assertion A): Himalayan meadows are suitable for transhumance (seasonal movement of people with their livestock) because in summer the high-altitude pastures provide rich grazing grounds, while in winter people move down to lower valleys. True. Reason (R): It says transport facilities are good in these areas.  False, because the main reason is availability of seasonal pastures, not transport.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS 2020"
+    },
+    {
+      "id": 94,
+      "question": "Which one among the following statements is not correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Shillong Plateau is an outlier of Peninsular Plateau of India"
+        },
+        {
+          "key": "B",
+          "text": "Aravalli Mountain is the oldest mountain chain of India"
+        },
+        {
+          "key": "C",
+          "text": "Vindhyas are examples of fold mountain"
+        },
+        {
+          "key": "D",
+          "text": "Raajmahal Highlands are composed of lava deposits"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Shillong Plateau - Yes, it is an outlier of the Peninsular Plateau.  Aravalli Mountains - Correct, they are the oldest mountain chain in India.  Vindhyas - Not fold mountains; they are block mountains formed due to faulting.  Rajmahal Highlands - Correct, they are made of lava deposits.  So, the incorrect statement is: Vindhyas are examples of fold mountain.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2013"
+    },
+    {
+      "id": 95,
+      "question": "Which one of the following is the best example of repeated falls in sea level, giving rise to present-day extensive marshland ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Bhitarkanika Mangroves"
+        },
+        {
+          "key": "B",
+          "text": "Marakkanam Salt Pans"
+        },
+        {
+          "key": "C",
+          "text": "Naupada Swamp"
+        },
+        {
+          "key": "D",
+          "text": "Rann of Kutch"
+        }
+      ],
+      "answer": "D",
+      "explanation": "SELF EXPLANATORY.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2023"
+    },
+    {
+      "id": 96,
+      "question": "Which one of the following statements concerning the natural vegetation of India is not correct ?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Sal is found in moist deciduous forests."
+        },
+        {
+          "key": "B",
+          "text": "Casuarina is largely found along the coastal region of Tamil Nadu."
+        },
+        {
+          "key": "C",
+          "text": "Deodar is a coniferous species of tree."
+        },
+        {
+          "key": "D",
+          "text": "Shola forests are found mainly on the upper reaches of Himalaya."
+        }
+      ],
+      "answer": "D",
+      "explanation": "Sal grows in moist deciduous forests. Casuarina is common along the Tamil Nadu coast. Deodar is a conifer tree of the Himalayas. Shola forests are found in the Western Ghats, not in the Himalayas.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2016"
+    },
+    {
+      "id": 97,
+      "question": "A farmer in a semi-arid area claims that his farming practice is very environment friendly. Which of the following practices on his farm can justify his claim ?\n1.\tPlanting a tree belt.\n2.\tPractising crop rotation.\n3.\tCarrying out a large scale irrigation system.\n4.\tUsing organic fertilizers.\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Planting a tree belt - Helps reduce wind erosion and conserves soil moisture.  Practising crop rotation -Maintains soil fertility and reduces pests.  Large scale irrigation system - Not environment friendly in semi arid areas because it can cause water depletion and salinity.  Using organic fertilizers - Improves soil health and avoids chemical pollution.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "NDA I 2015"
+    },
+    {
+      "id": 98,
+      "question": "In Thar region, the shifting sand dunes are locally known as",
+      "options": [
+        {
+          "key": "A",
+          "text": "Dhrian"
+        },
+        {
+          "key": "B",
+          "text": "Daurs"
+        },
+        {
+          "key": "C",
+          "text": "Dhoros"
+        },
+        {
+          "key": "D",
+          "text": "Dhaya"
+        }
+      ],
+      "answer": "A",
+      "explanation": "In the Thar Desert, the shifting sand dunes are locally called Dhrian. Dhrian - moving/shifting sand dunes. Daurs - small fertile tracts in desert. Dhoros - sandy ridges. Dhaya -- small sand heaps.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2016"
+    },
+    {
+      "id": 99,
+      "question": "What would be the influence on the weather conditions when in mid-winter a feeble high pressure develops over the north-western part of India ?\n1.\tHigh and dry winds would blow outward from this high pressure area.\n2.\tThe northern plain would become cold.\n3.\tScorching winds (locally called loo) would blow during the daytime.\n4.\tThere would be torrential rains brought by thunderstorms.\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "In mid winter, if a weak high pressure forms over north west India: Dry winds blow outward from the high pressure area. The northern plains become colder. Hot winds called loo do not occur in winter. Heavy rains with thunderstorms are not linked to this situation.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2014"
+    },
+    {
+      "id": 100,
+      "question": "Which of the following statements are correct ?\n1.\tAssam produces nearly 80% of jute in India.\n2.\tJute grows well on loamy soil.\n3.\tHot and humid conditions are ideal for growing jute.\n4.\tJute is commonly cultivated with wheat in rotation.\nSelect the correct answer using the code given below :",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Assam does not produce 80% of jute. Most jute comes from West Bengal. Jute grows best on loamy and alluvial soil. It needs hot and humid climate with plenty of rainfall. Jute is usually rotated with rice, not wheat.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2013"
+    }
+  ]
+}

@@ -1,0 +1,2387 @@
+{
+  "meta": {
+    "source": "sectional",
+    "subject": "polity_2",
+    "created_at": "2026-02-23T09:36:28.243Z"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "The 'Doctrine of Pleasure' is related to the tenure of which constitutional authority in India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Governor of State"
+        },
+        {
+          "key": "B",
+          "text": "Chief Justice of India"
+        },
+        {
+          "key": "C",
+          "text": "Chief Information Commissioner"
+        },
+        {
+          "key": "D",
+          "text": "Chief Election Commissioner"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Doctrine of Pleasure means that a person holds office as long as the appointing authority desires. In India, the Governor is appointed by the President and holds office \"during the pleasure of the President\" as per Article 156 of the Constitution. This means the Governor can be removed by the President at any time, without giving reasons. Other authorities like the Chief Justice of India or Chief Election Commissioner have constitutional safeguards and cannot be removed at will.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC COMBINE SO 2021"
+    },
+    {
+      "id": 2,
+      "question": "In Article 164 of the Constitution of India, after Clause (1), which one of the following clauses has been inserted?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The total number of Ministers, including the Chief Minister, in the Council of Ministers in a State shall not exceed ten percent of the total number of members of the Legislative Assembly of that State."
+        },
+        {
+          "key": "B",
+          "text": "The total number of Ministers, including the Chief Minister, in the Council of Ministers in a State shall not exceed thirty percent of the total number of members of the Legislative Assembly of that State."
+        },
+        {
+          "key": "C",
+          "text": "The total number of Ministers, including the Chief Minister, in the Council of Ministers in a State shall not exceed fifteen percent of the total number of members of the Legislative Assembly of that State."
+        },
+        {
+          "key": "D",
+          "text": "The total number of Ministers, including the Chief Minister, in the Council of Ministers in a State shall not exceed twenty percent of the total number of members of the Legislative Assembly of that State."
+        }
+      ],
+      "answer": "C",
+      "explanation": "Clause (1A) was inserted into Article 164 by the 91st Constitutional Amendment Act, 2003. It limits the size of the Council of Ministers in a State to 15% of the total number of members in the Legislative Assembly. This was done to prevent excessive ministerial appointments and reduce political patronage. The correct limit is fifteen percent, not ten, twenty, or thirty.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2018 II"
+    },
+    {
+      "id": 3,
+      "question": "Which of the States given below have their Legislative Assemblies consisting of less than 60 members?\nI. Arunachal Pradesh\nII. Goa\nIII. Meghalaya\nIV. Sikkim",
+      "options": [
+        {
+          "key": "A",
+          "text": "I and IV"
+        },
+        {
+          "key": "B",
+          "text": "II and IV"
+        },
+        {
+          "key": "C",
+          "text": "I and III"
+        },
+        {
+          "key": "D",
+          "text": "II and III"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Indian Constitution allows smaller states to have Legislative Assemblies with fewer than 60 members. Arunachal Pradesh has 60 members, Goa has 40 members, Meghalaya has 60 members, and Sikkim has 32 members. Therefore only Goa and Sikkim have assemblies with less than 60 members.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "EPFO-PA-2024"
+    },
+    {
+      "id": 4,
+      "question": "The Judge of the High Courts in India is administered oath of office by:",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Chief Justice of the High Court"
+        },
+        {
+          "key": "B",
+          "text": "The Governor of the State"
+        },
+        {
+          "key": "C",
+          "text": "The President of India"
+        },
+        {
+          "key": "D",
+          "text": "The Chief Justice of India"
+        }
+      ],
+      "answer": "B",
+      "explanation": "As per Article 219 of the Indian Constitution, every High Court Judge takes an oath before the Governor of the State. The oath affirms allegiance to the Constitution and the duty to uphold justice without fear or favor. The President appoints High Court Judges, but the Governor administers the oath, not the Chief Justice or the President.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS (II) 2013"
+    },
+    {
+      "id": 5,
+      "question": "Which one of the following authorities CANNOT organize 'Lok Adalats'?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Panchayat Committees"
+        },
+        {
+          "key": "B",
+          "text": "Taluk Legal Services Committee"
+        },
+        {
+          "key": "C",
+          "text": "District Authority"
+        },
+        {
+          "key": "D",
+          "text": "High Court Legal Services Committee"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Lok Adalats are organized under the Legal Services Authorities Act, 1987. They are conducted by statutory legal services institutions such as State Legal Services Authority, District Legal Services Authority, Taluk Legal Services Committee and High Court Legal Services Committee. Panchayat Committees are local self-government bodies and are not authorized under this Act to organize Lok Adalats.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2019"
+    },
+    {
+      "id": 6,
+      "question": "Which of the following statements about National Green Tribunal is/are correct?\n1.\tIt is a specialized body equipped with the necessary expertise to handle environmental disputes involving multidisciplinary issues.\n2.\tThe Tribunal shall be bound by the procedure laid down under the Code of Civil Procedure, 1908.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Statement 1 is correct. The National Green Tribunal (NGT) was established under the NGT Act, 2010. It is a specialized body with judges and environmental experts to handle environmental disputes involving scientific and legal complexities. Statement 2 is incorrect because the NGT is not bound by the Code of Civil Procedure, 1908. Instead it follows principles of natural justice and has its own procedure to ensure speedy and effective resolution.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2012"
+    },
+    {
+      "id": 7,
+      "question": "Consider the following statements about special category States in India:\n1.\tThey are located in hilly tracts.\n2.\tThey are border States.\n3.\tThey are relatively under-developed.\n4.\tThey are located on coasts.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Special Category Status was granted to certain states based on factors like hilly terrain making infrastructure development difficult, border location for strategic and security concerns, and economic backwardness requiring financial support. Coastal location is not a criterion for special category status. Therefore Statements 1, 2 and 3 are correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC SCRA 2015"
+    },
+    {
+      "id": 8,
+      "question": "The Parliament of India passed the Panchayats (Extension to Scheduled Areas) Law popularly known as PESA Law. Which one among the following statements regarding PESA Law is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "PESA was meant to provide self-governance in the scheduled areas"
+        },
+        {
+          "key": "B",
+          "text": "PESA disempowers Gram Sabhas"
+        },
+        {
+          "key": "C",
+          "text": "PESA protects the interests of the tribals"
+        },
+        {
+          "key": "D",
+          "text": "PESA conducts public hearings to protect inheritance rights of the tribals"
+        }
+      ],
+      "answer": "D",
+      "explanation": "PESA Act, 1996 was enacted to extend provisions of Part IX of the Constitution (Panchayats) to Scheduled Areas. It empowers Gram Sabhas and aims to protect tribal interests, especially in land, forest and resource management. PESA does not specifically conduct public hearings to protect inheritance rights. Therefore Option D is not correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS (I) 2013"
+    },
+    {
+      "id": 9,
+      "question": "Which of the following is the correct chronological order (beginning with the earliest) of their becoming part of India?\n1.\tGoa, Daman and Diu\n2.\tPondicherry\n3.\tSikkim\n4.\tDadra and Nagar Haveli",
+      "options": [
+        {
+          "key": "A",
+          "text": "1–2–3–4"
+        },
+        {
+          "key": "B",
+          "text": "3–1–4–2"
+        },
+        {
+          "key": "C",
+          "text": "4–1–2–3"
+        },
+        {
+          "key": "D",
+          "text": "2–1–4–3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Timeline of integration into India is as follows. Dadra and Nagar Haveli was liberated from Portuguese rule in 1954. Goa, Daman and Diu were annexed from Portuguese in 1961. Pondicherry was transferred from French control in 1962. Sikkim became a full-fledged Indian state in 1975. Therefore the correct chronological order is 4 → 1 → 2 → 3.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2012"
+    },
+    {
+      "id": 10,
+      "question": "Which one of the following subjects does not fall under the control of Ministry of Corporate Affairs?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Administration of Insolvency and Bankruptcy Code"
+        },
+        {
+          "key": "B",
+          "text": "Administration of Competition Act, 1932"
+        },
+        {
+          "key": "C",
+          "text": "Competition Commission of India"
+        },
+        {
+          "key": "D",
+          "text": "Collection of Statistics relating to Companies"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Ministry of Corporate Affairs (MCA) handles corporate governance, company law and related regulations. It oversees Insolvency and Bankruptcy Code (IBC), Competition Commission of India (CCI) and company statistics and filings. Competition Act, 1932 is not a valid law. The correct legislation is the Competition Act, 2002, which is under MCA. Therefore Option B is incorrect.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2018 II"
+    },
+    {
+      "id": 11,
+      "question": "Which of the following committee/committees submitted reports on Electoral reforms?\n1. Dinesh Goswami Committee\n2.Tarkunde Committee\n3.Indrajit Gupta Committee\n4.Balwantrai Mehta Committee",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "2 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "3 and 4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Electoral reform in India has been studied by several expert committees. Dinesh Goswami Committee in 1990 focused on electoral processes and political funding. Tarkunde Committee in 1974 recommended reforms for free and fair elections. Indrajit Gupta Committee in 1998 advocated for state funding of elections. Balwantrai Mehta Committee in 1957 was related to Panchayati Raj and not electoral reforms. Hence only Dinesh Goswami, Tarkunde and Indrajit Gupta Committees are correct.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 12,
+      "question": "Which of the following is/are the Constitutional Bodies in India?\n1. Central Information Commission\n2. Election Commission\n3. Reserve Bank of India\n4. University Grants Commission",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4"
+        }
+      ],
+      "answer": "B",
+      "explanation": "A Constitutional Body is one that is directly mentioned and established by the Constitution of India. Election Commission is established under Article 324 and is a Constitutional Body. Central Information Commission was created under the RTI Act, 2005 and is a statutory body. Reserve Bank of India was formed under the RBI Act, 1934 and is a statutory body. University Grants Commission was created under the UGC Act, 1956 and is also a statutory body. Therefore only the Election Commission is a constitutional body.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF-LDC-2014 II"
+    },
+    {
+      "id": 13,
+      "question": "In which of the following States, it is mandatory to appoint a Minister in charge of tribal welfare with additional charge of the welfare of the Scheduled Castes and Scheduled Tribes?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Chhattisgarh, Himachal Pradesh and Madhya Pradesh"
+        },
+        {
+          "key": "B",
+          "text": "Chhattisgarh, Jharkhand, Tripura and Madhya Pradesh"
+        },
+        {
+          "key": "C",
+          "text": "Assam, Chhattisgarh, Odisha and Madhya Pradesh"
+        },
+        {
+          "key": "D",
+          "text": "Chhattisgarh, Jharkhand, Madhya Pradesh and Odisha"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Under Article 164(1A) of the Indian Constitution, certain states are constitutionally required to appoint a Minister for Tribal Welfare. This Minister may also be responsible for Scheduled Castes and Backward Classes. The states specified are Chhattisgarh, Jharkhand, Madhya Pradesh and Odisha. This provision ensures focused governance and welfare for tribal populations in states with significant tribal demographics. Other states may appoint such ministers voluntarily but these four are constitutionally obligated.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC CBI 2023"
+    },
+    {
+      "id": 14,
+      "question": "Which committee on Panchayati Raj recommended a two-tier system by removing the block-level bodies?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Balwantrai Mehta Committee"
+        },
+        {
+          "key": "B",
+          "text": "Ashok Mehta Committee"
+        },
+        {
+          "key": "C",
+          "text": "G.V.K. Rao Committee"
+        },
+        {
+          "key": "D",
+          "text": "L. M. Sanghvi Committee"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Ashok Mehta Committee of 1977 was set up to review the working of Panchayati Raj institutions. It recommended a two-tier system with Zila Parishad at the district level and Mandal Panchayat at the grassroots level and removal of the block-level tier. It also suggested direct elections and greater financial autonomy for the Panchayati Raj institutions.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CGS-2021"
+    },
+    {
+      "id": 15,
+      "question": "Under Article 371A of the Constitution of India, with respect to which of the following item(s) the Acts of the Parliament of India shall not apply to the State of Nagaland, unless the Legislative Assembly of the State of Nagaland by a resolution so decides?\n1. Religious or social practices of Nagas\n2. Naga customary law and procedure\n3. Ownership and transfer of land and its resources\n4. Boundaries of Nagaland with other states",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2, 3 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 371A provides special constitutional safeguards to Nagaland. It states that Acts of Parliament will not apply to religious or social practices of Nagas, Naga customary law and procedure, and ownership and transfer of land and its resources unless the Nagaland Legislative Assembly passes a resolution. Boundaries of Nagaland are not covered under Article 371A.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "NDA (I) 2024"
+    },
+    {
+      "id": 16,
+      "question": "Which one of the following statements regarding judiciary in India is not correct?\n1. District Courts in India are presided over by a Judge\n2. The District and Session Judge is the principal court of civil jurisdiction\n3. The Munsiff's court has both civil and criminal jurisdiction\n4. The District and Session Judge has the power to impose capital punishment",
+      "options": [
+        {
+          "key": "A",
+          "text": "District Courts in India are presided over by a Judge"
+        },
+        {
+          "key": "B",
+          "text": "The District and Session Judge is the principal court of civil jurisdiction"
+        },
+        {
+          "key": "C",
+          "text": "The Munsiff's court has both civil and criminal jurisdiction"
+        },
+        {
+          "key": "D",
+          "text": "The District and Session Judge has the power to impose capital punishment"
+        }
+      ],
+      "answer": "C",
+      "explanation": "District Courts are presided over by a Judge. District and Sessions Judge handles both civil and criminal matters and is the highest judicial authority in a district. Munsiff’s Court, also called Civil Judge Junior Division, deals only with civil matters and not criminal cases. Sessions Judge can impose capital punishment in serious criminal cases.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS (II) 2010"
+    },
+    {
+      "id": 17,
+      "question": "Which of the statements given below is / are correct?\n1. The ideal of a common civil code is set forth in Article 44 of the Constitution of India\n2. In certain respects, the High Courts in India have been given more extensive powers than the Supreme Court\n3. The Supreme Court of India, the first fully independent Court for the country, was set up under the Constitution of India in 1950",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 only"
+        },
+        {
+          "key": "D",
+          "text": "3 only"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Article 44 of the Directive Principles of State Policy mentions the goal of a Uniform Civil Code for all citizens. High Courts have wider writ jurisdiction under Article 226 compared to the Supreme Court under Article 32. High Courts can issue writs for any legal right, not just fundamental rights. The Supreme Court of India was established on 28 January 1950 under the Constitution, replacing the Federal Court of India.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS (I) 2016"
+    },
+    {
+      "id": 18,
+      "question": "Consider the following statements:\n1. The Comptroller and Auditor General of India can attend and cast vote in the Lok Sabha or Rajya Sabha.\n2. The Attorney General of India shall have the right to speak in, and otherwise take part in the proceedings of either Houses or any joint sitting of the Houses.\n3. The Solicitor General shall have the right to speak in, and otherwise take part in the proceedings of either Houses or any joint sitting of the Houses.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1 is incorrect because the Comptroller and Auditor General (CAG) is not a member of Parliament and has no right to attend or vote in Lok Sabha or Rajya Sabha. Statement 2 is correct because the Attorney General of India, under Article 88, has the right to speak and participate in proceedings of both Houses and joint sittings, but cannot vote. Statement 3 is incorrect because the Solicitor General is not a constitutional post and does not have any right to speak or participate in Parliament.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2012–13"
+    },
+    {
+      "id": 19,
+      "question": "The Constitution of India confers power on the Governor to reserve a Bill passed by a State Legislature for consideration by the President of India:\n1. when the Bill is inconsistent with any law made by the Parliament\n2. for any Bill\n3. when the Bill seeks to give effect to the Directive Principle mentioned under Article 39(b)",
+      "options": [
+        {
+          "key": "A",
+          "text": "1"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Under Article 200 of the Constitution, the Governor has the discretion to reserve any Bill passed by the State Legislature for the President’s consideration. This power is not limited to inconsistency with parliamentary laws. Additionally, Article 31C allows a Bill that seeks to implement Directive Principles under Article 39B)and (c), like equitable distribution of resources, to override Fundamental Rights. Such Bills must be reserved for the President’s assent.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2019–20"
+    },
+    {
+      "id": 20,
+      "question": "Which one of the following is not considered a part of the Legislature of States?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Governor"
+        },
+        {
+          "key": "B",
+          "text": "The Legislative Assembly"
+        },
+        {
+          "key": "C",
+          "text": "The Legislative Council"
+        },
+        {
+          "key": "D",
+          "text": "The Chief Minister"
+        }
+      ],
+      "answer": "D",
+      "explanation": "According to Article 168 of the Indian Constitution, the State Legislature consists of the Governor, the Legislative Assembly (Lower House) and the Legislative Council (Upper House, only in some states). The Chief Minister is part of the Executive and not the Legislature. Hence Option D is not part of the State Legislature.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS (II) 2018"
+    },
+    {
+      "id": 21,
+      "question": "The Legislative Council in a state in India can be created or abolished by the:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Parliament on the recommendation of a Governor of the state"
+        },
+        {
+          "key": "B",
+          "text": "Parliament alone"
+        },
+        {
+          "key": "C",
+          "text": "Parliament after the state assembly passes the resolution to that effect"
+        },
+        {
+          "key": "D",
+          "text": "Governor of the state on the recommendation of the Council of Ministers"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Under Article 169 of the Indian Constitution, a State Legislative Council can be created or abolished by Parliament only if the concerned State Legislative Assembly passes a resolution to that effect by a special majority, meaning a majority of the total membership plus two-thirds of members present and voting.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "NDA (II) 2010"
+    },
+    {
+      "id": 22,
+      "question": "There is no express provision for tribunals under which one of the following provisions of the Constitution of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Article 323B"
+        },
+        {
+          "key": "B",
+          "text": "Article 371D"
+        },
+        {
+          "key": "C",
+          "text": "Article 217"
+        },
+        {
+          "key": "D",
+          "text": "Article 227"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Articles 323A and 323B explicitly provide for the establishment of tribunals for administrative and other matters. Article 371D deals with special provisions for Andhra Pradesh, including tribunals for local service matters. Article 227 grants supervisory jurisdiction of High Courts over tribunals and lower courts. Article 217 relates to the appointment and conditions of service of High Court judges and does not mention tribunals.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC CBI 2023"
+    },
+    {
+      "id": 23,
+      "question": "Which one of the following has been expressly included in Part III of the Constitution of India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Company"
+        },
+        {
+          "key": "B",
+          "text": "Partnership"
+        },
+        {
+          "key": "C",
+          "text": "Trust"
+        },
+        {
+          "key": "D",
+          "text": "Cooperative society"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Part III of the Constitution deals with Fundamental Rights. The 97th Constitutional Amendment Act, 2011 added “Co-operative Societies” to Article 19(1)(c), granting citizens the right to form cooperative societies. It also inserted Article 43B in the Directive Principles and added Part IXB for their governance.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2019–20"
+    },
+    {
+      "id": 24,
+      "question": "For election-duty, para-military forces function under the command of:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Commandant"
+        },
+        {
+          "key": "B",
+          "text": "Superintendent of Police"
+        },
+        {
+          "key": "C",
+          "text": "District Magistrate"
+        },
+        {
+          "key": "D",
+          "text": "Election Commission"
+        }
+      ],
+      "answer": "D",
+      "explanation": "During elections, para-military forces like CISF, CRPF and BSF are deployed to ensure free and fair polling. They operate under the direct control of the Election Commission of India. Local police and district administration may coordinate logistics but command authority lies with the Election Commission to ensure neutrality and independence from state influence.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF Assistant Commandant 2010–11"
+    },
+    {
+      "id": 25,
+      "question": "Consider the following statements:\n1. Attorney General is a Constitutional post under Article 76 of the Constitution\n2. Attorney General of India is appointed by the President of India\n3. The post of Solicitor General is statutory\n4. Solicitor General of India is appointed by the Vice President of India”",
+      "options": [
+        {
+          "key": "A",
+          "text": "Only one statement"
+        },
+        {
+          "key": "B",
+          "text": "Only two statements"
+        },
+        {
+          "key": "C",
+          "text": "Only three statements"
+        },
+        {
+          "key": "D",
+          "text": "All four statements"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Attorney General of India is a constitutional post under Article 76 and is appointed by the President of India. The Solicitor General is a statutory post, not mentioned in the Constitution. The Solicitor General is appointed by the Appointments Committee of the Cabinet, not the Vice President.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC MoE 2022"
+    },
+    {
+      "id": 26,
+      "question": "Which of the following statements is/are correct?\n1. The National Commission for Women is a constitutional body\n2. The National Commission for Backward Classes is not a constitutional body",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The National Commission for Women is a statutory body established under the National Commission for Women Act, 1990 and is not mentioned in the Constitution. The National Commission for Backward Classes was made a constitutional body by the 102nd Constitutional Amendment Act, 2018 and is now governed under Article 338B.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CBI-DSP 2023"
+    },
+    {
+      "id": 27,
+      "question": "Who among the following appoints the Advocate-General for a state?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Chief Justice of the High Court of the state"
+        },
+        {
+          "key": "B",
+          "text": "Chief Justice of the Supreme Court"
+        },
+        {
+          "key": "C",
+          "text": "Governor of the state"
+        },
+        {
+          "key": "D",
+          "text": "Attorney General"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Advocate-General of a State is the highest law officer in the state. As per Article 165 of the Constitution, the Governor appoints the Advocate-General. The person must be qualified to be appointed as a Judge of a High Court. The Advocate-General advises the state government on legal matters and can participate in legislative proceedings without voting rights.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS-2021"
+    },
+    {
+      "id": 28,
+      "question": "Which of the following statements with regard to Panchayats in India are correct?\n1. Seats in a Panchayat are filled by direct election from the territorial constituencies in the Panchayat area\n2. The Gram Sabha is the body of persons registered in the electoral rolls relating to a village within the Panchayat area\n3. The Panchayats work on the principle of constitutional autonomy\n4. The State Legislature may by law endow the Panchayats with the power and authority to enable them to function",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1 and 4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "As per Article 243C, seats in Panchayats are filled by direct elections from territorial constituencies. Gram Sabha includes all persons registered in the electoral rolls of a village within the Panchayat area. Panchayats do not have constitutional autonomy. Their powers depend on State Legislature laws under Article 243G. The State Legislature may endow Panchayats with powers and responsibilities to function as institutions of self-government.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS (I) 2017"
+    },
+    {
+      "id": 29,
+      "question": "Which one of the following is the principal place of sitting of the National Green Tribunal?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Kolkata"
+        },
+        {
+          "key": "B",
+          "text": "Hyderabad"
+        },
+        {
+          "key": "C",
+          "text": "Lucknow"
+        },
+        {
+          "key": "D",
+          "text": "New Delhi"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The National Green Tribunal is a specialized judicial body established under the National Green Tribunal Act, 2010 to handle environmental disputes. Its principal bench is located in New Delhi. It also has regional benches in Pune, Bhopal, Kolkata and Chennai.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 30,
+      "question": "Which one of the following States does not have a Legislative Council?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Karnataka"
+        },
+        {
+          "key": "B",
+          "text": "Telangana"
+        },
+        {
+          "key": "C",
+          "text": "Jammu and Kashmir"
+        },
+        {
+          "key": "D",
+          "text": "Arunachal Pradesh"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Legislative Council is the upper house in a state's legislature, present only in a few states. As of now, states with Legislative Councils include Uttar Pradesh, Bihar, Maharashtra, Karnataka, Telangana and Andhra Pradesh. Arunachal Pradesh does not have a Legislative Council. Jammu and Kashmir had one before reorganization in 2019 but it is no longer applicable under the new Union Territory structure.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS (II) 2019"
+    },
+    {
+      "id": 31,
+      "question": "Under the Constitution of India:\n1. The President is required to act on the aid and advice of the Council of Ministers\n2. The Governor of a State has some discretionary powers\n3. The Chief Minister of National Capital Territory of Delhi is appointed to aid and advise the Lieutenant Governor of Delhi in the exercise of his functions in relation to matters with respect to which the Legislative Assembly has power to make laws except in respect of discretionary functions",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "As per Article 74, the President must act on the aid and advice of the Council of Ministers except in certain discretionary situations such as appointment of Prime Minister when no clear majority exists. The Governor has discretionary powers under Article 163, for example reserving bills for the President or recommending President’s Rule. Under Article 239AA, the Chief Minister of Delhi aids and advises the Lieutenant Governor except in matters where the LG exercises discretionary powers like public order, police, and land.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO (LDC) 2015"
+    },
+    {
+      "id": 32,
+      "question": "Consider the following statements: 1. The Judges of High Courts are appointed by the Governor of the State concerned 2. The Speaker of the State Assembly is appointed by the Chief Minister of the State concerned",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Statement 1 is incorrect because High Court Judges are appointed by the President of India under Article 217 in consultation with the Chief Justice of India, the Governor, and the Chief Justice of the High Court. Statement 2 is incorrect because the Speaker of the State Legislative Assembly is elected by the members of the Assembly and is not appointed by the Chief Minister.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "CISF-LDC 2015"
+    },
+    {
+      "id": 33,
+      "question": "Which among the following statements regarding the powers of the High Courts under Article 226 of the Constitution of India is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "It can issue writs of habeas corpus, mandamus, quo warranto, certiorari, and prohibition"
+        },
+        {
+          "key": "B",
+          "text": "Writs can be issued to enforce any rights conferred by Part-III and for any other purpose"
+        },
+        {
+          "key": "C",
+          "text": "This power can derogate the power conferred on the Supreme Court under Article 32(2)"
+        },
+        {
+          "key": "D",
+          "text": "Writ can be issued to any authority under its jurisdiction"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 226 empowers High Courts to issue writs for enforcement of Fundamental Rights and for any other legal right. All five writs can be issued and writs can be directed to any person or authority within territorial jurisdiction. Article 226 does not derogate the Supreme Court’s powers under Article 32. Article 32 is a guaranteed remedy for Fundamental Rights while Article 226 is discretionary and broader; both operate independently.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2023"
+    },
+    {
+      "id": 34,
+      "question": "Which one of the following statements states the correct procedure for appointment of the Chief Information Commissioner?",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Chief Information Commissioner is appointed by the President of India"
+        },
+        {
+          "key": "B",
+          "text": "The Chief Information Commissioner is appointed by the President of India on the recommendations of a committee of three persons which includes Leader of Opposition in Lok Sabha"
+        },
+        {
+          "key": "C",
+          "text": "The Chief Information Commissioner is appointed by the President of India on the recommendations of a committee consisting of three persons which includes Leader of Opposition or, if no such leader has been recognized, the leader of the single largest group in opposition in the House of the People"
+        },
+        {
+          "key": "D",
+          "text": "The Chief Information Commissioner is appointed by the President of India on the recommendations of a committee of three persons nominated by the Prime Minister"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Under the RTI Act, 2005, the Chief Information Commissioner is appointed by the President based on recommendations of a committee including the Prime Minister as Chairperson, the Leader of Opposition in the Lok Sabha or if not recognized, the leader of the single largest opposition group, and a Union Cabinet Minister nominated by the Prime Minister. This ensures transparency and bipartisan input in the selection process.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2015"
+    },
+    {
+      "id": 35,
+      "question": "Consider the following statements:\n1. The Department of Economic Affairs is a nodal agency of the Government of India to formulate and monitor the country's economic policies and programmes that have a bearing on the domestic and international aspects of economic management\n2. The principal responsibility of the Department of Economic Affairs is the preparation and presentation of the Union Budget including the Railway Budget before the Parliament, and the Budgets for Union Territories and States under the President's Rule.\nWhich of the statements given above is/are correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Department of Economic Affairs functions under the Ministry of Finance and is the nodal agency for economic policy formulation and monitoring in India. It handles fiscal policy, international economic cooperation, and financial markets. DEA is responsible for preparing and presenting the Union Budget including the Railway Budget and also budgets for Union Territories and States under President’s Rule.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "APFC-2023"
+    },
+    {
+      "id": 36,
+      "question": "Under the Right to Information Act, 2005, if the information sought for concerns the life or liberty of a person, within which time period after the receipt of the request shall the information be supplied?",
+      "options": [
+        {
+          "key": "A",
+          "text": "24 hours"
+        },
+        {
+          "key": "B",
+          "text": "48 hours"
+        },
+        {
+          "key": "C",
+          "text": "3 days"
+        },
+        {
+          "key": "D",
+          "text": "7 days"
+        }
+      ],
+      "answer": "B",
+      "explanation": "As per Section 7(1) of the RTI Act, normally information must be provided within 30 days. However, if the information concerns the life or liberty of a person, it must be supplied within 48 hours of receiving the request.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "UPSC MoE 2022"
+    },
+    {
+      "id": 37,
+      "question": "Which of the following statements about 'delegation' is/are correct?\n1. It is the abdication of responsibility\n2. It means conferring of specified authority by a lower authority to a higher one\n3. It is subject to supervision and review\n4. It is a method of dividing authority in the organization",
+      "options": [
+        {
+          "key": "A",
+          "text": "3 only"
+        },
+        {
+          "key": "B",
+          "text": "2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 4"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Delegation is the process by which a superior assigns responsibility and authority to a subordinate to carry out specific tasks. Delegation is not abdication; the superior remains accountable. Delegation flows from higher authority to lower, and delegated tasks are subject to supervision and review to ensure accountability. Delegation helps divide authority and workload within an organization improving efficiency and clarity.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2017"
+    },
+    {
+      "id": 38,
+      "question": "What was the 'privy purse' in the context of the history of Modern India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "A purse given privately by one organization to another"
+        },
+        {
+          "key": "B",
+          "text": "A purse given by the government of India to dignitaries for service rendered"
+        },
+        {
+          "key": "C",
+          "text": "A grant given by the Government of India to the erstwhile Princes of India"
+        },
+        {
+          "key": "D",
+          "text": "A gift given by an erstwhile Prince of India to the Government of India"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Privy Purse was a payment made by the Government of India to the erstwhile princely states after independence to compensate the rulers for surrendering their ruling powers and privileges. The amount varied based on the status and revenue of the princely state. The system was abolished in 1971 through the 26th Constitutional Amendment, ending official recognition and privileges of the former princes.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS II 2011"
+    },
+    {
+      "id": 39,
+      "question": "The Central Vigilance Commission was set up on the recommendation of:",
+      "options": [
+        {
+          "key": "A",
+          "text": "First Administrative Reforms Commission"
+        },
+        {
+          "key": "B",
+          "text": "Gorwala Committee"
+        },
+        {
+          "key": "C",
+          "text": "Kripalani Committee"
+        },
+        {
+          "key": "D",
+          "text": "Santhanam Committee"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Central Vigilance Commission was established in 1964 as an apex body to address corruption in public administration based on the recommendation of the Santhanam Committee formed in 1962. The committee emphasized the need for an independent body to oversee vigilance activities in government departments. Initially created by executive resolution, the CVC later gained statutory status through the CVC Act, 2003.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2017"
+    },
+    {
+      "id": 40,
+      "question": "The National Human Rights Commission has:\n1. a Chairperson who has been a Chief Justice of Supreme Court or a High Court of India\n2. one Member who is or has been a Judge of Supreme Court\n3. one Member who is, or has been the Chief Justice of a High Court\n4. two Members to be appointed from amongst persons having knowledge of or practical experience in matters relating to human rights.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "As per the Protection of Human Rights Act, 1993, the Chairperson of NHRC must be a former Chief Justice of India, so Statement 1 is incorrect. One Member must be or have been a Judge of the Supreme Court and one Member must be or have been the Chief Justice of a High Court. Two Members are appointed from persons with knowledge or practical experience in human rights.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 41,
+      "question": "Which of the following are provided in India by the Right to Education Act?\n1. Right of children to free and compulsory education till completion of elementary education in a neighbourhood school\n2. Prohibition of deployment of teachers for non-educational works, other than decennial census, elections to local authority like State Legislatures, Parliament, and disaster relief\n3. Right of minorities to establish and administer education institution\n4. No citizen shall be denied admission into any educational institution maintained by the State or receiving aid out of State funds on grounds only of religion, race, caste, language or any of them.",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1 and 3"
+        },
+        {
+          "key": "C",
+          "text": "2 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 2 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Right of Children to Free and Compulsory Education Act, 2009 guarantees free and compulsory education for children aged 6–14 years till completion of elementary education in a neighbourhood school. Teachers cannot be deployed for non-educational duties except for census, elections, and disaster relief. The rights of minorities to establish and administer educational institutions are constitutional rights under Article 30, and no citizen shall be denied admission on grounds of religion, race, caste, or language is covered under Article 29(2) of the Constitution, not the RTE Act.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 42,
+      "question": "The term \"guillotine\" in the context of Parliament refers to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "decision-making process in the Parliament"
+        },
+        {
+          "key": "B",
+          "text": "financial procedure in the Parliament"
+        },
+        {
+          "key": "C",
+          "text": "removal of a member from the Parliament"
+        },
+        {
+          "key": "D",
+          "text": "election of the Presiding Officer in the Parliament"
+        }
+      ],
+      "answer": "B",
+      "explanation": "In Indian parliamentary procedure, \"guillotine\" is a financial mechanism used during the passage of the Demand for Grants in the Lok Sabha. Due to time constraints, undiscussed demands on the last day allotted for discussion are put to vote without debate. This ensures timely passage of the budget and prevents delay in financial legislation.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 43,
+      "question": "The Malimath Committee (2003) focused on reforming:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Educational System in India"
+        },
+        {
+          "key": "B",
+          "text": "Criminal Justice System in India"
+        },
+        {
+          "key": "C",
+          "text": "Copyright Laws in India"
+        },
+        {
+          "key": "D",
+          "text": "Public-Private Partnership in India"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Malimath Committee on Criminal Justice System Reforms, constituted in 2000 under Justice V.S. Malimath, aimed to make the criminal justice system more efficient, fair, and responsive to victims and society. Key recommendations included redefining standards of evidence, strengthening witness protection, victim compensation, and allowing confessions before police officers under safeguards.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "APFC 2016"
+    },
+    {
+      "id": 44,
+      "question": "The 2nd Administrative Reforms Commission has produced reports on:\n1. Ethics in Governance\n2. Local Governance\n3. Combating Terrorism\n4. Eradication of Corruption",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "B",
+          "text": "2, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The 2nd Administrative Reforms Commission (ARC), constituted in 2005, submitted 15 reports on governance reforms. Report No. 4 focused on ethics in governance, Report No. 6 addressed decentralization and strengthening local bodies, and Report No. 8 dealt with internal security and counter-terrorism strategies. While corruption was discussed across reports, there is no separate report titled “Eradication of Corruption.”",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 45,
+      "question": "Political theory\n1. deals with the ideas and principles that shape Constitutions\n2. clarifies the meaning of freedom, equality and justice\n3. probes the significance of principles of rule of law, separation of power and judicial review",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "B",
+          "text": "1 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Political theory is the philosophical and normative study of politics examining foundational ideas that guide political institutions and practices. It explores principles behind constitutions such as democracy, federalism, and rights, defines and interprets values like freedom, equality, and justice, and analyzes institutional principles like rule of law, separation of powers, and judicial review to ensure accountability and balance in governance.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2014"
+    },
+    {
+      "id": 46,
+      "question": "Which one of the following statements is not correct about 'Totalitarianism'?",
+      "options": [
+        {
+          "key": "A",
+          "text": "It is not akin to autocracy and authoritarianism"
+        },
+        {
+          "key": "B",
+          "text": "It usurps political freedom of the individuals, but it doesn't usurp personal freedoms"
+        },
+        {
+          "key": "C",
+          "text": "It implies abolition of civil society"
+        },
+        {
+          "key": "D",
+          "text": "It is usually identified with a one-party state"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Totalitarianism is a government system that seeks to control all aspects of public and private life through coercion, surveillance, and propaganda. It is akin to autocracy and authoritarianism but attempts total control over society. Totalitarian regimes usurp both political and personal freedoms including speech, religion, and private behavior. It abolishes civil society and is typically associated with a one-party state where opposition is banned or restricted.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2021"
+    },
+    {
+      "id": 47,
+      "question": "Which of the following are the reasons behind the Constitutional design of Rajya Sabha?\n1.\tMature input in legislative and constituent process from more experienced persons.\n2.\tTending some degree of continuity to the parliamentary work in view of the fact that the Rajya Sabha is a continuous chamber.\n3.\tUnequal weightage to votes in Rajya Sabha since there is equal number of seats given to all States.\nSelect the correct answer using the code given below:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Statement 1 – Correct: Rajya Sabha was designed to provide mature input in legislative and constitutional matters, as its members are often more experienced. Statement 2 – Correct: Rajya Sabha is a continuous chamber (one-third of members retire every two years), ensuring continuity in parliamentary work. Statement 3 – Incorrect: Rajya Sabha does not give equal seats to all States. Representation is based on population, unlike the US Senate. Hence, there is no unequal weightage in the Indian context.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "UPSC SCRA 2013"
+    },
+    {
+      "id": 48,
+      "question": "Section 45 of the Code of Criminal Procedure (CrPC) relates to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Arrest by a member of an armed force when on duty"
+        },
+        {
+          "key": "B",
+          "text": "Arrest of a member of an armed force for anything done during discharge of official duty"
+        },
+        {
+          "key": "C",
+          "text": "Arrest of a member of an armed force by a Magistrate"
+        },
+        {
+          "key": "D",
+          "text": "None of the above"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Section 45 CrPC provides protection to members of the Armed Forces from arrest for acts done or purported to be done in the discharge of their official duties",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CISF AC 2012"
+    },
+    {
+      "id": 49,
+      "question": "The 'pleasure' doctrine with regard to service of the civil servants under the Constitution of India is 1. absolute 2. subject to Article 309 3. subject to Article 311",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "3"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Under Article 310, civil servants hold office during the pleasure of the President or Governor, known as the 'doctrine of pleasure'. In India, this doctrine is not absolute and is subject to Article 311, which provides protection against arbitrary dismissal, removal, or reduction in rank and mandates a reasonable opportunity to be heard. Article 309 empowers Parliament and State Legislatures to regulate recruitment and service conditions but does not override Article 311 protections.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2019–20"
+    },
+    {
+      "id": 50,
+      "question": "Which of the following statements about the first Indian Factory Act passed in 1881 is/are correct?\n1. The Act dealt primarily with the problem of child labour\n2. The Act laid down that children between 7 years and 12 years of age would not work for more than 9 hours a day",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Indian Factory Act, 1881 was the first attempt by the British colonial government to regulate factory labour in India, focusing primarily on child labour. It fixed the working hours of children aged 7–12 years to not more than 9 hours per day, introduced mandatory rest intervals, four holidays per month, and prohibited night work for children while largely ignoring adult working conditions.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2021"
+    },
+    {
+      "id": 51,
+      "question": "Which one among the following statements about the functioning of political parties in a democracy is not correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Political parties give political education to the people"
+        },
+        {
+          "key": "B",
+          "text": "Political parties serve as a link between the government and the people"
+        },
+        {
+          "key": "C",
+          "text": "Political parties fight elections and try to get the maximum number of their candidates elected"
+        },
+        {
+          "key": "D",
+          "text": "None of the above"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Political parties educate citizens by spreading awareness about issues, policies, and ideologies, helping in the formation of informed public opinion. They act as a link between government and people, communicating public demands and explaining policies. Contesting elections to secure maximum seats is also a primary function. All statements are correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS II 2012"
+    },
+    {
+      "id": 52,
+      "question": "Which of the following statements about the Director of Enforcement in the Directorate of Enforcement, Ministry of Finance is/are correct?\n1. He is appointed on the recommendations of a committee which includes all Vigilance Commissioners and the Central Vigilance Commissioner\n2. He is transferred on the recommendations of the appointing committee\n3. He has to be consulted in making all appointments in the Directorate of Enforcement",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2"
+        },
+        {
+          "key": "C",
+          "text": "3 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Director of Enforcement is appointed on recommendation of a high-level committee including the Central Vigilance Commissioner and Vigilance Commissioners to ensure independence. Transfers are also based on the committee’s recommendation, safeguarding against arbitrary action. The Director is not required to be consulted for all appointments within the Directorate.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "UPSC ESE/ED 2020"
+    },
+    {
+      "id": 53,
+      "question": "Which one of the following statements is incorrect?",
+      "options": [
+        {
+          "key": "A",
+          "text": "India does not have a Chief of Defence Staff"
+        },
+        {
+          "key": "B",
+          "text": "India does not have a Permanent Chairman, Chiefs of Staff Committee"
+        },
+        {
+          "key": "C",
+          "text": "India has a Chairman, Chiefs of Staff Committee who functions as Chief of the Defence Staff"
+        },
+        {
+          "key": "D",
+          "text": "India has a Chairman, Chiefs of Staff Committee who does not function as Chief of the Defence Staff"
+        }
+      ],
+      "answer": "C",
+      "explanation": "India did not have a Chief of Defence Staff before 2019. The Chairman of the Chiefs of Staff Committee was the senior-most service chief who coordinated among the armed forces but had no authority over them. Equating Chairman COSC with CDS is incorrect.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2015"
+    },
+    {
+      "id": 54,
+      "question": "The first National Labour Commission was chaired by:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Justice J.C. Shah"
+        },
+        {
+          "key": "B",
+          "text": "Justice Vivian Bose"
+        },
+        {
+          "key": "C",
+          "text": "Justice Ravindra Varma"
+        },
+        {
+          "key": "D",
+          "text": "Justice P.B. Gajendragadkar"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The First National Commission on Labour (1969) was set up to review labour laws and suggest reforms. It was chaired by Justice P.B. Gajendragadkar, former Chief Justice of India.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "UPSC ALC 2023"
+    },
+    {
+      "id": 55,
+      "question": "Consider the following UN Declarations/Covenants:\n1. Universal Declaration of Human Rights\n2. Convention on the Elimination of All Forms of Discrimination Against Women\n3. International Covenant of Economic, Social and Cultural Rights\n4. Convention on Refugees. Which is the correct chronological order?\n\nCEDAW was adopted much later, in 1979, to address gender-based discrimination",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 4, 3, 2"
+        },
+        {
+          "key": "B",
+          "text": "1, 2, 3, 4"
+        },
+        {
+          "key": "C",
+          "text": "1, 3, 2, 4"
+        },
+        {
+          "key": "D",
+          "text": "4, 1, 2, 3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Universal Declaration of Human Rights (UDHR) – 1948. It was adopted by the UN General Assembly in 1948 and is the earliest among the given instruments. Convention Relating to the Status of Refugees – 1951. Adopted in 1951, it defines who is a refugee and outlines the rights of displaced persons. International Covenant on Economic, Social and Cultural Rights (ICESCR) – 1966. It was adopted in 1966 as part of the International Bill of Human Rights. Convention on the Elimination of All Forms of Discrimination Against Women (CEDAW) – 1979\nCEDAW was adopted much later, in 1979, to address gender-based discrimination",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA I 2024"
+    },
+    {
+      "id": 56,
+      "question": "Which one among the following is responsible for the command, control and operational decisions of nuclear weapons in India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Nuclear Commission of India"
+        },
+        {
+          "key": "B",
+          "text": "Nuclear Command Authority"
+        },
+        {
+          "key": "C",
+          "text": "The Ministry of Defence"
+        },
+        {
+          "key": "D",
+          "text": "The Cabinet Committee on Security"
+        }
+      ],
+      "answer": "B",
+      "explanation": "India’s nuclear weapons are under the Nuclear Command Authority (NCA), responsible for command, control, and operational decisions. The Cabinet Committee on Security provides political oversight, while the Ministry of Defence and Nuclear Commission do not exercise direct control.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CISF LDC 2018"
+    },
+    {
+      "id": 57,
+      "question": "The direct correlation among caste, poverty and social status implied that: 1. With improvement in economic status, one could claim higher social status 2. Caste hierarchy was immutable 3. Lower castes were the only ones to be pushed into menial labour 4. With improvement in social status, one could claim higher caste status",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4"
+        },
+        {
+          "key": "B",
+          "text": "1, 3 and 4"
+        },
+        {
+          "key": "C",
+          "text": "2 and 4 only"
+        },
+        {
+          "key": "D",
+          "text": "1 and 3 only"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Economic improvement could lead to better social status (1) and historically, lower castes were pushed into menial occupations (3). Improvement in social status could allow claims to higher caste position over time (4). Caste hierarchy was rigid but not absolutely immutable, making statement 2 incorrect.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2013"
+    },
+    {
+      "id": 58,
+      "question": "What is meant by Social Equality?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Each person should perform the functions according to his status"
+        },
+        {
+          "key": "B",
+          "text": "No effort should be made to modify the existing social system"
+        },
+        {
+          "key": "C",
+          "text": "No person should be made to suffer a position of relative inferiority in relation to other men due to caste, race or religion"
+        },
+        {
+          "key": "D",
+          "text": "Special effort to improve the lot of weaker section"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Social equality means the absence of discrimination based on caste, race, religion, or other social identities, ensuring no individual is placed in a position of inferiority due to birth-based or identity-based factors.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2016"
+    },
+    {
+      "id": 59,
+      "question": "Under the Indian Penal Code, 1860, who among the following is not considered a ‘public servant’?",
+      "options": [
+        {
+          "key": "A",
+          "text": "A member of a Panchayat assisting a public servant"
+        },
+        {
+          "key": "B",
+          "text": "An arbitrator"
+        },
+        {
+          "key": "C",
+          "text": "Every person paid commission for the performance of any public duty by the government"
+        },
+        {
+          "key": "D",
+          "text": "An employee of a government company"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Section 21 IPC defines public servant. Members assisting public servants, government company employees, and persons paid for public duties are included. An arbitrator acts independently and is not considered a public servant.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "UPSC CBI 2023"
+    },
+    {
+      "id": 60,
+      "question": "Consider the following statements about the Linguistic Reorganization of the States: 1. Gandhiji, in 1948, had argued for the reorganization of provinces on a linguistic basis 2. The Constituent Assembly recommended it to be incorporated in the Constitution of India",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Gandhiji supported linguistic reorganization cautiously after independence, but the Constituent Assembly deliberately avoided it in the Constitution to prevent regionalism. Linguistic reorganization was implemented later through the States Reorganization Act, 1956.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "NDA II 2024"
+    },
+    {
+      "id": 61,
+      "question": "Which one among the following statements is not correct as per the Constitution of India?\n\nB)It shall be the duty of the Union to develop the Hindi language as a medium of expression for all the elements of the composite culture of India\nC)The word ‘Hindustani’ is mentioned in the Constitution with reference to the enrichment of the Hindi language\nD)Every state shall endeavor to provide adequate facilities for instruction in the mother-tongue at the primary stage of education to children belonging to minority groups",
+      "options": [
+        {
+          "key": "A",
+          "text": "National Commission for Minorities appoints a Special Officer for linguistic minorities"
+        }
+      ],
+      "answer": "A",
+      "explanation": "As per Article 350B, the Special Officer for linguistic minorities is appointed by the President of India, not by the National Commission for Minorities. Option (b) is correct: Article 351 places a duty on the Union to promote and develop the Hindi language. Option (c) is correct: Article 351 mentions Hindustani as one of the sources for enrichment of Hindi.  Option (d) is correct. Article 350A directs states to provide facilities for instruction in the mother tongue at the primary stage to children belonging to linguistic minorities.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CGS 2024"
+    },
+    {
+      "id": 62,
+      "question": "The provision under Article 350A of the Constitution of India relates to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Right of any section of the citizens to preserve its distinct language and culture"
+        },
+        {
+          "key": "B",
+          "text": "Right of the Sikh community to carrying and wearing of kirpans"
+        },
+        {
+          "key": "C",
+          "text": "Provision for providing facilities for instruction in mother-tongue at primary stage"
+        },
+        {
+          "key": "D",
+          "text": "Freedom of minority-managed educational institutions from discrimination in the matter of receiving aid from the State"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Article 350A mandates facilities for instruction in mother-tongue at the primary stage for children belonging to linguistic minorities.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CAPF 2015"
+    },
+    {
+      "id": 63,
+      "question": "Which of the following statements about the Crime and Criminal Tracking Network System (CCTNS) is/are correct?\n1.\tReal-time access of classified criminal data to law enforcement authorities\n2.\tNational Crime Records Bureau is the nodal agency for implementation",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "CCTNS allows real-time sharing of criminal data. NCRB is the nodal agency for implementing the network across all states and UTs.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2011"
+    },
+    {
+      "id": 64,
+      "question": "“Rule of Law Index” is released by:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Amnesty International"
+        },
+        {
+          "key": "B",
+          "text": "International Court of Justice"
+        },
+        {
+          "key": "C",
+          "text": "The Office of UN Commissioner for Human Rights"
+        },
+        {
+          "key": "D",
+          "text": "World Justice Project"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The World Justice Project publishes the Rule of Law Index, measuring adherence to fundamental rights, government constraints, and access to justice globally.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "CSE 2018"
+    },
+    {
+      "id": 65,
+      "question": "Which one is not a source of political legitimacy?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Consent"
+        },
+        {
+          "key": "B",
+          "text": "Rational prudence"
+        },
+        {
+          "key": "C",
+          "text": "Political will of the ruler"
+        },
+        {
+          "key": "D",
+          "text": "Public reason"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Political legitimacy comes from the consent of the governed, rational justification, and public reason. Personal will of the ruler does not confer legitimacy in democratic theory.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2016"
+    },
+    {
+      "id": 66,
+      "question": "Statements about CAG:\n1.\tHolds office for 6 years or till 65 years of age\n2.\tPowers derived from Constitution\n3.\tMulti-member body appointed in consultation with PM and Council of Ministers\n4.\tRemoved by President only on address from both Houses of Parliament\n\nB)1, 2 and 3\nC)3 and 4\nD)1 and 2 only",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 4"
+        }
+      ],
+      "answer": "A",
+      "explanation": "As per Article 148 of the Constitution, the CAG holds office for six years or until the age of 65 years, whichever is earlier. Statement 2 is correct: The office, powers, and duties of the CAG are derived from the Constitution of India, primarily under Article 148 and related provisions. Statement 3 is incorrect: The CAG is a single-member constitutional authority, not a multi-member body. He is appointed by the President of India, not through consultation with the Council of Ministers. Statement 4 is correct: The CAG can be removed by the President only in the same manner as a Supreme Court judge, that is, on an address by both Houses of Parliament on grounds of proved misbehavior or incapacity",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CDS I 2016"
+    },
+    {
+      "id": 67,
+      "question": "Statements about Central Vigilance Commission (CVC):\n1.\tCentral Vigilance Commissioner appointed by President\n2.\tCommittee includes Minister of Home Affairs\n3.\tLeader of single largest opposition party may be on the Committee",
+      "options": [
+        {
+          "key": "A",
+          "text": "Nil"
+        },
+        {
+          "key": "B",
+          "text": "1"
+        },
+        {
+          "key": "C",
+          "text": "2"
+        },
+        {
+          "key": "D",
+          "text": "3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "The Central Vigilance Commissioner is appointed by the President of India under the recommendation of a committee. Statement 2 – Incorrect. The Committee for recommending the appointment does not include the Minister of Home Affairs. It includes: Prime Minister (Chairperson) Union Minister of Home Affairs (NOT a member, only present sometimes). Leader of Opposition in Lok Sabha (or leader of single largest opposition party if LoP is not recognized). Statement 3 – Correct: If the Leader of Opposition in Lok Sabha is not recognized, then the leader of the single largest opposition party in Lok Sabha becomes part of the committee",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CDS I 2025"
+    },
+    {
+      "id": 68,
+      "question": "Powers and duties of CAG:\n1.\tAudits and reports all expenditure from Consolidated Fund of India\n2.\tControls issue and receipt of money from Consolidated Fund\n3.\tAudits bodies substantially financed by Union/State revenues\n\nB)2 and 3\nC)1 and 3\nD)1, 2 and 3",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 and 2"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1 – Correct The CAG audits and reports on all expenditures from the Consolidated Fund of India. This is a core constitutional duty under Article 149. Statement 2 – Incorrect The CAG does not control the issue or receipt of money from the Consolidated Fund. That function lies with the executive (Ministry of Finance). CAG only audits after expenditure is made. Statement 3 – Correct CAG audits all bodies that are substantially financed by Union or State revenues. This includes autonomous bodies, NGOs, and institutions receiving significant government grants",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CAPF 2025"
+    },
+    {
+      "id": 69,
+      "question": "Maximum number of members that a State Legislative Assembly may have (Article 333 and Delimitation Commission)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "450"
+        },
+        {
+          "key": "B",
+          "text": "500"
+        },
+        {
+          "key": "C",
+          "text": "550"
+        },
+        {
+          "key": "D",
+          "text": "600"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Delimitation Commission of India is a body constituted under the Delimitation Act to redraw boundaries of constituencies based on census data. Article 170 of the Constitution specifies the composition of State Legislative Assemblies. It states that the total number of members in a Legislative Assembly of a State shall not exceed 500 and shall not be less than 60. Article 333 allows representation of the Anglo-Indian community by nomination of one member if the Governor feels it is necessary. Hence, the maximum strength of a State Legislative Assembly is 500 members (excluding the nominated Anglo-Indian member",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2020"
+    },
+    {
+      "id": 70,
+      "question": "Which one is correct?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Right to property is a constitutional right"
+        },
+        {
+          "key": "B",
+          "text": "Judges of the Supreme Court never retire"
+        },
+        {
+          "key": "C",
+          "text": "Judges of High Courts retire at 65"
+        },
+        {
+          "key": "D",
+          "text": "Law Commission is created under Constitution"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Originally, the Right to Property was a Fundamental Right under Article 31. After the 44th Constitutional Amendment Act, 1978, it was removed from the list of Fundamental Rights and made a Constitutional Right under Article 300A. Article 300A states: “No person shall be deprived of his property save by authority of law.”",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC ED 2020"
+    },
+    {
+      "id": 71,
+      "question": "Which of the following pairs is/are correctly matched?\n1.\tRule of lapse – Part of grant carried over to next year\n2.\tSupplementary grant – Advance grant to meet expenditures\n3.\tVote on account – Additional funds granted during the year",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "1 and 2"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3"
+        },
+        {
+          "key": "D",
+          "text": "None of the above"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Rule of Lapse: Unspent grants lapse at year-end (cannot be carried forward). Supplementary Grant: Additional funds during the year (not an advance). Vote on Account: Temporary provision to meet expenditure until full budget is passed, not additional funds.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "CAPF 2017"
+    },
+    {
+      "id": 72,
+      "question": "In parliamentary parlance, “Well of the House” means:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Area around Table of Lok Sabha/Rajya Sabha"
+        },
+        {
+          "key": "B",
+          "text": "Members’ lobbies"
+        },
+        {
+          "key": "C",
+          "text": "Central Hall"
+        },
+        {
+          "key": "D",
+          "text": "None"
+        }
+      ],
+      "answer": "A",
+      "explanation": "The Well of the House is the area directly in front of the Speaker’s/Chairman’s podium in Lok Sabha or Rajya Sabha. It is considered the most important part of the chamber because ministers and officials come here to lay papers, present bills, and make submissions. Members often come into the Well during protests or demonstrations, which is technically against parliamentary decorum. Central Hall is a separate chamber used for joint sittings and ceremonial functions, not the “Well.” Hence, the correct meaning is the place around the Table of the Lok Sabha/Rajya Sabha Chamber.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "SO (LDC) 2012–13"
+    },
+    {
+      "id": 73,
+      "question": "Which statement is not correct regarding untouchability in India?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Abolished in India"
+        },
+        {
+          "key": "B",
+          "text": "Practicing untouchability is an offence"
+        },
+        {
+          "key": "C",
+          "text": "Civil Rights Protection Act, 1955 deals with untouchability"
+        },
+        {
+          "key": "D",
+          "text": "Punishment for untouchability is by State Legislature"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Article 17 of the Constitution abolishes untouchability and makes its practice an offence. Parliament enacted the Protection of Civil Rights Act, 1955 (earlier called the Untouchability Offences Act, 1955) to enforce Article 17. Later, the Scheduled Castes and Scheduled Tribes (Prevention of Atrocities) Act, 1989 further strengthened protections. Importantly, the punishment for practising untouchability is provided by Parliamentary law, not by State legislatures. Therefore, option (d) is incorrect, making it the right choice.",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2016–17"
+    },
+    {
+      "id": 74,
+      "question": "Year of adoption of Universal Declaration of Human Rights (UDHR):\n\nB)1948\nC)1949\nD)1950",
+      "options": [
+        {
+          "key": "A",
+          "text": "1947"
+        }
+      ],
+      "answer": "B",
+      "explanation": "The Universal Declaration of Human Rights (UDHR) was adopted by the United Nations General Assembly on 10th December 1948 at Paris. It was drafted under the leadership of Eleanor Roosevelt and is considered the foundational document for international human rights law. The UDHR consists of 30 Articles that outline basic civil, political, economic, social, and cultural rights for all people. 10th December is celebrated worldwide as Human Rights Day. Hence, the correct year is 1948",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF-LDC 202"
+    },
+    {
+      "id": 75,
+      "question": "Chronological order of India-Pakistan agreements:\n1.\tTashkent Declaration\n2.\tIndus Water Treaty\n3.\tAgreement on Nuclear Installations\n4.\tAgreement on Reducing Nuclear Accidents",
+      "options": [
+        {
+          "key": "A",
+          "text": "1,2,3,4"
+        },
+        {
+          "key": "B",
+          "text": "2,3,1,4"
+        },
+        {
+          "key": "C",
+          "text": "2,1,3,4"
+        },
+        {
+          "key": "D",
+          "text": "1,4,2,3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Indus Water Treaty – 1960. Tashkent Declaration – 1966. Nuclear Installations Agreement – 1988 (effective 1991). Agreement on Reducing Nuclear Accidents – 2007",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2024"
+    },
+    {
+      "id": 76,
+      "question": "Consider the following statements regarding simultaneous membership:\n1.\tA member of a State Legislative Assembly if elected to the Lok Sabha and he does not resign his seat in one of the Houses, his seat in the Lok Sabha shall automatically become vacant after completion of fourteen days of publication of the result.\n2.\tA member of a State Legislative Assembly if elected to the Lok Sabha can resign one of his seats fourteen days after taking oath in the Lok Sabha.\nWhich of the statements above is/are correct?\nA)1 only",
+      "options": [
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "Both 1 and 2"
+        },
+        {
+          "key": "D",
+          "text": "Neither 1 nor 2"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Simultaneous Membership Rule: A person cannot be a member of both Parliament and a State Legislature at the same time. Representation of the People Act, 1951 (Section 68): If a member of a State Legislative Assembly is elected to the Lok Sabha, he must resign from one of the seats within 14 days of publication of the election result. If he fails to do so, his Lok Sabha seat automatically becomes vacant.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SO LDC 2012–13"
+    },
+    {
+      "id": 77,
+      "question": "In a case where 'A' was elected as a Member of Lok Sabha in the year 2009 by a narrow margin of five votes, and 'B', who was runner-up candidate decided to challenge the result on various counts, which would be the forum available to 'B' to file a petition in this regard?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Election Tribunals"
+        },
+        {
+          "key": "B",
+          "text": "Election Commission"
+        },
+        {
+          "key": "C",
+          "text": "High Court"
+        },
+        {
+          "key": "D",
+          "text": "Supreme Court"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Election Petitions: Under Article 329(b) of the Constitution and the Representation of the People Act, 1951, disputes regarding elections to Parliament and State Legislatures can only be challenged through an election petition. Such petitions are filed in the High Court of the concerned state within 45 days of the election result. Election Tribunals were abolished in 1966; their jurisdiction was transferred to High Courts. The Election Commission conducts elections but does not adjudicate disputes. The Supreme Court hears appeals against High Court judgments in election petitions, but it is not the first forum. Hence, the correct forum for candidate 'B' is the High Court",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "SCRA 2010"
+    },
+    {
+      "id": 78,
+      "question": "States requiring minimum educational qualifications for Panchayat elections:\n1.\tPunjab\n2.\tHaryana\n3.\tKarnataka\n4.\tRajasthan",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 & 2"
+        },
+        {
+          "key": "B",
+          "text": "2 & 4"
+        },
+        {
+          "key": "C",
+          "text": "2 & 3"
+        },
+        {
+          "key": "D",
+          "text": "1 & 4"
+        }
+      ],
+      "answer": "B",
+      "explanation": "Haryana (2015): Class 10 pass for men, Class 8 for women, Class 5 for SCs. Rajasthan (2015): First state to introduce minimum qualifications. Punjab & Karnataka – no such requirement.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2017"
+    },
+    {
+      "id": 79,
+      "question": "Under the Panchayat Extension to Scheduled Areas (PESA) Act, a State legislation on Panchayats in a Scheduled Area may not be in conformance with which of the following?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Customary law"
+        },
+        {
+          "key": "B",
+          "text": "Social and religious practices"
+        },
+        {
+          "key": "C",
+          "text": "Traditional management practices of community resources"
+        },
+        {
+          "key": "D",
+          "text": "Political ideology"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The PESA Act, 1996 was enacted to extend the provisions of Part IX of the Constitution (Panchayats) to Scheduled Areas. It mandates that State laws on Panchayats in Scheduled Areas must conform to: Customary law of tribal communities. Social and religious practices of the people. Traditional management practices of community resources. However, political ideology is not a factor under PESA. Panchayat laws are not required to align with any political ideology. Hence, the correct answer is political ideology.",
+      "type": "conceptual",
+      "difficulty": "difficult",
+      "exam": "SO LDC 2014"
+    },
+    {
+      "id": 80,
+      "question": "Chronological order of statehood:\n1.\tArunachal Pradesh\n2.\tNagaland\n3.\tSikkim\n4.\tMeghalaya\n\nChronological order → Nagaland → Meghalaya → Sikkim → Arunachal Pradesh.",
+      "options": [
+        {
+          "key": "A",
+          "text": "2–4–3–1"
+        },
+        {
+          "key": "B",
+          "text": "2–1–4–3"
+        },
+        {
+          "key": "C",
+          "text": "4–1–3–2"
+        },
+        {
+          "key": "D",
+          "text": "4–1–2–3"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Nagaland – 1963. Meghalaya – 1972. Sikkim – 1975. Arunachal Pradesh – 1987\nChronological order → Nagaland → Meghalaya → Sikkim → Arunachal Pradesh.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "CDS II 2014"
+    },
+    {
+      "id": 81,
+      "question": "Which one of the following statements is not correct?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "A member of a State Public Service Commission holds office up to 62 years of age."
+        },
+        {
+          "key": "B",
+          "text": "Any member of a Public Service Commission can be removed from office on the ground of misbehaviour in the prescribed manner."
+        },
+        {
+          "key": "C",
+          "text": "In the absence of the Chairman of the Union Public Service Commission, the seniormost member of the Commission performs the duties of the Chairman."
+        },
+        {
+          "key": "D",
+          "text": "The Chairman of the Union Public Service Commission is  eligible for any appointment with any government."
+        }
+      ],
+      "answer": "D",
+      "explanation": "Correct - As per Article 316 of the Constitution, members of a State PSC retire at 62 years (UPSC members retire at 65). Correct - Removal of PSC members is possible for misbehavior, but only after an inquiry by the Supreme Court (Article 317). Correct - In absence of the UPSC Chairman, the seniormost member performs the duties of Chairman.  Incorrect - The Chairman of UPSC is not eligible for further government employment after retirement. This ensures independence of the office.",
+      "type": "conceptual",
+      "difficulty": "easy",
+      "exam": "UPSC CBI 2023"
+    },
+    {
+      "id": 82,
+      "question": "Which one of the following was not recommended by the Dinesh Goswami Committee (1990)?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "The appointment of the Chief Election Commissioner should be made by the President of India in consultation with the Chief Justice of India and the Leader of the Opposition."
+        },
+        {
+          "key": "B",
+          "text": "The members of the Election Commission should be appointed by the President of India on the advice of a Committee, consisting of the Prime Minister and the Leader of the Opposition."
+        },
+        {
+          "key": "C",
+          "text": "The consultation process should have a statutory backing."
+        },
+        {
+          "key": "D",
+          "text": "The appointment of the other Election Commissioners should be made in consultation with the Chief Election Commissioner, the Chief Justice of India and the Leader of the Opposition"
+        }
+      ],
+      "answer": "B",
+      "explanation": "(a) Correct - The Committee suggested wider consultation for appointment of the CEC, involving the President, CJI, and Leader of Opposition. (b) Incorrect - The Committee did not recommend appointment of EC members solely on advice of PM + LoP. (c) Correct - It recommended that the consultation process should have statutory backing to ensure transparency. (d) Correct - Appointment of other ECs should involve consultation with CEC, CJI, and LoP.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "EPFO (EO/AO) 2023"
+    },
+    {
+      "id": 83,
+      "question": "Who among the following appoints the Advocate-General for a state?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Chief Justice of the High Court of the state"
+        },
+        {
+          "key": "B",
+          "text": "Chief Justice of the Supreme Court"
+        },
+        {
+          "key": "C",
+          "text": "Governor of the state"
+        },
+        {
+          "key": "D",
+          "text": "Attorney General"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Advocate-General is the highest law officer of a state, equivalent to the Attorney General of India at the Union level. As per Article 165 of the Constitution, the Governor of the state appoints the Advocate-General. The person must be qualified to be appointed as a Judge of a High Court (i.e., 10 years as an advocate or judicial office experience). The Advocate-General holds office during the pleasure of the Governor and advises the state government on legal matters.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CGS 2021"
+    },
+    {
+      "id": 84,
+      "question": "Who is responsible for the preparation of electoral rolls in India?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "The Parliament"
+        },
+        {
+          "key": "B",
+          "text": "The Local Administration"
+        },
+        {
+          "key": "C",
+          "text": "The Election Commission"
+        },
+        {
+          "key": "D",
+          "text": "The Returning Office"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Parliament (a): Frames laws related to elections (Representation of the People Act, etc.), but does not prepare electoral rolls. Local Administration (b): Assists in implementation, but responsibility lies with the Election Commission. Election Commission (c): As per Article 324 of the Constitution, the Election Commission of India has the power of superintendence, direction, and control of elections, including preparation of electoral rolls. Returning Officer (d): Conducts elections in a constituency, but does not prepare the entire electoral roll.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "APFC 2012"
+    },
+    {
+      "id": 85,
+      "question": "Consider the following statements with regard to the National Investigation Agency Act, 2008:\n1.\tThe National Investigation Agency while investigating a case cannot transfer that case to the State Government.\n2.\tWhile investigating any scheduled offence, the National Investigation Agency has power to investigate any other offence also allegedly committed by the accused which is connected with the scheduled offence.\n3.\tWhile investigating any scheduled offence, the National Investigation Agency has no power to investigate any other offence also allegedly committed by the accused which is connected with the scheduled offence.\nWhich of the statements given above is/are correct?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "1 and 3"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3 only"
+        }
+      ],
+      "answer": "D",
+      "explanation": "Statement 1: Correct - The 2019 amendment made it mandatory to have at least one woman member in NHRC. Statement 2: Correct - At least three members with knowledge/experience in human rights must be included. Statement 3: Correct - The Chief Commissioner for Persons with Disabilities is deemed to be a member of NHRC for specific purposes, strengthening inclusivity.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "UPSC CBI 2023"
+    },
+    {
+      "id": 86,
+      "question": "Consider the following statements with regard to the Protection of Human Rights Act, 1993:\n1.\tIt is mandatory to have at least one woman Member in the National Human Rights Commission having the knowledge of, or practical experience in, matters relating to human rights.\n2.\tIt is mandatory to have at least three Members in the National Human Rights Commission having the knowledge of, or practical experience in, matters relating to human rights.\n3.\tThe Chief Commissioner for Persons with Disabilities is deemed to be a Member of the National Human Rights Commission for certain purposes only.\nWhich of the statements given above is/are correct?\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1 only"
+        },
+        {
+          "key": "B",
+          "text": "2 only"
+        },
+        {
+          "key": "C",
+          "text": "2 and 3 only"
+        },
+        {
+          "key": "D",
+          "text": "1, 2 and 3"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Statement 1: Correct - The 2019 amendment made it mandatory to have at least one woman member in NHRC. Statement 2: Correct - At least three members with knowledge/experience in human rights must be included. Statement 3: Correct - The Chief Commissioner for Persons with Disabilities is deemed to be a member of NHRC for specific purposes, strengthening inclusivity. Thus, all three statements are correct.",
+      "type": "conceptual",
+      "difficulty": "moderate",
+      "exam": "CISF-AC 2024"
+    },
+    {
+      "id": 87,
+      "question": "Highest decision-making authority on development matters in India:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Union Cabinet"
+        },
+        {
+          "key": "B",
+          "text": "PMO"
+        },
+        {
+          "key": "C",
+          "text": "National Development Council"
+        },
+        {
+          "key": "D",
+          "text": "None"
+        }
+      ],
+      "answer": "C",
+      "explanation": "Union Cabinet (a): Handles executive decisions, but not the apex body for development planning. Prime Minister’s Office (b): Coordinates policies, but not the highest authority in development matters. National Development Council (c): Established in 1952, it included the PM, Union Cabinet Ministers, Chief Ministers of all states, and members of Planning Commission. It was the highest decision-making body on development matters, approving plans and ensuring cooperation between Centre and States. None of the above (d): Incorrect, since NDC was explicitly the apex body.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CISF-LDC 2015"
+    },
+    {
+      "id": 88,
+      "question": "Correct statements on Commissions/Committees:\n1.\tEconomic Reforms Commission – L. K. Jha\n2.\tCommission on Centre-State Relations – R. S. Sarkaria\n3.\tAdministrative Reforms Commission – K. Hanumanthaiah\n4.\tCommittee on Prevention of Corruption – K. Santhanam\nOptions:",
+      "options": [
+        {
+          "key": "A",
+          "text": "1, 2 and 3 only"
+        },
+        {
+          "key": "B",
+          "text": "1, 2 and 4 only"
+        },
+        {
+          "key": "C",
+          "text": "1, 2, 3 and 4"
+        },
+        {
+          "key": "D",
+          "text": "2, 3 and 4 only"
+        }
+      ],
+      "answer": "C",
+      "explanation": "All four are correctly matched.",
+      "type": "factual",
+      "difficulty": "difficult",
+      "exam": "APFC 2002"
+    },
+    {
+      "id": 89,
+      "question": "‘Gujral Doctrine’ relates to:",
+      "options": [
+        {
+          "key": "A",
+          "text": "Build trust with neighbours"
+        },
+        {
+          "key": "B",
+          "text": "Dialogue with insurgent groups"
+        },
+        {
+          "key": "C",
+          "text": "Development in Naxal areas"
+        },
+        {
+          "key": "D",
+          "text": "Food security"
+        }
+      ],
+      "answer": "A",
+      "explanation": "Articulated by PM I. K. Gujral, promoting unilateral concessions to neighbours to build trust and regional cooperation.",
+      "type": "factual",
+      "difficulty": "easy",
+      "exam": "CDS I 2019"
+    },
+    {
+      "id": 90,
+      "question": "What is the minimum imprisonment prescribed in the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013?",
+      "options": [
+        {
+          "key": "A",
+          "text": "3 months"
+        },
+        {
+          "key": "B",
+          "text": "6 months"
+        },
+        {
+          "key": "C",
+          "text": "1 year"
+        },
+        {
+          "key": "D",
+          "text": "No imprisonment prescribed"
+        }
+      ],
+      "answer": "D",
+      "explanation": "The Sexual Harassment of Women at Workplace Act, 2013 is a civil law, not a criminal law. It provides for complaint mechanisms, Internal Complaints Committees (ICC), inquiry procedures, and penalties like termination, suspension, or other disciplinary actions. It does not prescribe imprisonment. Criminal provisions (like imprisonment) are dealt with under the Indian Penal Code (IPC), particularly Section 354A (sexual harassment). Hence, the Act itself focuses on prevention, prohibition, and redressal, not criminal punishment",
+      "type": "factual",
+      "difficulty": "moderate",
+      "exam": "UPSC MoE 2022"
+    }
+  ]
+}

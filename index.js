@@ -11,6 +11,8 @@ import questionRoutes from './routes/questionRoutes.js';
 import upscRoutes from './routes/upscRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import pdfEditorRoutes from './routes/pdfEditorRoutes.js';
+import mcqRoutes from './routes/mcqRoutes.js';
+import progressRoutes from './routes/progressRoutes.js';
 
 dotenv.config();
 
@@ -25,9 +27,9 @@ app.use(cors({
     callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Disposition', 'Content-Length', 'x-download-mode']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Range'],
+  exposedHeaders: ['Content-Disposition', 'Content-Length', 'x-download-mode', 'Accept-Ranges', 'Content-Range']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -66,6 +68,8 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/upsc', upscRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/pdf-editor', pdfEditorRoutes);
+app.use('/api/mcq', mcqRoutes);
+app.use('/api/progress', progressRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
