@@ -2,18 +2,21 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
-import { 
-  uploadCourse, 
+import {
+  uploadCourse,
   updateCourse,
   deleteCourse,
-  listCourses, 
-  checkoutCart, 
+  listCourses,
+  checkoutCart,
   getPurchasedCourses,
   analyzeCoursePage,
   downloadSecuredCoursePdf,
   getRawCoursePdf,
   getDownloadProgress,
-  githubCallback
+  githubCallback,
+  uploadCourseSample,
+  removeCourseSample,
+  getCourseSamplePdf
 } from '../controllers/courseController.js';
 import {
   createPurchaseRequest,
@@ -71,6 +74,11 @@ router.get('/download/:courseId', authenticateToken, downloadSecuredCoursePdf);
 
 // Real-time download progress endpoint
 router.get('/download-progress/:courseId', authenticateToken, getDownloadProgress);
+
+// Course sample PDF endpoints
+router.post('/:id/sample', authenticateToken, upload.single('sample'), uploadCourseSample);
+router.delete('/:id/sample', authenticateToken, removeCourseSample);
+router.get('/:id/sample', getCourseSamplePdf); // public — no auth, marketing teaser
 
 // GitHub Actions callback webhook
 router.post('/github-callback', githubCallback);

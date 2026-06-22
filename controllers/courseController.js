@@ -1677,6 +1677,187 @@ export const getRawCoursePdf = async (req, res) => {
   }
 };
 
+// Upload (or replace) a course's sample PDF (Admin only)
+export const uploadCourseSample = async (req, res) => {
+  const { id } = req.params;
+  const file = req.file;
+
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied: Admin only' });
+    }
+
+    if (!file) {
+      return res.status(400).json({ error: 'Sample PDF file is required' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    // Delete the previous sample from R2 (if any) before uploading the new one
+    if (course.sampleFileUrl && course.sampleFileUrl.startsWith('r2://')) {
+      const oldKey = course.sampleFileUrl.replace('r2://', '');
+      console.log(`[R2 Cleanup] Deleting previous sample from R2: ${oldKey}`);
+      try {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: oldKey,
+        }));
+      } catch (deleteErr) {
+        console.warn('[R2 Cleanup] Could not delete previous sample from R2:', deleteErr.message);
+      }
+    }
+
+    console.log(`[R2 Upload] Uploading sample ${file.filename} to Cloudflare R2...`);
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: file.filename,
+      Body: createReadStream(file.path),
+      ContentType: file.mimetype || 'application/pdf',
+    }));
+    console.log(`[R2 Upload] Sample uploaded successfully to R2: ${file.filename}`);
+
+    const pageCount = await getPdfPageCount(file.path, file.originalname);
+
+    course.sampleFileUrl = `r2://${file.filename}`;
+    course.sampleFileName = file.originalname;
+    course.samplePageCount = pageCount;
+    await course.save();
+
+    res.json({ message: 'Sample uploaded successfully!', course });
+  } catch (err) {
+    console.error('Error uploading course sample:', err);
+    res.status(500).json({ error: 'Server error uploading sample' });
+  }
+};
+
+// Remove a course's sample PDF (Admin only)
+export const removeCourseSample = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase());
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied: Admin only' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    if (course.sampleFileUrl && course.sampleFileUrl.startsWith('r2://')) {
+      const r2Key = course.sampleFileUrl.replace('r2://', '');
+      console.log(`[R2 Cleanup] Deleting sample from R2: ${r2Key}`);
+      try {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+        }));
+      } catch (deleteErr) {
+        console.warn('[R2 Cleanup] Could not delete sample from R2:', deleteErr.message);
+      }
+    }
+
+    course.sampleFileUrl = '';
+    course.sampleFileName = '';
+    course.samplePageCount = 0;
+    await course.save();
+
+    res.json({ message: 'Sample removed successfully!', course });
+  } catch (err) {
+    console.error('Error removing course sample:', err);
+    res.status(500).json({ error: 'Server error removing sample' });
+  }
+};
+
+// Serve a course's sample PDF — public, no auth (marketing teaser, not gated content)
+export const getCourseSamplePdf = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const targetUrl = course.sampleFileUrl;
+    if (!targetUrl) {
+      return res.status(404).json({ error: 'No sample available for this course' });
+    }
+
+    const rangeHeader = req.headers.range;
+
+    if (targetUrl.startsWith('r2://')) {
+      const r2Key = targetUrl.replace('r2://', '');
+      console.log(`[R2 Stream] Serving sample PDF from R2 key: ${r2Key}${rangeHeader ? ` range=${rangeHeader}` : ''}`);
+
+      const getObjectParams = { Bucket: process.env.R2_BUCKET_NAME, Key: r2Key };
+      if (rangeHeader) getObjectParams.Range = rangeHeader;
+
+      const r2Response = await r2Client.send(new GetObjectCommand(getObjectParams));
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Length', r2Response.ContentLength);
+
+      if (rangeHeader && r2Response.ContentRange) {
+        res.status(206);
+        res.setHeader('Content-Range', r2Response.ContentRange);
+      }
+
+      r2Response.Body.pipe(res);
+    } else {
+      const filePath = path.join(__dirname, '../', targetUrl);
+      let stat;
+      try {
+        stat = await fs.stat(filePath);
+      } catch {
+        return res.status(404).json({ error: 'Sample PDF not found on disk' });
+      }
+
+      const fileSize = stat.size;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Accept-Ranges', 'bytes');
+
+      const match = rangeHeader && /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+      if (match) {
+        const start = match[1] === '' ? 0 : parseInt(match[1], 10);
+        const end = match[2] === '' ? fileSize - 1 : parseInt(match[2], 10);
+
+        if (isNaN(start) || isNaN(end) || start > end || end >= fileSize) {
+          res.setHeader('Content-Range', `bytes */${fileSize}`);
+          return res.status(416).end();
+        }
+
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Content-Length', end - start + 1);
+        createReadStream(filePath, { start, end }).pipe(res);
+      } else {
+        res.setHeader('Content-Length', fileSize);
+        createReadStream(filePath).pipe(res);
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching sample PDF:', err);
+    res.status(500).json({ error: 'Server error retrieving sample PDF' });
+  }
+};
+
 // Retrieve real-time progress of secured PDF download process
 export const getDownloadProgress = async (req, res) => {
   const { courseId } = req.params;
