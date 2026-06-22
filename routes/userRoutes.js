@@ -11,7 +11,9 @@ import {
   approveDownloadRequest,
   getUserDownloadRequests,
   getUserBarcode,
-  completePurchaseProfile
+  completePurchaseProfile,
+  listAllUsers,
+  adminUpdateUserProfile
 } from '../controllers/userController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
@@ -33,5 +35,9 @@ router.post('/admin/requests/:id/approve', authenticateToken, approveDownloadReq
 
 // Profile completion route
 router.put('/complete-profile', authenticateToken, completePurchaseProfile);
+
+// Admin user management routes
+router.get('/admin/users', authenticateToken, listAllUsers);
+router.put('/admin/users/:id', authenticateToken, adminUpdateUserProfile);
 
 export default router;

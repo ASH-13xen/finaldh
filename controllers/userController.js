@@ -391,3 +391,58 @@ export const completePurchaseProfile = async (req, res) => {
     res.status(500).json({ error: 'Server error saving profile details' });
   }
 };
+
+// Retrieve all users in the system (Admin only)
+export const listAllUsers = async (req, res) => {
+  try {
+    const adminUser = await User.findById(req.userId);
+    if (!adminUser) return res.status(404).json({ error: 'Admin user not found' });
+
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((adminUser.email || '').toLowerCase());
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied: Admin only' });
+    }
+
+    const users = await User.find({}).sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching all users by admin:', error);
+    res.status(500).json({ error: 'Server error retrieving user list' });
+  }
+};
+
+// Update any field of any user (Admin only)
+export const adminUpdateUserProfile = async (req, res) => {
+  const { id } = req.params;
+  const { fullName, name, email, mobileNumber, telegramUsername, interestedCourses, optionalSubject, downloadLimits } = req.body;
+
+  try {
+    const adminUser = await User.findById(req.userId);
+    if (!adminUser) return res.status(404).json({ error: 'Admin user not found' });
+
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((adminUser.email || '').toLowerCase());
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied: Admin only' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (fullName !== undefined) targetUser.fullName = fullName;
+    if (name !== undefined) targetUser.name = name;
+    if (email !== undefined) targetUser.email = email;
+    if (mobileNumber !== undefined) targetUser.mobileNumber = mobileNumber;
+    if (telegramUsername !== undefined) targetUser.telegramUsername = telegramUsername;
+    if (interestedCourses !== undefined) targetUser.interestedCourses = interestedCourses;
+    if (optionalSubject !== undefined) targetUser.optionalSubject = optionalSubject;
+    if (downloadLimits !== undefined) targetUser.downloadLimits = downloadLimits;
+
+    await targetUser.save();
+    res.json({ success: true, user: targetUser });
+  } catch (error) {
+    console.error('Error updating user profile by admin:', error);
+    res.status(500).json({ error: 'Server error updating user profile' });
+  }
+};

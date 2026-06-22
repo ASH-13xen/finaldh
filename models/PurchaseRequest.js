@@ -13,7 +13,8 @@ const purchaseRequestSchema = new mongoose.Schema({
   screenshotUrl: { type: String, required: true },
   upiTxnId: { type: String },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  telegramNotificationCount: { type: Number, default: 0 }
+  telegramNotificationCount: { type: Number, default: 0 },
+  highlight: { type: String, enum: ['none', 'red', 'yellow'], default: 'none' }
 }, { timestamps: true });
 
 export default mongoose.model('PurchaseRequest', purchaseRequestSchema);

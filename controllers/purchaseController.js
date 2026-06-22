@@ -353,3 +353,41 @@ export const trackTelegramNotification = async (req, res) => {
     res.status(500).json({ error: 'Server error tracking telegram notification' });
   }
 };
+
+// Highlight a purchase request (Admin only)
+export const highlightPurchaseRequest = async (req, res) => {
+  const { id } = req.params;
+  const { highlight } = req.body;
+
+  if (!['none', 'red', 'yellow'].includes(highlight)) {
+    return res.status(400).json({ error: 'Invalid highlight color value. Must be none, red, or yellow.' });
+  }
+
+  try {
+    const adminUser = await User.findById(req.userId);
+    if (!adminUser) {
+      return res.status(404).json({ error: 'Admin user not found' });
+    }
+
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((adminUser.email || '').toLowerCase());
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied: Admin only' });
+    }
+
+    const request = await PurchaseRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({ error: 'Purchase request not found' });
+    }
+
+    request.highlight = highlight;
+    await request.save();
+
+    res.json({
+      message: `Purchase request highlight updated to ${highlight} successfully.`,
+      request
+    });
+  } catch (err) {
+    console.error('Error highlighting purchase request:', err);
+    res.status(500).json({ error: 'Server error highlighting purchase request' });
+  }
+};

@@ -24,7 +24,8 @@ import {
   getAdminPurchaseRequests,
   approvePurchaseRequest,
   rejectPurchaseRequest,
-  trackTelegramNotification
+  trackTelegramNotification,
+  highlightPurchaseRequest
 } from '../controllers/purchaseController.js';
 import {
   listActiveComboOffers,
@@ -112,6 +113,7 @@ router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackTe
 router.get('/admin/purchase-requests', authenticateToken, getAdminPurchaseRequests);
 router.post('/admin/purchase-requests/:id/approve', authenticateToken, approvePurchaseRequest);
 router.post('/admin/purchase-requests/:id/reject', authenticateToken, rejectPurchaseRequest);
+router.put('/admin/purchase-requests/:id/highlight', authenticateToken, highlightPurchaseRequest);
 
 // Combo offer endpoints
 router.get('/combo-offers/active', listActiveComboOffers);
