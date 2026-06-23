@@ -1,14 +1,17 @@
-import fs from 'fs/promises';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PDFDocument } from 'pdf-lib';
-import Course from '../models/Course.js';
-import Topic from '../models/Topic.js';
-import ProgressPyq from '../models/ProgressPyq.js';
-import ExtractionJob from '../models/ExtractionJob.js';
-import PyqExtractionJob from '../models/PyqExtractionJob.js';
-import { requireAdmin, upsertTopicsAndQuestions } from './progressController.js';
+import fs from "fs/promises";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { PDFDocument } from "pdf-lib";
+import Course from "../models/Course.js";
+import Topic from "../models/Topic.js";
+import ProgressPyq from "../models/ProgressPyq.js";
+import ExtractionJob from "../models/ExtractionJob.js";
+import PyqExtractionJob from "../models/PyqExtractionJob.js";
+import {
+  requireAdmin,
+  upsertTopicsAndQuestions,
+} from "./progressController.js";
 
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = "gemini-3.5-flash";
 const CHUNK_SIZE = 100;
 const CHUNK_OVERLAP = 5;
 const MAX_RETRIES = 5;
@@ -23,7 +26,10 @@ const callGeminiWithRetry = async (model, prompt, pdfPart) => {
       return response.response.text();
     } catch (err) {
       if (attempt === MAX_RETRIES) throw err;
-      console.warn(`[Extraction] Gemini call failed (attempt ${attempt}/${MAX_RETRIES}):`, err.message || err);
+      console.warn(
+        `[Extraction] Gemini call failed (attempt ${attempt}/${MAX_RETRIES}):`,
+        err.message || err,
+      );
       await new Promise((r) => setTimeout(r, delayMs));
       delayMs *= 2;
     }
@@ -37,11 +43,13 @@ const makeChunkPdfBase64 = async (pdfDoc, startPageIdx0, endPageIdx0) => {
   const copiedPages = await chunkDoc.copyPages(pdfDoc, pageIndices);
   copiedPages.forEach((p) => chunkDoc.addPage(p));
   const bytes = await chunkDoc.save();
-  return Buffer.from(bytes).toString('base64');
+  return Buffer.from(bytes).toString("base64");
 };
 
 const findSuggestedTopic = (pageNumber, topicRanges) => {
-  const match = topicRanges.find((t) => pageNumber >= t.startPage && pageNumber <= t.endPage);
+  const match = topicRanges.find(
+    (t) => pageNumber >= t.startPage && pageNumber <= t.endPage,
+  );
   return match ? match.name : null;
 };
 
@@ -53,24 +61,26 @@ export const startExtractionJob = async (req, res) => {
   const { courseId } = req.body;
   const fileIndex = Number(req.body.fileIndex) || 0;
   const file = req.file;
-  if (!file) return res.status(400).json({ error: 'PDF file is required' });
-  if (!courseId) return res.status(400).json({ error: 'courseId is required' });
+  if (!file) return res.status(400).json({ error: "PDF file is required" });
+  if (!courseId) return res.status(400).json({ error: "courseId is required" });
 
   try {
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (!course) return res.status(404).json({ error: "Course not found" });
 
     const fileCount = course.fileUrls?.length > 0 ? course.fileUrls.length : 1;
     if (fileIndex < 0 || fileIndex >= fileCount) {
-      return res.status(400).json({ error: 'Invalid fileIndex for this course' });
+      return res
+        .status(400)
+        .json({ error: "Invalid fileIndex for this course" });
     }
 
     const job = await ExtractionJob.create({
       course: course._id,
       fileIndex,
       createdBy: admin._id,
-      status: 'pending',
-      sourceFilePath: file.path
+      status: "pending",
+      sourceFilePath: file.path,
     });
 
     // Fire-and-forget: do not await. The admin polls /status instead of blocking on this request.
@@ -78,10 +88,12 @@ export const startExtractionJob = async (req, res) => {
       console.error(`[ExtractionJob ${job._id}] Unhandled error:`, err);
     });
 
-    res.status(202).json({ jobId: job._id, status: 'pending' });
+    res.status(202).json({ jobId: job._id, status: "pending" });
   } catch (err) {
-    console.error('Error starting extraction job:', err);
-    res.status(500).json({ error: err.message || 'Server error starting extraction job' });
+    console.error("Error starting extraction job:", err);
+    res
+      .status(500)
+      .json({ error: err.message || "Server error starting extraction job" });
   }
 };
 
@@ -92,7 +104,8 @@ export const getExtractionJobStatus = async (req, res) => {
 
   try {
     const job = await ExtractionJob.findById(req.params.jobId);
-    if (!job) return res.status(404).json({ error: 'Extraction job not found' });
+    if (!job)
+      return res.status(404).json({ error: "Extraction job not found" });
 
     res.json({
       jobId: job._id,
@@ -105,12 +118,13 @@ export const getExtractionJobStatus = async (req, res) => {
       currentChunkRange: job.currentChunkRange,
       questionsFoundSoFar: job.extractedQuestions.length,
       extractedTopicsFromIndex: job.extractedTopicsFromIndex,
-      extractedQuestions: job.status === 'done' ? job.extractedQuestions : undefined,
-      error: job.error
+      extractedQuestions:
+        job.status === "done" ? job.extractedQuestions : undefined,
+      error: job.error,
     });
   } catch (err) {
-    console.error('Error fetching extraction job status:', err);
-    res.status(500).json({ error: 'Server error fetching job status' });
+    console.error("Error fetching extraction job status:", err);
+    res.status(500).json({ error: "Server error fetching job status" });
   }
 };
 
@@ -122,13 +136,13 @@ export const processExtractionJob = async (jobId) => {
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      throw new Error('Gemini API key is not configured in backend .env');
+    if (!apiKey || apiKey === "your_gemini_api_key_here") {
+      throw new Error("Gemini API key is not configured in backend .env");
     }
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: GEMINI_MODEL,
-      generationConfig: { responseMimeType: 'application/json' }
+      generationConfig: { responseMimeType: "application/json" },
     });
 
     const pdfBytes = await fs.readFile(job.sourceFilePath);
@@ -136,13 +150,19 @@ export const processExtractionJob = async (jobId) => {
     const totalPages = pdfDoc.getPageCount();
 
     job.totalPages = totalPages;
-    job.status = 'extracting_index';
+    job.status = "extracting_index";
     await job.save();
 
     // ---------- PASS 1: index/table-of-contents extraction ----------
     const indexPagesToScan = Math.min(25, totalPages);
-    const indexBase64 = await makeChunkPdfBase64(pdfDoc, 0, indexPagesToScan - 1);
-    const indexPdfPart = { inlineData: { data: indexBase64, mimeType: 'application/pdf' } };
+    const indexBase64 = await makeChunkPdfBase64(
+      pdfDoc,
+      0,
+      indexPagesToScan - 1,
+    );
+    const indexPdfPart = {
+      inlineData: { data: indexBase64, mimeType: "application/pdf" },
+    };
 
     const indexPrompt = `
 You are analyzing the first ${indexPagesToScan} pages of a compiled exam answer-copy PDF for an index/table-of-contents.
@@ -166,30 +186,46 @@ Return strictly as a JSON array, ordered as listed in the index:
 
     let topicStarts = [];
     try {
-      const indexResponseText = await callGeminiWithRetry(model, indexPrompt, indexPdfPart);
+      const indexResponseText = await callGeminiWithRetry(
+        model,
+        indexPrompt,
+        indexPdfPart,
+      );
       const parsed = JSON.parse(indexResponseText.trim());
       if (Array.isArray(parsed)) {
         topicStarts = parsed
-          .filter((t) => t && t.topicName && Number.isFinite(Number(t.startPage)))
+          .filter(
+            (t) => t && t.topicName && Number.isFinite(Number(t.startPage)),
+          )
           .map((t) => ({
             topicName: String(t.topicName).trim(),
             startPage: Number(t.startPage),
-            endPage: Number.isFinite(Number(t.endPage)) ? Number(t.endPage) : null
+            endPage: Number.isFinite(Number(t.endPage))
+              ? Number(t.endPage)
+              : null,
           }));
       }
     } catch (err) {
-      console.error(`[ExtractionJob ${jobId}] Index extraction failed (continuing without topic suggestions):`, err.message || err);
+      console.error(
+        `[ExtractionJob ${jobId}] Index extraction failed (continuing without topic suggestions):`,
+        err.message || err,
+      );
     }
 
     topicStarts.sort((a, b) => a.startPage - b.startPage);
     const extractedTopicsFromIndex = topicStarts.map((t, idx) => ({
       name: t.topicName,
       startPage: t.startPage,
-      endPage: t.endPage !== null ? t.endPage : (idx + 1 < topicStarts.length ? topicStarts[idx + 1].startPage - 1 : totalPages)
+      endPage:
+        t.endPage !== null
+          ? t.endPage
+          : idx + 1 < topicStarts.length
+            ? topicStarts[idx + 1].startPage - 1
+            : totalPages,
     }));
 
     job.extractedTopicsFromIndex = extractedTopicsFromIndex;
-    job.status = 'extracting_questions';
+    job.status = "extracting_questions";
     job.totalChunks = Math.ceil(totalPages / CHUNK_SIZE);
     await job.save();
 
@@ -201,14 +237,22 @@ Return strictly as a JSON array, ordered as listed in the index:
     for (let startPage = 1; startPage <= totalPages; startPage += CHUNK_SIZE) {
       chunkIndex += 1;
       const endPage = Math.min(startPage + CHUNK_SIZE - 1, totalPages);
-      const effectiveStartPage = startPage === 1 ? 1 : Math.max(1, startPage - CHUNK_OVERLAP);
-      const overlapPageCount = startPage === 1 ? 0 : startPage - effectiveStartPage;
+      const effectiveStartPage =
+        startPage === 1 ? 1 : Math.max(1, startPage - CHUNK_OVERLAP);
+      const overlapPageCount =
+        startPage === 1 ? 0 : startPage - effectiveStartPage;
 
       job.currentChunkRange = `pages ${effectiveStartPage}-${endPage}`;
       await job.save();
 
-      const chunkBase64 = await makeChunkPdfBase64(pdfDoc, effectiveStartPage - 1, endPage - 1);
-      const pdfPart = { inlineData: { data: chunkBase64, mimeType: 'application/pdf' } };
+      const chunkBase64 = await makeChunkPdfBase64(
+        pdfDoc,
+        effectiveStartPage - 1,
+        endPage - 1,
+      );
+      const pdfPart = {
+        inlineData: { data: chunkBase64, mimeType: "application/pdf" },
+      };
 
       const questionPrompt = `
 You are an expert exam-answer-booklet analyzer. This PDF chunk contains pages ${effectiveStartPage} to ${endPage} of a much larger compiled answer-copy document (this chunk is NOT the whole document).
@@ -227,9 +271,11 @@ Critical rule about multi-page answers:
 
 Critical rule about this being a chunk, not the whole document:
 - This chunk starts at absolute page ${effectiveStartPage}, NOT page 1 of the document.
-${overlapPageCount > 0
-  ? `- The first ${overlapPageCount} pages of this chunk (absolute pages ${effectiveStartPage}-${startPage - 1}) are OVERLAP pages already analyzed in the previous chunk. Still analyze them and report any official numbered question block you find on them (so duplicates can be removed downstream) — do not skip them, but do not assume the very first page of this chunk is automatically a new question just because it is the first page you are seeing.`
-  : '- This is the first chunk of the document, starting at page 1.'}
+${
+  overlapPageCount > 0
+    ? `- The first ${overlapPageCount} pages of this chunk (absolute pages ${effectiveStartPage}-${startPage - 1}) are OVERLAP pages already analyzed in the previous chunk. Still analyze them and report any official numbered question block you find on them (so duplicates can be removed downstream) — do not skip them, but do not assume the very first page of this chunk is automatically a new question just because it is the first page you are seeing.`
+    : "- This is the first chunk of the document, starting at page 1."
+}
 - Do NOT assume any page is a new question's start merely because it is the first page of this excerpt, or because its branding strip shows question-like text. Base your decision only on whether an OFFICIAL numbered question block (number + text, usually + marks) is printed on that specific page, separate from any branding strip.
 
 For each page in this chunk (absolute page numbers ${effectiveStartPage} to ${endPage}):
@@ -248,18 +294,29 @@ If no new questions start in this chunk, return an empty array.
       let chunkSucceeded = false;
       let quotaExceeded = false;
       try {
-        const responseText = await callGeminiWithRetry(model, questionPrompt, pdfPart);
+        const responseText = await callGeminiWithRetry(
+          model,
+          questionPrompt,
+          pdfPart,
+        );
         const parsed = JSON.parse(responseText.trim());
         if (Array.isArray(parsed)) {
-          chunkQuestions = parsed.filter((q) =>
-            q && q.questionText && Number.isFinite(Number(q.pageNumber)) &&
-            Number(q.pageNumber) >= effectiveStartPage && Number(q.pageNumber) <= endPage
+          chunkQuestions = parsed.filter(
+            (q) =>
+              q &&
+              q.questionText &&
+              Number.isFinite(Number(q.pageNumber)) &&
+              Number(q.pageNumber) >= effectiveStartPage &&
+              Number(q.pageNumber) <= endPage,
           );
         }
         chunkSucceeded = true;
       } catch (err) {
         const message = err.message || String(err);
-        console.error(`[ExtractionJob ${jobId}] Chunk ${chunkIndex} (pages ${effectiveStartPage}-${endPage}) failed:`, message);
+        console.error(
+          `[ExtractionJob ${jobId}] Chunk ${chunkIndex} (pages ${effectiveStartPage}-${endPage}) failed:`,
+          message,
+        );
         quotaExceeded = /quota|429|too many requests/i.test(message);
         job.chunksFailed += 1;
         job.failedChunkRanges.push(`pages ${effectiveStartPage}-${endPage}`);
@@ -272,19 +329,25 @@ If no new questions start in this chunk, return an empty array.
         const pageNum = Number(q.pageNumber);
         if (seenStartPages.has(pageNum)) continue;
         seenStartPages.add(pageNum);
-        allQuestions.push({ pageNumber: pageNum, questionText: String(q.questionText).trim() });
+        allQuestions.push({
+          pageNumber: pageNum,
+          questionText: String(q.questionText).trim(),
+        });
       }
 
       allQuestions.sort((a, b) => a.pageNumber - b.pageNumber);
       job.extractedQuestions = allQuestions.map((q) => ({
         ...q,
-        suggestedTopicName: findSuggestedTopic(q.pageNumber, extractedTopicsFromIndex)
+        suggestedTopicName: findSuggestedTopic(
+          q.pageNumber,
+          extractedTopicsFromIndex,
+        ),
       }));
       if (chunkSucceeded) job.chunksCompleted += 1;
       await job.save();
 
       if (quotaExceeded) {
-        job.status = 'error';
+        job.status = "error";
         await job.save();
         break; // further chunks would just fail the same way - stop burning retries/time.
       }
@@ -294,15 +357,15 @@ If no new questions start in this chunk, return an empty array.
       }
     }
 
-    if (job.status !== 'error') {
-      job.status = 'done';
-      job.currentChunkRange = '';
+    if (job.status !== "error") {
+      job.status = "done";
+      job.currentChunkRange = "";
       await job.save();
     }
   } catch (err) {
     console.error(`[ExtractionJob ${jobId}] Fatal error:`, err);
-    job.status = 'error';
-    job.error = err.message || 'Extraction failed';
+    job.status = "error";
+    job.error = err.message || "Extraction failed";
     await job.save();
   } finally {
     if (job.sourceFilePath) {
@@ -317,26 +380,30 @@ export const bulkCreateTopicQuestions = async (req, res) => {
   if (!admin) return;
 
   const { courseId, fileIndex, questions } = req.body;
-  if (!courseId) return res.status(400).json({ error: 'courseId is required' });
+  if (!courseId) return res.status(400).json({ error: "courseId is required" });
   if (!Array.isArray(questions) || questions.length === 0) {
-    return res.status(400).json({ error: 'questions array is required and must be non-empty' });
+    return res
+      .status(400)
+      .json({ error: "questions array is required and must be non-empty" });
   }
 
   try {
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (!course) return res.status(404).json({ error: "Course not found" });
 
     const fileIdxNum = Number(fileIndex) || 0;
     const fileCount = course.fileUrls?.length > 0 ? course.fileUrls.length : 1;
     if (fileIdxNum < 0 || fileIdxNum >= fileCount) {
-      return res.status(400).json({ error: 'Invalid fileIndex for this course' });
+      return res
+        .status(400)
+        .json({ error: "Invalid fileIndex for this course" });
     }
 
     const rows = questions.map((q) => ({
-      topicName: (q.topicName || '').trim(),
-      questionText: (q.questionText || '').trim(),
+      topicName: (q.topicName || "").trim(),
+      questionText: (q.questionText || "").trim(),
       pageNumber: q.pageNumber,
-      tag: ''
+      tag: "",
     }));
 
     const result = await upsertTopicsAndQuestions(course, fileIdxNum, rows);
@@ -345,11 +412,13 @@ export const bulkCreateTopicQuestions = async (req, res) => {
       message: `Added ${result.insertedCount} new question(s) across ${result.touchedTopicCount} topic(s) (${result.newTopicsCount} new topic(s) created).`,
       insertedCount: result.insertedCount,
       newTopicsCount: result.newTopicsCount,
-      skippedRows: result.skippedRows
+      skippedRows: result.skippedRows,
     });
   } catch (err) {
-    console.error('Error bulk-creating topics/questions:', err);
-    res.status(500).json({ error: err.message || 'Server error saving questions' });
+    console.error("Error bulk-creating topics/questions:", err);
+    res
+      .status(500)
+      .json({ error: err.message || "Server error saving questions" });
   }
 };
 
@@ -366,24 +435,31 @@ export const startPyqExtractionJob = async (req, res) => {
   const { courseId } = req.body;
   const fileIndex = Number(req.body.fileIndex) || 0;
   const file = req.file;
-  if (!file) return res.status(400).json({ error: 'PDF file is required' });
-  if (!courseId) return res.status(400).json({ error: 'courseId is required' });
+  if (!file) return res.status(400).json({ error: "PDF file is required" });
+  if (!courseId) return res.status(400).json({ error: "courseId is required" });
 
   try {
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (!course) return res.status(404).json({ error: "Course not found" });
 
     const fileCount = course.fileUrls?.length > 0 ? course.fileUrls.length : 1;
     if (fileIndex < 0 || fileIndex >= fileCount) {
-      return res.status(400).json({ error: 'Invalid fileIndex for this course' });
+      return res
+        .status(400)
+        .json({ error: "Invalid fileIndex for this course" });
     }
 
     // Fetch the existing Topic names for this course+file BEFORE starting the job - this is
     // the fixed classification vocabulary handed to every chunk prompt. Plain Mongo query,
     // no Gemini call (unlike the index/TOC pass in the question-extraction flow above).
-    const topics = await Topic.find({ course: course._id, fileIndex }).sort({ order: 1 });
+    const topics = await Topic.find({ course: course._id, fileIndex }).sort({
+      order: 1,
+    });
     if (topics.length === 0) {
-      return res.status(400).json({ error: 'This course+file has no existing topics. Upload/extract Topics & Questions for it first.' });
+      return res.status(400).json({
+        error:
+          "This course+file has no existing topics. Upload/extract Topics & Questions for it first.",
+      });
     }
     const topicNames = topics.map((t) => t.name);
 
@@ -391,19 +467,21 @@ export const startPyqExtractionJob = async (req, res) => {
       course: course._id,
       fileIndex,
       createdBy: admin._id,
-      status: 'pending',
+      status: "pending",
       sourceFilePath: file.path,
-      topicNames
+      topicNames,
     });
 
     processPyqExtractionJob(job._id.toString()).catch((err) => {
       console.error(`[PyqExtractionJob ${job._id}] Unhandled error:`, err);
     });
 
-    res.status(202).json({ jobId: job._id, status: 'pending' });
+    res.status(202).json({ jobId: job._id, status: "pending" });
   } catch (err) {
-    console.error('Error starting PYQ extraction job:', err);
-    res.status(500).json({ error: err.message || 'Server error starting PYQ extraction job' });
+    console.error("Error starting PYQ extraction job:", err);
+    res.status(500).json({
+      error: err.message || "Server error starting PYQ extraction job",
+    });
   }
 };
 
@@ -414,7 +492,8 @@ export const getPyqExtractionJobStatus = async (req, res) => {
 
   try {
     const job = await PyqExtractionJob.findById(req.params.jobId);
-    if (!job) return res.status(404).json({ error: 'PYQ extraction job not found' });
+    if (!job)
+      return res.status(404).json({ error: "PYQ extraction job not found" });
 
     res.json({
       jobId: job._id,
@@ -426,12 +505,12 @@ export const getPyqExtractionJobStatus = async (req, res) => {
       failedChunkRanges: job.failedChunkRanges,
       currentChunkRange: job.currentChunkRange,
       pyqsFoundSoFar: job.extractedPyqs.length,
-      extractedPyqs: job.status === 'done' ? job.extractedPyqs : undefined,
-      error: job.error
+      extractedPyqs: job.status === "done" ? job.extractedPyqs : undefined,
+      error: job.error,
     });
   } catch (err) {
-    console.error('Error fetching PYQ extraction job status:', err);
-    res.status(500).json({ error: 'Server error fetching job status' });
+    console.error("Error fetching PYQ extraction job status:", err);
+    res.status(500).json({ error: "Server error fetching job status" });
   }
 };
 
@@ -444,13 +523,13 @@ export const processPyqExtractionJob = async (jobId) => {
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      throw new Error('Gemini API key is not configured in backend .env');
+    if (!apiKey || apiKey === "your_gemini_api_key_here") {
+      throw new Error("Gemini API key is not configured in backend .env");
     }
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: GEMINI_MODEL,
-      generationConfig: { responseMimeType: 'application/json' }
+      generationConfig: { responseMimeType: "application/json" },
     });
 
     const pdfBytes = await fs.readFile(job.sourceFilePath);
@@ -458,40 +537,53 @@ export const processPyqExtractionJob = async (jobId) => {
     const totalPages = pdfDoc.getPageCount();
 
     job.totalPages = totalPages;
-    job.status = 'extracting_pyqs';
+    job.status = "extracting_pyqs";
     job.totalChunks = Math.ceil(totalPages / CHUNK_SIZE);
     await job.save();
 
-    const topicListForPrompt = job.topicNames.map((n, i) => `${i + 1}. ${n}`).join('\n');
+    const topicListForPrompt = job.topicNames
+      .map((n, i) => `${i + 1}. ${n}`)
+      .join("\n");
 
     const allPyqs = [];
     // Dedup key is pageNumber + normalized questionText, NOT pageNumber alone - a PYQ
     // compilation can legitimately have multiple distinct questions on one page (unlike the
     // answer-booklet extraction above, where at most one new question starts per page).
     const seenKeys = new Set();
-    const normalizeForDedup = (text) => text.trim().toLowerCase().replace(/\s+/g, ' ');
+    const normalizeForDedup = (text) =>
+      text.trim().toLowerCase().replace(/\s+/g, " ");
 
     let chunkIndex = 0;
     for (let startPage = 1; startPage <= totalPages; startPage += CHUNK_SIZE) {
       chunkIndex += 1;
       const endPage = Math.min(startPage + CHUNK_SIZE - 1, totalPages);
-      const effectiveStartPage = startPage === 1 ? 1 : Math.max(1, startPage - CHUNK_OVERLAP);
-      const overlapPageCount = startPage === 1 ? 0 : startPage - effectiveStartPage;
+      const effectiveStartPage =
+        startPage === 1 ? 1 : Math.max(1, startPage - CHUNK_OVERLAP);
+      const overlapPageCount =
+        startPage === 1 ? 0 : startPage - effectiveStartPage;
 
       job.currentChunkRange = `pages ${effectiveStartPage}-${endPage}`;
       await job.save();
 
-      const chunkBase64 = await makeChunkPdfBase64(pdfDoc, effectiveStartPage - 1, endPage - 1);
-      const pdfPart = { inlineData: { data: chunkBase64, mimeType: 'application/pdf' } };
+      const chunkBase64 = await makeChunkPdfBase64(
+        pdfDoc,
+        effectiveStartPage - 1,
+        endPage - 1,
+      );
+      const pdfPart = {
+        inlineData: { data: chunkBase64, mimeType: "application/pdf" },
+      };
 
       const pyqPrompt = `
 You are analyzing pages ${effectiveStartPage} to ${endPage} of a much larger compiled "Previous Year Questions" (PYQ) PDF spanning many exam years (this chunk is NOT the whole document).
 
 This PDF is a plain compilation of exam questions as printed across years - it is NOT an answer-copy, there is no handwriting to ignore. Multiple distinct questions can appear on the SAME page (e.g. a page may list several years' questions on one topic, or several questions from one year). Extract EVERY distinct question you find, individually.
 
-${overlapPageCount > 0
-  ? `The first ${overlapPageCount} pages of this chunk (absolute pages ${effectiveStartPage}-${startPage - 1}) are OVERLAP pages already analyzed in the previous chunk. Still extract every question on them (duplicates will be removed downstream automatically) - do not skip them.`
-  : 'This is the first chunk of the document, starting at page 1.'}
+${
+  overlapPageCount > 0
+    ? `The first ${overlapPageCount} pages of this chunk (absolute pages ${effectiveStartPage}-${startPage - 1}) are OVERLAP pages already analyzed in the previous chunk. Still extract every question on them (duplicates will be removed downstream automatically) - do not skip them.`
+    : "This is the first chunk of the document, starting at page 1."
+}
 
 For each distinct question found, extract:
 1. "year": the 4-digit exam year printed for that question (e.g. from a header like "UPSC 2014" or "(2009)"). If no year is identifiable for a question, omit that question entirely - do not guess.
@@ -512,18 +604,30 @@ If no questions are found in this chunk, return an empty array.
       let chunkSucceeded = false;
       let quotaExceeded = false;
       try {
-        const responseText = await callGeminiWithRetry(model, pyqPrompt, pdfPart);
+        const responseText = await callGeminiWithRetry(
+          model,
+          pyqPrompt,
+          pdfPart,
+        );
         const parsed = JSON.parse(responseText.trim());
         if (Array.isArray(parsed)) {
-          chunkPyqs = parsed.filter((q) =>
-            q && q.questionText && Number.isFinite(Number(q.pageNumber)) && Number.isFinite(Number(q.year)) &&
-            Number(q.pageNumber) >= effectiveStartPage && Number(q.pageNumber) <= endPage
+          chunkPyqs = parsed.filter(
+            (q) =>
+              q &&
+              q.questionText &&
+              Number.isFinite(Number(q.pageNumber)) &&
+              Number.isFinite(Number(q.year)) &&
+              Number(q.pageNumber) >= effectiveStartPage &&
+              Number(q.pageNumber) <= endPage,
           );
         }
         chunkSucceeded = true;
       } catch (err) {
         const message = err.message || String(err);
-        console.error(`[PyqExtractionJob ${jobId}] Chunk ${chunkIndex} (pages ${effectiveStartPage}-${endPage}) failed:`, message);
+        console.error(
+          `[PyqExtractionJob ${jobId}] Chunk ${chunkIndex} (pages ${effectiveStartPage}-${endPage}) failed:`,
+          message,
+        );
         quotaExceeded = /quota|429|too many requests/i.test(message);
         job.chunksFailed += 1;
         job.failedChunkRanges.push(`pages ${effectiveStartPage}-${endPage}`);
@@ -546,7 +650,10 @@ If no questions are found in this chunk, return an empty array.
         // Always carry a real topic, even on the rare occasion Gemini ignores the
         // "never null" instruction or hallucinates a name outside the given list -
         // fall back to the first topic in the vocabulary rather than leaving it unclassified.
-        const suggestedTag = q.suggestedTag && job.topicNames.includes(q.suggestedTag) ? q.suggestedTag : job.topicNames[0];
+        const suggestedTag =
+          q.suggestedTag && job.topicNames.includes(q.suggestedTag)
+            ? q.suggestedTag
+            : job.topicNames[0];
         allPyqs.push({ pageNumber: pageNum, year, questionText, suggestedTag });
       }
 
@@ -556,7 +663,7 @@ If no questions are found in this chunk, return an empty array.
       await job.save();
 
       if (quotaExceeded) {
-        job.status = 'error';
+        job.status = "error";
         await job.save();
         break;
       }
@@ -566,15 +673,15 @@ If no questions are found in this chunk, return an empty array.
       }
     }
 
-    if (job.status !== 'error') {
-      job.status = 'done';
-      job.currentChunkRange = '';
+    if (job.status !== "error") {
+      job.status = "done";
+      job.currentChunkRange = "";
       await job.save();
     }
   } catch (err) {
     console.error(`[PyqExtractionJob ${jobId}] Fatal error:`, err);
-    job.status = 'error';
-    job.error = err.message || 'PYQ extraction failed';
+    job.status = "error";
+    job.error = err.message || "PYQ extraction failed";
     await job.save();
   } finally {
     if (job.sourceFilePath) {
@@ -591,19 +698,23 @@ export const bulkCreatePyqs = async (req, res) => {
   if (!admin) return;
 
   const { courseId, fileIndex, pyqs } = req.body;
-  if (!courseId) return res.status(400).json({ error: 'courseId is required' });
+  if (!courseId) return res.status(400).json({ error: "courseId is required" });
   if (!Array.isArray(pyqs) || pyqs.length === 0) {
-    return res.status(400).json({ error: 'pyqs array is required and must be non-empty' });
+    return res
+      .status(400)
+      .json({ error: "pyqs array is required and must be non-empty" });
   }
 
   try {
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (!course) return res.status(404).json({ error: "Course not found" });
 
     const fileIdxNum = Number(fileIndex) || 0;
     const fileCount = course.fileUrls?.length > 0 ? course.fileUrls.length : 1;
     if (fileIdxNum < 0 || fileIdxNum >= fileCount) {
-      return res.status(400).json({ error: 'Invalid fileIndex for this course' });
+      return res
+        .status(400)
+        .json({ error: "Invalid fileIndex for this course" });
     }
 
     const skippedRows = [];
@@ -611,13 +722,29 @@ export const bulkCreatePyqs = async (req, res) => {
     for (let i = 0; i < pyqs.length; i++) {
       const row = pyqs[i];
       const rowNum = i + 1;
-      const questionText = (row.questionText || '').trim();
+      const questionText = (row.questionText || "").trim();
       const year = Number(row.year);
-      const section = (row.section || '').trim();
+      const section = (row.section || "").trim();
 
-      if (!questionText) { skippedRows.push({ row: rowNum, reason: 'Missing question text' }); continue; }
-      if (!Number.isFinite(year) || year < PYQ_MIN_YEAR || year > PYQ_MAX_YEAR) { skippedRows.push({ row: rowNum, reason: `Missing or out-of-range year (must be ${PYQ_MIN_YEAR}-${PYQ_MAX_YEAR})` }); continue; }
-      if (!section) { skippedRows.push({ row: rowNum, reason: 'Missing tag/section' }); continue; }
+      if (!questionText) {
+        skippedRows.push({ row: rowNum, reason: "Missing question text" });
+        continue;
+      }
+      if (
+        !Number.isFinite(year) ||
+        year < PYQ_MIN_YEAR ||
+        year > PYQ_MAX_YEAR
+      ) {
+        skippedRows.push({
+          row: rowNum,
+          reason: `Missing or out-of-range year (must be ${PYQ_MIN_YEAR}-${PYQ_MAX_YEAR})`,
+        });
+        continue;
+      }
+      if (!section) {
+        skippedRows.push({ row: rowNum, reason: "Missing tag/section" });
+        continue;
+      }
 
       docs.push({
         questionText,
@@ -625,7 +752,7 @@ export const bulkCreatePyqs = async (req, res) => {
         course: course._id,
         fileIndex: fileIdxNum,
         section,
-        year
+        year,
       });
     }
 
@@ -634,10 +761,10 @@ export const bulkCreatePyqs = async (req, res) => {
     res.json({
       message: `Added ${inserted.length} new PYQ(s).`,
       insertedCount: inserted.length,
-      skippedRows
+      skippedRows,
     });
   } catch (err) {
-    console.error('Error bulk-creating PYQs:', err);
-    res.status(500).json({ error: err.message || 'Server error saving PYQs' });
+    console.error("Error bulk-creating PYQs:", err);
+    res.status(500).json({ error: err.message || "Server error saving PYQs" });
   }
 };
