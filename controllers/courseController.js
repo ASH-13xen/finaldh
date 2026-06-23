@@ -250,7 +250,7 @@ export const uploadCourse = async (req, res) => {
 // Update an existing course
 export const updateCourse = async (req, res) => {
   const { id } = req.params;
-  const { courseId, name, subject, price, discountedPrice, useDiscount, discountLimitTag } = req.body;
+  const { courseId, name, subject, price, discountedPrice, useDiscount, discountLimitTag, progressEnabled } = req.body;
   const files = req.files || [];
 
   try {
@@ -273,6 +273,7 @@ export const updateCourse = async (req, res) => {
     if (discountedPrice !== undefined) course.discountedPrice = Number(discountedPrice);
     if (useDiscount !== undefined) course.useDiscount = useDiscount === 'true' || useDiscount === true;
     if (discountLimitTag !== undefined) course.discountLimitTag = discountLimitTag === 'true' || discountLimitTag === true;
+    if (progressEnabled !== undefined) course.progressEnabled = progressEnabled === 'true' || progressEnabled === true;
 
     let filesConfig = [];
     if (req.body.filesConfig) {

@@ -15,7 +15,8 @@ const courseSchema = new mongoose.Schema({
   discountLimitTag: { type: Boolean, default: false },
   sampleFileUrl: { type: String, default: '' },
   sampleFileName: { type: String, default: '' },
-  samplePageCount: { type: Number, default: 0 }
+  samplePageCount: { type: Number, default: 0 },
+  progressEnabled: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model('Course', courseSchema);

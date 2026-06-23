@@ -16,7 +16,7 @@ const isAdminEmail = (email) => {
     .includes((email || '').toLowerCase());
 };
 
-const requireAdmin = async (req, res) => {
+export const requireAdmin = async (req, res) => {
   const user = await User.findById(req.userId);
   if (!user || !isAdminEmail(user.email)) {
     res.status(403).json({ error: 'Access denied: Admin only' });
@@ -25,9 +25,10 @@ const requireAdmin = async (req, res) => {
   return user;
 };
 
-// Admin, or has this course in purchasedCourses/interestedCourses.
+// Admin, or (course has Progress enabled AND user has it in purchasedCourses/interestedCourses).
 const hasCourseAccess = (user, course) => {
   if (isAdminEmail(user.email)) return true;
+  if (!course.progressEnabled) return false;
   const hasPurchased = user.purchasedCourses.some(id => id.toString() === course._id.toString());
   const hasInterest = user.interestedCourses.some(cId => cId.toLowerCase() === course.courseId.toLowerCase());
   return hasPurchased || hasInterest;
@@ -69,6 +70,88 @@ const parseCsvBuffer = (buffer) => {
 
 // ================= Admin: Topic/Question CSV upload (additive/upsert) =================
 
+// Shared additive/upsert logic — used by BOTH the CSV upload path and the Gemini-extraction
+// commit path (extractionController.js). Finds-or-creates Topics by name within
+// (course, fileIndex); always inserts new Questions (never updates/dedups existing ones).
+// rows: [{ topicName, questionText, pageNumber, tag }]
+export const upsertTopicsAndQuestions = async (course, fileIndex, rows) => {
+  const existingTopics = await Topic.find({ course: course._id, fileIndex }).sort({ order: 1 });
+  const topicByName = new Map();
+  let maxTopicOrder = 0;
+  for (const t of existingTopics) {
+    topicByName.set(t.name.toLowerCase(), { _id: t._id, order: t.order });
+    if (t.order > maxTopicOrder) maxTopicOrder = t.order;
+  }
+
+  const existingQuestions = await ProgressQuestion.find({ course: course._id, fileIndex });
+  const maxQuestionOrderByTopic = new Map();
+  for (const q of existingQuestions) {
+    const key = q.topic.toString();
+    maxQuestionOrderByTopic.set(key, Math.max(maxQuestionOrderByTopic.get(key) || 0, q.order));
+  }
+
+  const newTopicDocs = [];
+  const questionDocs = [];
+  const skippedRows = [];
+  const touchedTopicKeys = new Set();
+  let newTopicsCount = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 1;
+
+    const topicName = (row.topicName || '').trim();
+    if (!topicName) {
+      skippedRows.push({ row: rowNum, reason: 'Missing topic name' });
+      continue;
+    }
+    if (!row.questionText || !row.questionText.trim()) {
+      skippedRows.push({ row: rowNum, reason: 'Missing question text' });
+      continue;
+    }
+    const pageNum = Number(row.pageNumber);
+    if (!row.pageNumber || isNaN(pageNum) || pageNum <= 0) {
+      skippedRows.push({ row: rowNum, reason: 'Missing or invalid page number' });
+      continue;
+    }
+
+    const nameKey = topicName.toLowerCase();
+    let topicRef = topicByName.get(nameKey);
+    if (!topicRef) {
+      maxTopicOrder += 1;
+      topicRef = { _id: new mongoose.Types.ObjectId(), order: maxTopicOrder };
+      topicByName.set(nameKey, topicRef);
+      newTopicDocs.push({ _id: topicRef._id, course: course._id, fileIndex, name: topicName, order: topicRef.order });
+      newTopicsCount += 1;
+    }
+    touchedTopicKeys.add(topicRef._id.toString());
+
+    const topicKey = topicRef._id.toString();
+    const nextOrder = (maxQuestionOrderByTopic.get(topicKey) || 0) + 1;
+    maxQuestionOrderByTopic.set(topicKey, nextOrder);
+
+    questionDocs.push({
+      topic: topicRef._id,
+      course: course._id,
+      fileIndex,
+      questionText: row.questionText.trim(),
+      tag: (row.tag || '').trim(),
+      pageNumber: pageNum,
+      order: nextOrder
+    });
+  }
+
+  if (newTopicDocs.length > 0) await Topic.insertMany(newTopicDocs);
+  const insertedQuestions = questionDocs.length > 0 ? await ProgressQuestion.insertMany(questionDocs) : [];
+
+  return {
+    insertedCount: insertedQuestions.length,
+    newTopicsCount,
+    touchedTopicCount: touchedTopicKeys.size,
+    skippedRows
+  };
+};
+
 export const uploadTopicQuestionsCsv = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -93,80 +176,16 @@ export const uploadTopicQuestionsCsv = async (req, res) => {
       return res.status(400).json({ error: 'CSV file is empty or could not be parsed' });
     }
 
-    // Seed the find-or-create map from topics that already exist for this course+fileIndex.
-    const existingTopics = await Topic.find({ course: course._id, fileIndex }).sort({ order: 1 });
-    const topicByName = new Map();
-    let maxTopicOrder = 0;
-    for (const t of existingTopics) {
-      topicByName.set(t.name.toLowerCase(), { _id: t._id, order: t.order });
-      if (t.order > maxTopicOrder) maxTopicOrder = t.order;
-    }
-
-    const existingQuestions = await ProgressQuestion.find({ course: course._id, fileIndex });
-    const maxQuestionOrderByTopic = new Map();
-    for (const q of existingQuestions) {
-      const key = q.topic.toString();
-      maxQuestionOrderByTopic.set(key, Math.max(maxQuestionOrderByTopic.get(key) || 0, q.order));
-    }
-
-    const newTopicDocs = [];
-    const questionDocs = [];
-    const skippedRows = [];
-    const touchedTopicKeys = new Set();
-    let newTopicsCount = 0;
-
-    for (let i = 0; i < records.length; i++) {
-      const row = mapRecord(records[i], TOPIC_QUESTION_FIELD_ALIASES);
-      const rowNum = i + 2;
-
-      const topicName = (row.topicName || '').trim();
-      if (!topicName) {
-        skippedRows.push({ row: rowNum, reason: 'Missing topic name' });
-        continue;
-      }
-      if (!row.questionText || !row.questionText.trim()) {
-        skippedRows.push({ row: rowNum, reason: 'Missing question text' });
-        continue;
-      }
-      const pageNum = Number(row.pageNumber);
-      if (!row.pageNumber || isNaN(pageNum) || pageNum <= 0) {
-        skippedRows.push({ row: rowNum, reason: 'Missing or invalid page number' });
-        continue;
-      }
-
-      const nameKey = topicName.toLowerCase();
-      let topicRef = topicByName.get(nameKey);
-      if (!topicRef) {
-        maxTopicOrder += 1;
-        topicRef = { _id: new mongoose.Types.ObjectId(), order: maxTopicOrder };
-        topicByName.set(nameKey, topicRef);
-        newTopicDocs.push({ _id: topicRef._id, course: course._id, fileIndex, name: topicName, order: topicRef.order });
-        newTopicsCount += 1;
-      }
-      touchedTopicKeys.add(topicRef._id.toString());
-
-      const topicKey = topicRef._id.toString();
-      const nextOrder = (maxQuestionOrderByTopic.get(topicKey) || 0) + 1;
-      maxQuestionOrderByTopic.set(topicKey, nextOrder);
-
-      questionDocs.push({
-        topic: topicRef._id,
-        course: course._id,
-        fileIndex,
-        questionText: row.questionText.trim(),
-        tag: (row.tag || '').trim(),
-        pageNumber: pageNum,
-        order: nextOrder
-      });
-    }
-
-    if (newTopicDocs.length > 0) await Topic.insertMany(newTopicDocs);
-    const insertedQuestions = questionDocs.length > 0 ? await ProgressQuestion.insertMany(questionDocs) : [];
+    const rows = records.map((record) => mapRecord(record, TOPIC_QUESTION_FIELD_ALIASES));
+    const result = await upsertTopicsAndQuestions(course, fileIndex, rows);
+    // Shift skipped-row numbers by 1 so they still refer to spreadsheet row numbers
+    // (row 1 = CSV header), matching this endpoint's original row-numbering behavior.
+    const skippedRows = result.skippedRows.map((s) => ({ ...s, row: s.row + 1 }));
 
     res.json({
-      message: `Added ${insertedQuestions.length} new question(s) across ${touchedTopicKeys.size} topic(s) (${newTopicsCount} new topic(s) created).`,
-      insertedCount: insertedQuestions.length,
-      newTopicsCount,
+      message: `Added ${result.insertedCount} new question(s) across ${result.touchedTopicCount} topic(s) (${result.newTopicsCount} new topic(s) created).`,
+      insertedCount: result.insertedCount,
+      newTopicsCount: result.newTopicsCount,
       skippedRows
     });
   } catch (err) {
@@ -376,8 +395,22 @@ export const listProgressPyqsAdmin = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
   try {
-    const { subject } = req.query;
-    const filter = subject ? { subject } : {};
+    const { subject, courseId, fileIndex } = req.query;
+    let filter = {};
+    if (courseId) {
+      const course = await Course.findById(courseId);
+      const fileIdxNum = Number(fileIndex) || 0;
+      // Include legacy subject-only rows (course: null) so admins still see/manage
+      // pre-existing CSV-uploaded PYQs after switching this view to course+file scoping.
+      filter = {
+        $or: [
+          { course: courseId, fileIndex: fileIdxNum },
+          { course: null, subject: course?.subject }
+        ]
+      };
+    } else if (subject) {
+      filter.subject = subject;
+    }
     const pyqs = await ProgressPyq.find(filter).sort({ year: -1 });
     res.json({ pyqs });
   } catch (err) {
@@ -396,6 +429,72 @@ export const deleteProgressPyq = async (req, res) => {
   } catch (err) {
     console.error('Error deleting PYQ:', err);
     res.status(500).json({ error: 'Server error deleting PYQ' });
+  }
+};
+
+// ================= Admin: course+file combos that already have progress data =================
+
+// Returns, for every Course, which fileIndex values have at least one Topic
+// (Topics are only created once a question is upserted into them, so Topic
+// existence is equivalent to "has progress data uploaded" for that course+file).
+// Used to scope the PYQ-extraction course/file picker to courses that already
+// have a Topic taxonomy to tag extracted PYQs against.
+export const listProgressEnabledCourses = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const distinctPairs = await Topic.aggregate([
+      { $group: { _id: { course: '$course', fileIndex: '$fileIndex' } } }
+    ]);
+    const fileIndexesByCourse = new Map();
+    for (const row of distinctPairs) {
+      const courseId = row._id.course.toString();
+      if (!fileIndexesByCourse.has(courseId)) fileIndexesByCourse.set(courseId, new Set());
+      fileIndexesByCourse.get(courseId).add(row._id.fileIndex);
+    }
+
+    const courseIds = Array.from(fileIndexesByCourse.keys());
+    const courses = await Course.find({ _id: { $in: courseIds } });
+
+    const result = courses.map((c) => ({
+      _id: c._id,
+      name: c.name,
+      subject: c.subject,
+      fileUrls: c.fileUrls,
+      fileNames: c.fileNames,
+      progressFileIndexes: Array.from(fileIndexesByCourse.get(c._id.toString())).sort((a, b) => a - b)
+    }));
+
+    res.json({ courses: result });
+  } catch (err) {
+    console.error('Error listing progress-enabled courses:', err);
+    res.status(500).json({ error: 'Server error listing progress-enabled courses' });
+  }
+};
+
+// ================= Student: list Progress-enabled courses (locked if not purchased) =================
+
+export const listVisibleCourses = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const courses = await Course.find({ progressEnabled: true }).sort({ createdAt: -1 });
+    const result = courses.map((c) => ({
+      _id: c._id,
+      name: c.name,
+      subject: c.subject,
+      fileUrl: c.fileUrl,
+      fileUrls: c.fileUrls,
+      fileNames: c.fileNames,
+      fileName: c.fileName,
+      unlocked: hasCourseAccess(user, c)
+    }));
+
+    res.json({ courses: result });
+  } catch (err) {
+    console.error('Error listing visible progress courses:', err);
+    res.status(500).json({ error: 'Server error listing progress courses' });
   }
 };
 
@@ -528,11 +627,26 @@ export const listFilePyqs = async (req, res) => {
       completed: true
     });
     const completedQuestionIds = new Set(completedProgress.map(p => p.question.toString()));
-    const completedTagCells = questions
-      .filter(q => completedQuestionIds.has(q._id.toString()))
-      .map(q => q.tag);
+    const completedQuestions = questions.filter(q => completedQuestionIds.has(q._id.toString()));
 
-    const pyqs = await ProgressPyq.find({ subject: course.subject });
+    // tagCells = union of each completed question's legacy free-text tag (often blank) and its
+    // Topic name (populated by default for the extraction flow) - lets PYQs tagged with a Topic
+    // name surface without requiring admins to manually re-tag every ProgressQuestion.
+    const completedTopicIds = [...new Set(completedQuestions.map(q => q.topic.toString()))];
+    const completedTopics = await Topic.find({ _id: { $in: completedTopicIds } });
+    const topicNameById = new Map(completedTopics.map(t => [t._id.toString(), t.name]));
+    const completedTagCells = completedQuestions.map(q =>
+      [q.tag, topicNameById.get(q.topic.toString())].filter(Boolean).join(';')
+    );
+
+    // course+fileIndex-scoped PYQs (new extraction flow) plus legacy subject-only rows
+    // (course: null) that pre-date this scoping, for backward compatibility.
+    const pyqs = await ProgressPyq.find({
+      $or: [
+        { course: courseId, fileIndex: fileIdxNum },
+        { course: null, subject: course.subject }
+      ]
+    });
     const matched = findMatchingPyqsForTagCells(completedTagCells, pyqs);
 
     const pyqProgress = await PyqProgress.find({
