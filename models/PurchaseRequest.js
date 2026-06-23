@@ -11,6 +11,8 @@ const purchaseRequestSchema = new mongoose.Schema({
   courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
   comboOffer: { type: mongoose.Schema.Types.ObjectId, ref: 'ComboOffer' },
   screenshotUrl: { type: String, required: true },
+  screenshotData: { type: Buffer },
+  screenshotContentType: { type: String },
   upiTxnId: { type: String },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   telegramNotificationCount: { type: Number, default: 0 },

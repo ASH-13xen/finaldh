@@ -38,11 +38,8 @@ export const createPurchaseRequest = async (req, res) => {
       }
     }
 
-    // screenshotUrl should be relative path from backend/ uploads statically served directory
-    const screenshotUrl = `/uploads/screenshots/${screenshotFile.filename}`;
-
     if (comboOfferId) {
-      return await createComboPurchaseRequest({ req, res, user, comboOfferId, screenshotUrl, cleanedTxnId });
+      return await createComboPurchaseRequest({ req, res, user, comboOfferId, screenshotFile, cleanedTxnId });
     }
 
     // Find the course by custom courseId
@@ -78,10 +75,12 @@ export const createPurchaseRequest = async (req, res) => {
       courseName: course.name,
       price: course.useDiscount ? course.discountedPrice : course.price,
       courses: [course._id],
-      screenshotUrl,
+      screenshotData: screenshotFile.buffer,
+      screenshotContentType: screenshotFile.mimetype,
       upiTxnId: cleanedTxnId || undefined,
       status: 'pending'
     });
+    newRequest.screenshotUrl = `/api/courses/purchase-requests/${newRequest._id}/screenshot`;
 
     await newRequest.save();
 
@@ -96,7 +95,7 @@ export const createPurchaseRequest = async (req, res) => {
 };
 
 // Create a new purchase request for a combo offer (multiple courses, one flat price)
-const createComboPurchaseRequest = async ({ req, res, user, comboOfferId, screenshotUrl, cleanedTxnId }) => {
+const createComboPurchaseRequest = async ({ req, res, user, comboOfferId, screenshotFile, cleanedTxnId }) => {
   const comboOffer = await ComboOffer.findById(comboOfferId);
   if (!comboOffer || !comboOffer.active) {
     return res.status(404).json({ error: 'Combo offer not found' });
@@ -155,10 +154,12 @@ const createComboPurchaseRequest = async ({ req, res, user, comboOfferId, screen
     price: comboOffer.price,
     courses: courseDocs.map((c) => c._id),
     comboOffer: comboOffer._id,
-    screenshotUrl,
+    screenshotData: screenshotFile.buffer,
+    screenshotContentType: screenshotFile.mimetype,
     upiTxnId: cleanedTxnId || undefined,
     status: 'pending'
   });
+  newRequest.screenshotUrl = `/api/courses/purchase-requests/${newRequest._id}/screenshot`;
 
   await newRequest.save();
 
@@ -203,6 +204,37 @@ export const getAdminPurchaseRequests = async (req, res) => {
   } catch (err) {
     console.error('Error fetching admin purchase requests:', err);
     res.status(500).json({ error: 'Server error retrieving purchase requests' });
+  }
+};
+
+// Serve the payment screenshot stored in MongoDB (admin, or the student who submitted it)
+export const getPurchaseRequestScreenshot = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const request = await PurchaseRequest.findById(id).select('userId screenshotData screenshotContentType');
+    if (!request) {
+      return res.status(404).json({ error: 'Purchase request not found' });
+    }
+
+    const requester = await User.findById(req.userId);
+    if (!requester) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((requester.email || '').toLowerCase());
+    if (!isAdmin && request.userId.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!request.screenshotData) {
+      return res.status(404).json({ error: 'No screenshot stored for this request' });
+    }
+
+    res.set('Content-Type', request.screenshotContentType || 'image/jpeg');
+    res.send(request.screenshotData);
+  } catch (err) {
+    console.error('Error serving purchase request screenshot:', err);
+    res.status(500).json({ error: 'Server error retrieving screenshot' });
   }
 };
 

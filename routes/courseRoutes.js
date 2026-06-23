@@ -25,7 +25,8 @@ import {
   approvePurchaseRequest,
   rejectPurchaseRequest,
   trackTelegramNotification,
-  highlightPurchaseRequest
+  highlightPurchaseRequest,
+  getPurchaseRequestScreenshot
 } from '../controllers/purchaseController.js';
 import {
   listActiveComboOffers,
@@ -84,31 +85,18 @@ router.get('/:id/sample', getCourseSamplePdf); // public — no auth, marketing 
 // GitHub Actions callback webhook
 router.post('/github-callback', githubCallback);
 
-// Setup screenshots directory
-const screenshotsDir = 'uploads/screenshots';
-if (!fs.existsSync(screenshotsDir)) {
-  fs.mkdirSync(screenshotsDir, { recursive: true });
-}
-
-// Multer storage for payment screenshot uploads
-const screenshotStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, screenshotsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'ss-' + uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
-  }
-});
-
+// Payment screenshots are stored directly in MongoDB (PurchaseRequest.screenshotData) rather than
+// on local disk, since the local uploads/ directory doesn't persist across deploys/restarts on most
+// hosts — that was causing "Image Unavailable" for older requests once the underlying file was gone.
 const uploadScreenshot = multer({
-  storage: screenshotStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // UPI Course purchase endpoints
 router.post('/purchase-request', authenticateToken, uploadScreenshot.single('screenshot'), createPurchaseRequest);
 router.get('/purchase-requests', authenticateToken, getStudentPurchaseRequests);
+router.get('/purchase-requests/:id/screenshot', authenticateToken, getPurchaseRequestScreenshot);
 router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackTelegramNotification);
 router.get('/admin/purchase-requests', authenticateToken, getAdminPurchaseRequests);
 router.post('/admin/purchase-requests/:id/approve', authenticateToken, approvePurchaseRequest);
