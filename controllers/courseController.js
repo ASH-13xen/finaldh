@@ -19,6 +19,7 @@ import { r2Client } from "../config/r2.js";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import DownloadSession from "../models/DownloadSession.js";
+import SiteContent from "../models/SiteContent.js";
 import mongoose from "mongoose";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -2434,4 +2435,46 @@ export const githubCallback = async (req, res) => {
   }
 
   res.json({ status: "ok" });
+};
+
+// Retrieve a piece of admin-editable site text by key (public — shown to guests too)
+export const getSiteContent = async (req, res) => {
+  const { key } = req.params;
+  try {
+    const doc = await SiteContent.findOne({ key });
+    res.json({ key, value: doc?.value || "" });
+  } catch (err) {
+    console.error("Error fetching site content:", err);
+    res.status(500).json({ error: "Server error fetching site content" });
+  }
+};
+
+// Update a piece of admin-editable site text by key (Admin only)
+export const updateSiteContent = async (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const isAdmin = [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2]
+      .filter(Boolean)
+      .map((e) => e.toLowerCase())
+      .includes((user.email || "").toLowerCase());
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied: Admin only" });
+    }
+
+    const doc = await SiteContent.findOneAndUpdate(
+      { key },
+      { value: value || "" },
+      { upsert: true, new: true },
+    );
+    res.json({ key, value: doc.value });
+  } catch (err) {
+    console.error("Error updating site content:", err);
+    res.status(500).json({ error: "Server error updating site content" });
+  }
 };

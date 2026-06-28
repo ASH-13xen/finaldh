@@ -16,7 +16,9 @@ import {
   githubCallback,
   uploadCourseSample,
   removeCourseSample,
-  getCourseSamplePdf
+  getCourseSamplePdf,
+  getSiteContent,
+  updateSiteContent
 } from '../controllers/courseController.js';
 import {
   createPurchaseRequest,
@@ -84,6 +86,11 @@ router.get('/:id/sample', getCourseSamplePdf); // public — no auth, marketing 
 
 // GitHub Actions callback webhook
 router.post('/github-callback', githubCallback);
+
+// Admin-editable site text snippets (e.g. the common "Optional Subjects" description
+// shown on the Purchase Courses page) — public read, admin-only write
+router.get('/site-content/:key', getSiteContent);
+router.put('/site-content/:key', authenticateToken, updateSiteContent);
 
 // Payment screenshots are stored directly in MongoDB (PurchaseRequest.screenshotData) rather than
 // on local disk, since the local uploads/ directory doesn't persist across deploys/restarts on most
