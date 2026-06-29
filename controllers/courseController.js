@@ -163,6 +163,7 @@ export const uploadCourse = async (req, res) => {
     discountedPrice,
     useDiscount,
     discountLimitTag,
+    telegramGroupLink,
   } = req.body;
   const files = req.files || [];
 
@@ -287,6 +288,7 @@ export const uploadCourse = async (req, res) => {
       useDiscount: useDiscount === "true" || useDiscount === true,
       discountLimitTag:
         discountLimitTag === "true" || discountLimitTag === true,
+      telegramGroupLink: telegramGroupLink ? telegramGroupLink.trim() : "",
     });
 
     res.json({
@@ -326,6 +328,7 @@ export const updateCourse = async (req, res) => {
     useDiscount,
     discountLimitTag,
     progressEnabled,
+    telegramGroupLink,
   } = req.body;
   const files = req.files || [];
 
@@ -358,6 +361,8 @@ export const updateCourse = async (req, res) => {
     if (progressEnabled !== undefined)
       course.progressEnabled =
         progressEnabled === "true" || progressEnabled === true;
+    if (telegramGroupLink !== undefined)
+      course.telegramGroupLink = telegramGroupLink.trim();
 
     let filesConfig = [];
     if (req.body.filesConfig) {
@@ -1154,24 +1159,43 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     if (mode === "github-actions") {
       const destinationKey = `secured-${req.userId}-${courseId}${course.fileUrls && course.fileUrls.length > 1 ? `_${fileIndex}` : ""}.pdf`;
-      // If it doesn't exist, check if there's already an active job in progress
-      const activeJob = await DownloadSession.findOne({
-        userId: req.userId,
-        courseId: compositeCourseId,
-      });
-      if (
-        activeJob &&
-        (activeJob.status === "queued" || activeJob.status === "processing")
-      ) {
-        console.log(
-          `[PDF Security] Job is already running. Database value:`,
-          activeJob,
+
+      // Atomically claim this download slot before doing any work. A plain
+      // "find, then later mark queued" sequence leaves a race window (the GitHub
+      // dispatch call below can take a noticeable amount of time) where two
+      // near-simultaneous requests for the same user+file (double-click, two
+      // tabs, a retry) can both see "no active job" and both increment the
+      // download count. The unique {userId, courseId} index on DownloadSession
+      // turns this into a single atomic compare-and-swap: only one concurrent
+      // request can win the update to "queued"; the other gets a duplicate-key
+      // error and is treated exactly like the old "job already running" case.
+      try {
+        await DownloadSession.findOneAndUpdate(
+          {
+            userId: req.userId,
+            courseId: compositeCourseId,
+            status: { $nin: ["queued", "processing"] },
+          },
+          { $set: { step: 1, status: "queued", error: null } },
+          { upsert: true, new: true },
         );
-        return res.status(202).json({
-          status: "processing",
-          message: "PDF generation is currently in progress",
-          step: activeJob.step || 1,
-        });
+      } catch (claimErr) {
+        if (claimErr.code === 11000) {
+          const existing = await DownloadSession.findOne({
+            userId: req.userId,
+            courseId: compositeCourseId,
+          });
+          console.log(
+            `[PDF Security] Job is already running. Database value:`,
+            existing,
+          );
+          return res.status(202).json({
+            status: "processing",
+            message: "PDF generation is currently in progress",
+            step: existing?.step || 1,
+          });
+        }
+        throw claimErr;
       }
 
       // Pre-emptively track and update download limit in database since we are starting generation
@@ -1265,7 +1289,6 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           );
         }
 
-        await setSessionProgress(req.userId, compositeCourseId, 1, "queued");
         dispatched = true;
         console.log(
           `[PDF Security] Successfully dispatched GitHub workflow run`,
@@ -1293,6 +1316,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
             }
           }
         }
+        // Release the claimed session so a retry isn't permanently blocked by
+        // the atomic claim above thinking a job is still queued/processing.
+        await setSessionProgress(
+          req.userId,
+          compositeCourseId,
+          0,
+          "failed",
+          dispatchErr.message,
+        );
         return res
           .status(500)
           .json({
@@ -1977,10 +2009,12 @@ const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
   currentY -= 20;
 
   const warningParagraphs = [
-    "1. This textbook / e-book is a licensed publication of The Dark Horse UPSC. It is registered exclusively to the user specified in the registration details above. This copy is authorized only for their personal educational use.",
+    "1. LICENSED USE",
+    "This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
     "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
     "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
-    "4. LEGAL CONSEQUENCES: Sharing or distributing this material constitutes intellectual property theft and copyright infringement. Violations will result in immediate termination of account access without refund and legal prosecution under the Indian Copyright Act, 1957.",
+    "4. LEGAL CONSEQUENCES",
+    "Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
   ];
 
   warningParagraphs.forEach((p) => {

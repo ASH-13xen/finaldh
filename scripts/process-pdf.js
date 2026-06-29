@@ -182,10 +182,12 @@ const drawSecurityWarningPage = (page, user, font, boldFont) => {
   currentY -= 20;
 
   const warningParagraphs = [
-    "1. This textbook / e-book is a licensed publication of The Dark Horse UPSC. It is registered exclusively to the user specified in the registration details above. This copy is authorized only for their personal educational use.",
+    "1. LICENSED USE",
+    "This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
     "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
     "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
-    "4. LEGAL CONSEQUENCES: Sharing or distributing this material constitutes intellectual property theft and copyright infringement. Violations will result in immediate termination of account access without refund and legal prosecution under the Indian Copyright Act, 1957."
+    "4. LEGAL CONSEQUENCES",
+    "Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
   ];
 
   warningParagraphs.forEach(p => {

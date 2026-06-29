@@ -16,7 +16,8 @@ const courseSchema = new mongoose.Schema({
   sampleFileUrl: { type: String, default: '' },
   sampleFileName: { type: String, default: '' },
   samplePageCount: { type: Number, default: 0 },
-  progressEnabled: { type: Boolean, default: false }
+  progressEnabled: { type: Boolean, default: false },
+  telegramGroupLink: { type: String, default: '' }
 }, { timestamps: true });
 
 export default mongoose.model('Course', courseSchema);
