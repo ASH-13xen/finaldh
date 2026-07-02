@@ -1094,6 +1094,22 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         getResponse.Body.pipe(res);
         return;
       }
+
+      // A real (non-checkOnly) request must never silently kick off a fresh
+      // generation cycle — that's only ever supposed to happen from the
+      // checkOnly probe below. If we got here with nothing to stream, either
+      // nothing was started yet, or (e.g. a duplicate poll/double-click firing
+      // two native-download triggers) another request already consumed the
+      // finished file. Either way, tell the caller to restart the
+      // check-then-poll flow instead of quietly starting (and charging for)
+      // another full generation run.
+      console.log(
+        `[PDF Security] Real download request found no completed generation ready for user: ${req.userId}, courseId: ${compositeCourseId}. Not starting a new one.`,
+      );
+      return res.status(409).json({
+        error:
+          "No completed generation found for this download. Please try downloading again.",
+      });
     }
 
     // Step 4 starts only if not checkOnly
