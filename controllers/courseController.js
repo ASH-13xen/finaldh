@@ -952,8 +952,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         ? `${courseId}_${fileIndex}`
         : courseId;
 
+    // A real (non-checkOnly) github-actions request only ever exists to
+    // consume an already-completed generation (see the completedSession check
+    // below) — nothing polls its progress, so these step markers would only
+    // serve to stomp the "completed" status this same request is about to
+    // look for. Skip them for that case; still track them for everything else.
+    const skipProgressTracking = mode === "github-actions" && checkOnly !== "true";
+
     // Initialize tracking only if not checkOnly
-    if (checkOnly !== "true") {
+    if (checkOnly !== "true" && !skipProgressTracking) {
       await setSessionProgress(req.userId, compositeCourseId, 1, "idle");
     }
 
@@ -971,12 +978,12 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     console.log(`[PDF Security] Step 1: User found (${user.email})`);
 
     // Step 2 starts only if not checkOnly
-    if (checkOnly !== "true") {
+    if (checkOnly !== "true" && !skipProgressTracking) {
       await setSessionProgress(req.userId, compositeCourseId, 2, "idle");
     }
 
     // Step 3 starts only if not checkOnly
-    if (checkOnly !== "true") {
+    if (checkOnly !== "true" && !skipProgressTracking) {
       await setSessionProgress(req.userId, compositeCourseId, 3, "idle");
     }
 
