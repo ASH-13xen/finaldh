@@ -1150,21 +1150,6 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         let finalLimitEntry = limitUser.downloadLimits.find(
           (d) => d.courseId.toLowerCase() === compositeCourseId.toLowerCase(),
         );
-        if (
-          finalLimitEntry &&
-          finalLimitEntry.downloadedCount >= finalLimitEntry.allowedCount
-        ) {
-          console.log(
-            `[PDF Security] Download limit already reached for user: ${req.userId}, courseId: ${compositeCourseId}. Refusing to start generation.`,
-          );
-          await DownloadSession.deleteOne({
-            userId: req.userId,
-            courseId: compositeCourseId,
-          }).catch(() => {});
-          return res
-            .status(403)
-            .json({ error: "Download limit reached for this course" });
-        }
         if (finalLimitEntry) {
           finalLimitEntry.downloadedCount += 1;
         } else {
@@ -1332,17 +1317,6 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       let finalLimitEntry = limitUser.downloadLimits.find(
         (d) => d.courseId.toLowerCase() === compositeCourseId.toLowerCase(),
       );
-      if (
-        finalLimitEntry &&
-        finalLimitEntry.downloadedCount >= finalLimitEntry.allowedCount
-      ) {
-        console.log(
-          `[PDF Security] Download limit already reached for user: ${req.userId}, courseId: ${compositeCourseId}. Refusing duplicate charge.`,
-        );
-        return res
-          .status(403)
-          .json({ error: "Download limit reached for this course" });
-      }
       if (finalLimitEntry) {
         finalLimitEntry.downloadedCount += 1;
       } else {
