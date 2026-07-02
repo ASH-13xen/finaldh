@@ -6,14 +6,13 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { PDFParse } = require("pdf-parse");
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, degrees } from "pdf-lib";
 import bwipjs from "bwip-js";
 import { encryptPDF } from "@pdfsmaller/pdf-encrypt-lite";
 import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
-  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { r2Client } from "../config/r2.js";
 import Course from "../models/Course.js";
@@ -934,6 +933,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   let rawPartPaths = [];
   let securedPartPaths = [];
   let creditIncremented = false;
+  let compositeCourseId = courseId;
 
   try {
     // 2. Fetch course by custom courseId
@@ -947,7 +947,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
     }
     console.log(`[PDF Security] Course found (${course.name})`);
 
-    const compositeCourseId =
+    compositeCourseId =
       course.fileUrls && course.fileUrls.length > 1
         ? `${courseId}_${fileIndex}`
         : courseId;
@@ -1009,106 +1009,29 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       return res.json({ exists: false, directStream: true });
     }
 
-    if (mode === "github-actions") {
+    if (mode === "github-actions" && checkOnly !== "true") {
+      // No caching: a secured PDF is never reused across requests. The only
+      // reason to look here is when the generation we kicked off via the
+      // checkOnly call has just finished — signaled by the DownloadSession
+      // flipping to "completed" — in which case we stream the one-time file
+      // and delete it from R2 immediately after, win or lose.
       const destinationKey = `secured-${req.userId}-${courseId}${course.fileUrls && course.fileUrls.length > 1 ? `_${fileIndex}` : ""}.pdf`;
-      console.log(
-        `[PDF Security] Checking if secured PDF already exists in R2 under key: ${destinationKey}`,
-      );
-      let fileExists = false;
-      try {
-        await r2Client.send(
-          new HeadObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: destinationKey,
-          }),
-        );
-        fileExists = true;
-        console.log(`[PDF Security] Secured PDF found in R2.`);
-      } catch (err) {
-        console.log(`[PDF Security] Secured PDF not found in R2.`);
-      }
 
-      if (fileExists) {
-        // If checkOnly is true, return that it exists so frontend can trigger native direct download redirect
-        if (checkOnly === "true") {
-          console.log(
-            `[PDF Security] checkOnly: Secured PDF exists in R2. Returning exists: true`,
-          );
-          return res.json({ exists: true });
-        }
+      const completedSession = await DownloadSession.findOne({
+        userId: req.userId,
+        courseId: compositeCourseId,
+        status: "completed",
+      });
 
-        // OTHERWISE, we stream the file.
-        // Prevent double-charging: Check if a completed DownloadSession exists for this user and course
-        let userObjectId = null;
-        try {
-          if (mongoose.Types.ObjectId.isValid(req.userId)) {
-            userObjectId = new mongoose.Types.ObjectId(req.userId);
-          }
-        } catch (err) {}
-
-        const activeSession = await DownloadSession.findOne({
-          $or: [
-            {
-              userId: req.userId,
-              courseId: compositeCourseId,
-              status: { $in: ["queued", "processing", "completed"] },
-            },
-            {
-              userId: userObjectId,
-              courseId: compositeCourseId,
-              status: { $in: ["queued", "processing", "completed"] },
-            },
-          ].filter((q) => q.userId !== null),
-        });
-
-        if (activeSession) {
-          console.log(
-            `[PDF Security] Direct Stream: Active session (${activeSession.status}) found for user: ${req.userId}, courseId: ${compositeCourseId}. Bypassing limit increment & deleting session.`,
-          );
-          // Delete active session so subsequent downloads get charged
-          await DownloadSession.deleteOne({ _id: activeSession._id }).catch(
-            (err) => {
-              console.error(
-                `[PDF Security] Error deleting active session:`,
-                err,
-              );
-            },
-          );
-        } else {
-          // Track and update download limit in database since we are streaming the file
-          const limitUser = await User.findById(req.userId);
-          if (limitUser) {
-            let finalLimitEntry = limitUser.downloadLimits.find(
-              (d) =>
-                d.courseId.toLowerCase() === compositeCourseId.toLowerCase(),
-            );
-            if (finalLimitEntry) {
-              finalLimitEntry.downloadedCount += 1;
-            } else {
-              limitUser.downloadLimits.push({
-                courseId: compositeCourseId,
-                downloadedCount: 1,
-                allowedCount: 1,
-              });
-            }
-            await limitUser.save();
-            console.log(
-              `[PDF Security] Direct Stream: Download count incremented in database`,
-            );
-          }
-        }
-
+      if (completedSession) {
         console.log(
-          `[PDF Security] Direct Stream: Fetching secured PDF from R2: ${destinationKey}`,
+          `[PDF Security] Generation complete. Streaming freshly generated PDF from R2 (one-time, not cached): ${destinationKey}`,
         );
         const getResponse = await r2Client.send(
           new GetObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: destinationKey,
           }),
-        );
-        console.log(
-          `[PDF Security] Direct Stream: Object retrieved. ContentLength: ${getResponse.ContentLength} bytes. Writing response headers.`,
         );
 
         const activeFileName =
@@ -1122,27 +1045,50 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         );
         res.setHeader("Content-Length", getResponse.ContentLength);
 
-        console.log(
-          `[PDF Security] Direct Stream: Headers written. Piping stream to client.`,
-        );
+        let cleanedUp = false;
+        const cleanupOneTimeFile = async () => {
+          if (cleanedUp) return;
+          cleanedUp = true;
+          await r2Client
+            .send(
+              new DeleteObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: destinationKey,
+              }),
+            )
+            .catch((err) =>
+              console.error(
+                `[PDF Security] Error deleting one-time R2 object:`,
+                err,
+              ),
+            );
+          await DownloadSession.deleteOne({
+            _id: completedSession._id,
+          }).catch((err) =>
+            console.error(
+              `[PDF Security] Error deleting completed session:`,
+              err,
+            ),
+          );
+        };
 
         res.on("finish", () => {
           console.log(
             `[PDF Security] Direct Stream: Successfully completed streaming secured PDF for courseId: ${compositeCourseId}`,
           );
         });
-
         res.on("close", () => {
           console.log(
             `[PDF Security] Direct Stream: Client connection closed for courseId: ${courseId}`,
           );
+          cleanupOneTimeFile();
         });
-
         res.on("error", (err) => {
           console.error(
             `[PDF Security] Direct Stream: Client response streaming error:`,
             err,
           );
+          cleanupOneTimeFile();
         });
 
         getResponse.Body.pipe(res);
@@ -1155,7 +1101,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       await setSessionProgress(req.userId, compositeCourseId, 4, "idle");
     }
 
-    console.log(`[PDF Security] Step 4: Download limit check bypassed`);
+    console.log(`[PDF Security] Step 4: Preparing to start generation`);
 
     if (mode === "github-actions") {
       const destinationKey = `secured-${req.userId}-${courseId}${course.fileUrls && course.fileUrls.length > 1 ? `_${fileIndex}` : ""}.pdf`;
@@ -1204,6 +1150,21 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         let finalLimitEntry = limitUser.downloadLimits.find(
           (d) => d.courseId.toLowerCase() === compositeCourseId.toLowerCase(),
         );
+        if (
+          finalLimitEntry &&
+          finalLimitEntry.downloadedCount >= finalLimitEntry.allowedCount
+        ) {
+          console.log(
+            `[PDF Security] Download limit already reached for user: ${req.userId}, courseId: ${compositeCourseId}. Refusing to start generation.`,
+          );
+          await DownloadSession.deleteOne({
+            userId: req.userId,
+            courseId: compositeCourseId,
+          }).catch(() => {});
+          return res
+            .status(403)
+            .json({ error: "Download limit reached for this course" });
+        }
         if (finalLimitEntry) {
           finalLimitEntry.downloadedCount += 1;
         } else {
@@ -1371,6 +1332,17 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       let finalLimitEntry = limitUser.downloadLimits.find(
         (d) => d.courseId.toLowerCase() === compositeCourseId.toLowerCase(),
       );
+      if (
+        finalLimitEntry &&
+        finalLimitEntry.downloadedCount >= finalLimitEntry.allowedCount
+      ) {
+        console.log(
+          `[PDF Security] Download limit already reached for user: ${req.userId}, courseId: ${compositeCourseId}. Refusing duplicate charge.`,
+        );
+        return res
+          .status(403)
+          .json({ error: "Download limit reached for this course" });
+      }
       if (finalLimitEntry) {
         finalLimitEntry.downloadedCount += 1;
       } else {
@@ -1562,6 +1534,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         height: barcodeHeight,
       });
 
+      drawInvisibleTracking(stampPage, user._id.toString(), helveticaFont);
+
       const stampBytes = await stampDoc.save();
       await fs.writeFile(tempStampPath, stampBytes);
 
@@ -1592,10 +1566,11 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
       await setSessionProgress(req.userId, courseId, 8, "processing");
 
-      // Determine warning page positions in global page space
-      const numPagesToAdd = Math.max(1, Math.floor(totalPages / 40));
-      const insertPositions = [];
-      for (let j = 0; j < numPagesToAdd; j++) {
+      // Determine warning page positions in global page space.
+      // The first warning page always lands exactly on page 2.
+      const numPagesToAdd = Math.max(1, Math.floor(totalPages / 50));
+      const insertPositions = [2];
+      for (let j = 1; j < numPagesToAdd; j++) {
         insertPositions.push(Math.floor(Math.random() * (totalPages + 1)) + 1);
       }
       insertPositions.sort((a, b) => a - b);
@@ -1790,6 +1765,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
             height: barcodeHeight,
           });
 
+          drawInvisibleTracking(page, user._id.toString(), helveticaFont);
+
           mergedPdfDoc.addPage(page);
           totalOriginalPages++;
         }
@@ -1798,12 +1775,13 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       if (totalOriginalPages > 0) {
         const firstPage = mergedPdfDoc.getPages()[0];
         const { width, height } = firstPage.getSize();
-        const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 40));
-        const insertIndices = [];
-        let currentPagesCount = totalOriginalPages;
-        for (let j = 0; j < numPagesToAdd; j++) {
+        const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 50));
+        // First warning page always lands exactly on page 2 (index 1).
+        const insertIndices = [1];
+        let currentPagesCount = totalOriginalPages + 1;
+        for (let j = 1; j < numPagesToAdd; j++) {
           let maxIdx = currentPagesCount;
-          let minIdx = currentPagesCount > 1 ? 1 : 0;
+          let minIdx = 2;
           insertIndices.push(
             Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx,
           );
@@ -1865,12 +1843,14 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       .json({ error: "Server error processing secured PDF download" });
   } finally {
     if (!dispatched) {
-      await DownloadSession.deleteOne({ userId: req.userId, courseId }).catch(
-        (err) =>
-          console.error(
-            `[DownloadSession] Error deleting session on cleanup:`,
-            err,
-          ),
+      await DownloadSession.deleteOne({
+        userId: req.userId,
+        courseId: compositeCourseId,
+      }).catch((err) =>
+        console.error(
+          `[DownloadSession] Error deleting session on cleanup:`,
+          err,
+        ),
       );
     }
 
@@ -1905,6 +1885,38 @@ const wrapText = (text, maxWidth, font, fontSize) => {
   }
   if (currentLine) lines.push(currentLine);
   return lines;
+};
+
+// Tiles the tracking token across the whole page at near-zero opacity. Invisible
+// at normal reading opacity, but a leaked page still reveals the token under a
+// basic contrast/levels boost (e.g. autocontrast in any image editor) — unlike
+// the visible watermark/barcode or PDF metadata, this survives cropping (it
+// covers the full page, not just the margins) and survives flattening/re-export
+// to a new PDF, since it's baked into the rendered page content itself.
+const drawInvisibleTracking = (page, token, font) => {
+  const { width, height } = page.getSize();
+  const fontSize = 6;
+  const textWidth = font.widthOfTextAtSize(token, fontSize);
+  const stepX = textWidth + 70;
+  const stepY = 45;
+  const angle = degrees(28);
+
+  let row = 0;
+  for (let y = -40; y < height + 40; y += stepY) {
+    const xOffset = (row % 2) * (stepX / 2);
+    for (let x = -80 + xOffset; x < width + 80; x += stepX) {
+      page.drawText(token, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
+        opacity: 0.025,
+        rotate: angle,
+      });
+    }
+    row++;
+  }
 };
 
 // Helper function to draw warning details on a newly inserted page
@@ -2009,12 +2021,10 @@ const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
   currentY -= 20;
 
   const warningParagraphs = [
-    "1. LICENSED USE",
-    "This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
+    "1. LICENSED USE: This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
     "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
     "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
-    "4. LEGAL CONSEQUENCES",
-    "Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
+    "4. LEGAL CONSEQUENCES: Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
   ];
 
   warningParagraphs.forEach((p) => {
@@ -2032,7 +2042,40 @@ const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
     currentY -= 6; // gap between paragraphs
   });
 
-  currentY -= 15;
+  currentY -= 10;
+
+  // Styled callout box for the tracking/enforcement note
+  const noteText =
+    "NOTE - This document is individually licensed and embedded with traceable ownership credentials, both VISIBLE and INVISIBLE based on license tracking id. Any unauthorized acquisition and distribution will result in enforcement of appropriate legal remedies, without further notice.";
+  const noteLines = wrapText(noteText, width - 150, boldFont, 8.5);
+  const noteBoxPadding = 10;
+  const noteBoxHeight = noteLines.length * 13 + noteBoxPadding * 2;
+  const noteBoxTop = currentY;
+  const noteBoxY = noteBoxTop - noteBoxHeight;
+
+  page.drawRectangle({
+    x: 60,
+    y: noteBoxY,
+    width: width - 120,
+    height: noteBoxHeight,
+    color: rgb(0.98, 0.94, 0.88),
+    borderColor: rgb(0.85, 0.55, 0.1),
+    borderWidth: 1,
+  });
+
+  let noteY = noteBoxTop - noteBoxPadding - 2;
+  noteLines.forEach((line) => {
+    page.drawText(line, {
+      x: 70,
+      y: noteY,
+      size: 8.5,
+      font: boldFont,
+      color: rgb(0.55, 0.32, 0.02),
+    });
+    noteY -= 13;
+  });
+
+  currentY = noteBoxY - 15;
   // Footer message
   const footerText =
     "Thank you for supporting honest learning and respecting authors' copy rights.";

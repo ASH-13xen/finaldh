@@ -1,4 +1,4 @@
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, degrees } from 'pdf-lib';
 import bwipjs from 'bwip-js';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt-lite';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -82,6 +82,38 @@ const wrapText = (text, maxWidth, font, fontSize) => {
   }
   if (currentLine) lines.push(currentLine);
   return lines;
+};
+
+// Tiles the tracking token across the whole page at near-zero opacity. Invisible
+// at normal reading opacity, but a leaked page still reveals the token under a
+// basic contrast/levels boost (e.g. autocontrast in any image editor) — unlike
+// the visible watermark/barcode or PDF metadata, this survives cropping (it
+// covers the full page, not just the margins) and survives flattening/re-export
+// to a new PDF, since it's baked into the rendered page content itself.
+const drawInvisibleTracking = (page, token, font) => {
+  const { width, height } = page.getSize();
+  const fontSize = 6;
+  const textWidth = font.widthOfTextAtSize(token, fontSize);
+  const stepX = textWidth + 70;
+  const stepY = 45;
+  const angle = degrees(28);
+
+  let row = 0;
+  for (let y = -40; y < height + 40; y += stepY) {
+    const xOffset = (row % 2) * (stepX / 2);
+    for (let x = -80 + xOffset; x < width + 80; x += stepX) {
+      page.drawText(token, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
+        opacity: 0.025,
+        rotate: angle,
+      });
+    }
+    row++;
+  }
 };
 
 const drawSecurityWarningPage = (page, user, font, boldFont) => {
@@ -182,12 +214,10 @@ const drawSecurityWarningPage = (page, user, font, boldFont) => {
   currentY -= 20;
 
   const warningParagraphs = [
-    "1. LICENSED USE",
-    "This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
+    "1. LICENSED USE: This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
     "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
     "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
-    "4. LEGAL CONSEQUENCES",
-    "Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
+    "4. LEGAL CONSEQUENCES: Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
   ];
 
   warningParagraphs.forEach(p => {
@@ -205,7 +235,39 @@ const drawSecurityWarningPage = (page, user, font, boldFont) => {
     currentY -= 6; // gap between paragraphs
   });
 
-  currentY -= 15;
+  currentY -= 10;
+
+  // Styled callout box for the tracking/enforcement note
+  const noteText = "NOTE - This document is individually licensed and embedded with traceable ownership credentials, both VISIBLE and INVISIBLE based on license tracking id. Any unauthorized acquisition and distribution will result in enforcement of appropriate legal remedies, without further notice.";
+  const noteLines = wrapText(noteText, width - 150, boldFont, 8.5);
+  const noteBoxPadding = 10;
+  const noteBoxHeight = noteLines.length * 13 + noteBoxPadding * 2;
+  const noteBoxTop = currentY;
+  const noteBoxY = noteBoxTop - noteBoxHeight;
+
+  page.drawRectangle({
+    x: 60,
+    y: noteBoxY,
+    width: width - 120,
+    height: noteBoxHeight,
+    color: rgb(0.98, 0.94, 0.88),
+    borderColor: rgb(0.85, 0.55, 0.1),
+    borderWidth: 1,
+  });
+
+  let noteY = noteBoxTop - noteBoxPadding - 2;
+  noteLines.forEach(line => {
+    page.drawText(line, {
+      x: 70,
+      y: noteY,
+      size: 8.5,
+      font: boldFont,
+      color: rgb(0.55, 0.32, 0.02),
+    });
+    noteY -= 13;
+  });
+
+  currentY = noteBoxY - 15;
   // Footer message
   const footerText = "Thank you for supporting honest learning and respecting authors' copy rights.";
   const footerW = font.widthOfTextAtSize(footerText, 8.5);
@@ -322,6 +384,8 @@ async function run() {
           height: barcodeHeight,
         });
 
+        drawInvisibleTracking(page, userId, helveticaFont);
+
         mergedPdfDoc.addPage(page);
         totalOriginalPages++;
       }
@@ -331,12 +395,13 @@ async function run() {
     if (totalOriginalPages > 0) {
       const firstPage = mergedPdfDoc.getPages()[0];
       const { width, height } = firstPage.getSize();
-      const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 40));
-      const insertIndices = [];
-      let currentPagesCount = totalOriginalPages;
-      for (let j = 0; j < numPagesToAdd; j++) {
+      const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 50));
+      // First warning page always lands exactly on page 2 (index 1).
+      const insertIndices = [1];
+      let currentPagesCount = totalOriginalPages + 1;
+      for (let j = 1; j < numPagesToAdd; j++) {
         let maxIdx = currentPagesCount;
-        let minIdx = currentPagesCount > 1 ? 1 : 0;
+        let minIdx = 2;
         insertIndices.push(Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx);
         currentPagesCount++;
       }
