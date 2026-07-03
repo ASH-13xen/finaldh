@@ -32,6 +32,12 @@ const __dirname = path.dirname(__filename);
 // Global cache to track real-time download progress steps (kept for backward-compatibility)
 export const downloadProgressCache = {};
 
+// If a DownloadSession sits in "queued"/"processing" without a progress update
+// for this long, treat it as crashed (e.g. the GitHub Actions job was
+// OOM-killed or cancelled before it could report failure) rather than leaving
+// students staring at a frozen progress bar.
+const STALE_PROCESSING_MS = 5 * 60 * 1000;
+
 export const setSessionProgress = async (
   userId,
   courseId,
@@ -2464,10 +2470,29 @@ export const getDownloadProgress = async (req, res) => {
     if (status === "idle" && session.step > 0) {
       status = "processing";
     }
+    let error = session.error || null;
+
+    // A stalled "queued"/"processing" session usually means the GitHub Actions
+    // job died without ever calling back (e.g. OOM-killed, runner cancelled) —
+    // that crash bypasses the script's own failure callback entirely, so
+    // nothing ever flips this session out of "processing". Without this check
+    // the frontend polls forever and the student is stuck until the 2-hour
+    // Mongo TTL silently deletes the session.
+    if (
+      (status === "processing" || status === "queued") &&
+      Date.now() - session.updatedAt.getTime() > STALE_PROCESSING_MS
+    ) {
+      status = "failed";
+      error = "Processing timed out unexpectedly. Please try again.";
+      session.status = status;
+      session.error = error;
+      await session.save();
+    }
+
     res.json({
       step: session.step || 0,
       status: status || "processing",
-      error: session.error || null,
+      error,
     });
   } catch (err) {
     console.error(`[DownloadSession] Error retrieving progress:`, err);

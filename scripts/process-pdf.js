@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, degrees } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import bwipjs from 'bwip-js';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt-lite';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -82,38 +82,6 @@ const wrapText = (text, maxWidth, font, fontSize) => {
   }
   if (currentLine) lines.push(currentLine);
   return lines;
-};
-
-// Tiles the tracking token across the whole page at near-zero opacity. Invisible
-// at normal reading opacity, but a leaked page still reveals the token under a
-// basic contrast/levels boost (e.g. autocontrast in any image editor) — unlike
-// the visible watermark/barcode or PDF metadata, this survives cropping (it
-// covers the full page, not just the margins) and survives flattening/re-export
-// to a new PDF, since it's baked into the rendered page content itself.
-const drawInvisibleTracking = (page, token, font) => {
-  const { width, height } = page.getSize();
-  const fontSize = 6;
-  const textWidth = font.widthOfTextAtSize(token, fontSize);
-  const stepX = textWidth + 70;
-  const stepY = 45;
-  const angle = degrees(28);
-
-  let row = 0;
-  for (let y = -40; y < height + 40; y += stepY) {
-    const xOffset = (row % 2) * (stepX / 2);
-    for (let x = -80 + xOffset; x < width + 80; x += stepX) {
-      page.drawText(token, {
-        x,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0.5, 0.5, 0.5),
-        opacity: 0.025,
-        rotate: angle,
-      });
-    }
-    row++;
-  }
 };
 
 const drawSecurityWarningPage = (page, user, font, boldFont) => {
@@ -383,8 +351,6 @@ async function run() {
           width: barcodeWidth,
           height: barcodeHeight,
         });
-
-        drawInvisibleTracking(page, userId, helveticaFont);
 
         mergedPdfDoc.addPage(page);
         totalOriginalPages++;
