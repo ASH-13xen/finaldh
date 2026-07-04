@@ -2258,6 +2258,21 @@ export const uploadCourseSample = async (req, res) => {
   } catch (err) {
     console.error("Error uploading course sample:", err);
     res.status(500).json({ error: "Server error uploading sample" });
+  } finally {
+    // Delete temp file — unlike the rest of this function's early-return paths,
+    // this always runs, so a sample upload never leaves its local temp file
+    // behind on disk (matches the cleanup pattern in uploadCourse()).
+    if (file && file.path) {
+      try {
+        await fs.unlink(file.path);
+        console.log(`[Cleanup] Deleted temporary local file: ${file.path}`);
+      } catch (unlinkErr) {
+        console.warn(
+          `[Cleanup] Failed to delete temp file ${file.path}:`,
+          unlinkErr.message,
+        );
+      }
+    }
   }
 };
 
