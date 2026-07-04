@@ -13,6 +13,7 @@ import courseRoutes from './routes/courseRoutes.js';
 import pdfEditorRoutes from './routes/pdfEditorRoutes.js';
 import mcqRoutes from './routes/mcqRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/pdf-editor', pdfEditorRoutes);
 app.use('/api/mcq', mcqRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
