@@ -173,6 +173,7 @@ const createComboPurchaseRequest = async ({ req, res, user, comboOfferId, screen
 export const getStudentPurchaseRequests = async (req, res) => {
   try {
     const requests = await PurchaseRequest.find({ userId: req.userId })
+      .select('-screenshotData')
       .sort({ createdAt: -1 })
       .populate('courses', 'name courseId')
       .populate('comboOffer', 'label price');
@@ -196,7 +197,12 @@ export const getAdminPurchaseRequests = async (req, res) => {
       return res.status(403).json({ error: 'Access denied: Admin only' });
     }
 
+    // Exclude screenshotData (a raw image Buffer, up to 10MB, stored per request):
+    // the admin list view never uses it — screenshots are fetched on demand via
+    // the dedicated getPurchaseRequestScreenshot endpoint — so including it here
+    // meant loading every screenshot's full bytes into memory on every page load.
     const requests = await PurchaseRequest.find({})
+      .select('-screenshotData')
       .sort({ createdAt: -1 })
       .populate('courses', 'name courseId')
       .populate('comboOffer', 'label price');
