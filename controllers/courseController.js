@@ -1132,6 +1132,24 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     console.log(`[PDF Security] Step 4: Preparing to start generation`);
 
+    // Enforce the per-course download limit right before it would be
+    // incremented (see the two "Pre-emptively track..." blocks below). The
+    // frontend also gates this, but its copy of downloadLimits is only
+    // fetched once on page load and goes stale as soon as a download
+    // completes — without a server-side check here, a user who hasn't
+    // refreshed could keep re-triggering generations past their allowed
+    // count. This is checked here rather than earlier so it never fires for
+    // a checkOnly call that's just resuming/polling an already-claimed job
+    // (that job's own start already accounted for the increment).
+    const isOverLimit = () => {
+      const entry = user.downloadLimits.find(
+        (d) => d.courseId.toLowerCase() === compositeCourseId.toLowerCase(),
+      );
+      const allowedCount = entry ? entry.allowedCount : 1;
+      const downloadedCount = entry ? entry.downloadedCount : 0;
+      return downloadedCount >= allowedCount;
+    };
+
     if (mode === "github-actions") {
       const destinationKey = `secured-${req.userId}-${courseId}${course.fileUrls && course.fileUrls.length > 1 ? `_${fileIndex}` : ""}.pdf`;
 
@@ -1171,6 +1189,28 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           });
         }
         throw claimErr;
+      }
+
+      // The atomic claim above only proves no other job is already queued/
+      // processing for this file — it says nothing about the allowance, so
+      // check it now that we know this is a genuinely new job (not a resumed
+      // poll of one already running). Release the slot we just claimed so a
+      // legitimate future attempt (e.g. after an admin grants extra credit)
+      // isn't blocked by a phantom "queued" session.
+      if (isOverLimit()) {
+        console.log(
+          `[PDF Security] Download limit reached for user ${user.email} on course ${compositeCourseId}; releasing claimed session.`,
+        );
+        await setSessionProgress(
+          req.userId,
+          compositeCourseId,
+          0,
+          "failed",
+          "Download limit reached",
+        );
+        return res.status(403).json({
+          error: "Download limit reached for this file.",
+        });
       }
 
       // Pre-emptively track and update download limit in database since we are starting generation
@@ -1339,6 +1379,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         }
       }
     });
+
+    if (isOverLimit()) {
+      console.log(
+        `[PDF Security] Download limit reached for user ${user.email} on course ${compositeCourseId}`,
+      );
+      return res.status(403).json({
+        error: "Download limit reached for this file.",
+      });
+    }
 
     // We increment download credit pre-emptively, similar to original logic
     const limitUser = await User.findById(req.userId);
