@@ -56,6 +56,34 @@ export const setSessionProgress = async (
   }
 };
 
+// The download credit for a file is pre-emptively incremented before dispatching
+// the GitHub Actions job (see downloadSecuredCoursePdf), so a double-click/two-tab
+// race couldn't both start a generation. When that generation never produces a
+// usable PDF - whether reported via the callback or detected as a stale/stuck
+// session - refund it here, otherwise a single transient failure permanently
+// burns the student's one-time allowance for this file with nothing to show for it.
+const refundDownloadCredit = async (userId, courseId) => {
+  try {
+    const refundUser = await User.findById(userId);
+    if (!refundUser) return;
+    const entry = refundUser.downloadLimits.find(
+      (d) => d.courseId.toLowerCase() === String(courseId).toLowerCase(),
+    );
+    if (entry && entry.downloadedCount > 0) {
+      entry.downloadedCount -= 1;
+      await refundUser.save();
+      console.log(
+        `[DownloadSession] Refunded download credit for user ${userId}, courseId ${courseId}.`,
+      );
+    }
+  } catch (refundErr) {
+    console.error(
+      `[DownloadSession] Failed to refund download credit:`,
+      refundErr,
+    );
+  }
+};
+
 // Page count extractor that never loads the full file into memory.
 // Reads head (512 KB) + tail (2 MB) — ~2.5 MB max regardless of PDF size.
 // Single-part courses don't use the page count at all, so 0 is a safe fallback.
@@ -2515,6 +2543,7 @@ export const getDownloadProgress = async (req, res) => {
       session.status = status;
       session.error = error;
       await session.save();
+      await refundDownloadCredit(req.userId, compositeCourseId);
     }
 
     res.json({
@@ -2531,7 +2560,13 @@ export const getDownloadProgress = async (req, res) => {
 // Webhook callback from GitHub Actions PDF processor
 export const githubCallback = async (req, res) => {
   const authHeader = req.headers.authorization;
-  const expectedSecret = `Bearer ${process.env.GITHUB_CALLBACK_SECRET}`;
+  // process-pdf.js and the GitHub Actions workflow both send this using an env
+  // var named CALLBACK_SECRET (see pdf-processor.yml / process-pdf.js) - this
+  // used to only check GITHUB_CALLBACK_SECRET, a differently-named variable, so
+  // if that wasn't set to the exact same value the webhook would 401 on every
+  // call and completion/failure would never be recorded. Accept either name.
+  const secret = process.env.CALLBACK_SECRET || process.env.GITHUB_CALLBACK_SECRET;
+  const expectedSecret = `Bearer ${secret}`;
 
   if (!authHeader || authHeader !== expectedSecret) {
     console.warn("[GitHub Callback] Unauthorized webhook callback attempt");
@@ -2559,6 +2594,7 @@ export const githubCallback = async (req, res) => {
       error || "Processing failed",
     );
     console.error(`[GitHub Callback] PDF processing failed: ${error}`);
+    await refundDownloadCredit(userId, courseId);
   }
 
   res.json({ status: "ok" });

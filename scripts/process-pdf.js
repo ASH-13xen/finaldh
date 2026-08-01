@@ -248,6 +248,26 @@ const drawSecurityWarningPage = (page, user, font, boldFont) => {
   });
 };
 
+// Cloudflare R2 occasionally returns a transient 500 InternalError that the AWS
+// SDK's own default retry (3 attempts within ~100ms total) is too fast to ride
+// out. Wrap the R2 calls that matter most (download/upload) with a slower,
+// longer-running retry so a brief R2 hiccup doesn't fail the whole job.
+async function withRetry(fn, { attempts = 5, baseDelayMs = 1000 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i === attempts - 1) break;
+      const delay = baseDelayMs * Math.pow(2, i);
+      console.warn(`R2 call failed (attempt ${i + 1}/${attempts}), retrying in ${delay}ms:`, err.message);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastErr;
+}
+
 async function updateProgress(step) {
   console.log(`Reporting progress step: ${step}`);
   try {
@@ -279,10 +299,10 @@ async function run() {
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       console.log(`Downloading part ${i+1}/${keys.length} from Cloudflare R2: ${key}`);
-      const r2Response = await r2Client.send(new GetObjectCommand({
+      const r2Response = await withRetry(() => r2Client.send(new GetObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME,
         Key: key,
-      }));
+      })));
 
       const chunks = [];
       for await (const chunk of r2Response.Body) {
@@ -402,12 +422,12 @@ async function run() {
 
     // 7. Upload to R2
     console.log(`Uploading processed PDF back to R2: ${destinationKey}`);
-    await r2Client.send(new PutObjectCommand({
+    await withRetry(() => r2Client.send(new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: destinationKey,
       Body: Buffer.from(encryptedPdfBuffer),
       ContentType: 'application/pdf',
-    }));
+    })));
 
     // 8. Ping callback URL
     console.log(`Pinging callback webhook: ${callbackUrl}`);
