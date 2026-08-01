@@ -5,7 +5,6 @@ import {
   updateOptionalSubject, 
   toggleTopicProgress, 
   getUserSyllabus,
-  trackDownload,
   requestAdditionalDownload,
   getPendingDownloadRequests,
   approveDownloadRequest,
@@ -27,7 +26,6 @@ router.get('/syllabus', authenticateToken, getUserSyllabus);
 router.get('/barcode', authenticateToken, getUserBarcode);
 
 // PDF Download Limit routes
-router.post('/download-track', authenticateToken, trackDownload);
 router.post('/download-request', authenticateToken, requestAdditionalDownload);
 router.get('/download-requests', authenticateToken, getUserDownloadRequests);
 router.get('/admin/requests', authenticateToken, getPendingDownloadRequests);

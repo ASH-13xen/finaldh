@@ -144,40 +144,6 @@ export const getUserSyllabus = async (req, res) => {
   }
 };
 
-// Track student download and increment downloadedCount
-export const trackDownload = async (req, res) => {
-  const { courseId } = req.body;
-  if (!courseId) {
-    return res.status(400).json({ error: 'courseId is required' });
-  }
-
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    let limitEntry = user.downloadLimits.find(d => d.courseId.toLowerCase() === courseId.toLowerCase());
-
-    if (limitEntry) {
-      if (limitEntry.downloadedCount >= limitEntry.allowedCount) {
-        return res.status(400).json({ error: 'Download limit reached for this course' });
-      }
-      limitEntry.downloadedCount += 1;
-    } else {
-      user.downloadLimits.push({
-        courseId,
-        downloadedCount: 1,
-        allowedCount: 1
-      });
-    }
-
-    await user.save();
-    res.json({ success: true, downloadLimits: user.downloadLimits });
-  } catch (error) {
-    console.error('Error tracking download:', error);
-    res.status(500).json({ error: 'Server error tracking download' });
-  }
-};
-
 // Request additional download permission
 export const requestAdditionalDownload = async (req, res) => {
   const { courseId, courseName, reason } = req.body;
