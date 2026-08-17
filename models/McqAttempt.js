@@ -21,6 +21,10 @@ const questionResponseSchema = new mongoose.Schema({
   correctOption: { type: String, enum: ['A', 'B', 'C', 'D'] },
   isCorrect: { type: Boolean, default: null },
 
+  // Self-reported confidence at answer time - metadata only, never affects scoring.
+  // Powers the Decision Confidence breakdown and Decision Intelligence Index in getAttemptResult.
+  confidenceTag: { type: String, enum: ['sure', 'elimination', 'guess', null], default: null },
+
   status: {
     type: String,
     enum: ['not-visited', 'not-answered', 'answered', 'marked-for-review', 'answered-marked-for-review'],

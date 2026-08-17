@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema({
   optionalSubject: { type: String, default: null },
   completedTopics: { type: [String], default: [] },
   purchasedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
+  purchasedMcqTests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'McqTest' }],
+  // Owning a subject unlocks every test in it - present and future - rather than a fixed
+  // snapshot; see McqSubjectPricing and the isOwned checks in mcqController.js.
+  purchasedMcqSubjects: [{ type: String }],
   downloadLimits: [{
     courseId: { type: String, required: true },
     downloadedCount: { type: Number, default: 0 },

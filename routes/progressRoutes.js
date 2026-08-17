@@ -29,6 +29,16 @@ import {
   getPyqExtractionJobStatus,
   bulkCreatePyqs
 } from '../controllers/extractionController.js';
+import {
+  getBuilderOverview,
+  upsertDraft,
+  listDrafts,
+  getDraft,
+  deleteDraft,
+  commitDraft,
+  startPyqSortJob,
+  getPyqSortJobStatus
+} from '../controllers/progressBuilderController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const storage = multer.memoryStorage();
@@ -79,6 +89,16 @@ router.post('/admin/topic-questions/bulk-create', authenticateToken, bulkCreateT
 
 // Admin: course+file combos with progress data (for the PYQ-extraction course/file picker)
 router.get('/admin/progress-enabled-courses', authenticateToken, listProgressEnabledCourses);
+
+// Admin: Progress Section Builder — manual topic/question drafting (autosaved) + Gemini PYQ paste-and-sort
+router.get('/admin/builder/overview', authenticateToken, getBuilderOverview);
+router.put('/admin/builder/draft', authenticateToken, upsertDraft);
+router.get('/admin/builder/drafts', authenticateToken, listDrafts);
+router.get('/admin/builder/draft', authenticateToken, getDraft);
+router.delete('/admin/builder/draft/:id', authenticateToken, deleteDraft);
+router.post('/admin/builder/draft/:id/commit', authenticateToken, commitDraft);
+router.post('/admin/builder/pyq-sort/start', authenticateToken, startPyqSortJob);
+router.get('/admin/builder/pyq-sort/:jobId/status', authenticateToken, getPyqSortJobStatus);
 
 // Admin: Gemini-powered PYQ extraction (course+file scoped, no index pass) + commit
 router.post('/admin/extract-pyqs/start', authenticateToken, uploadExtractionPdf.single('pdf'), startPyqExtractionJob);
