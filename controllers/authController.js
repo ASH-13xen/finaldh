@@ -83,16 +83,23 @@ export const verifyGoogleToken = async (req, res) => {
   }
 };
 
-// Mock Login for local testing/development
+// Mock Login for local testing/development.
+// Disabled unless ALLOW_DEV_LOGIN=true so it can never be hit in production.
+// Optionally accepts { email } in the body so you can sign in directly as your
+// admin email (see ADMIN_EMAIL) instead of the default dev@example.com.
 export const mockLogin = async (req, res) => {
+  if (process.env.ALLOW_DEV_LOGIN !== 'true') {
+    return res.status(403).json({ error: 'Dev login is disabled. Set ALLOW_DEV_LOGIN=true in the backend .env to enable it.' });
+  }
   try {
-    let user = await User.findOne({ email: 'dev@example.com' });
+    const rawEmail = (req.body?.email || 'dev@example.com').toLowerCase().trim();
+    let user = await User.findOne({ email: rawEmail });
     if (!user) {
       user = await User.create({
-        googleId: 'mock_google_id_123',
-        email: 'dev@example.com',
-        name: 'Developer User',
-        fullName: 'Developer User',
+        googleId: `mock_${Date.now()}`,
+        email: rawEmail,
+        name: rawEmail.split('@')[0],
+        fullName: rawEmail.split('@')[0],
         picture: ''
       });
     }
