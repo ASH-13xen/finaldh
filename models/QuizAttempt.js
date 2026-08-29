@@ -9,30 +9,27 @@ const quizResponseSchema = new mongoose.Schema({
   selectedKey: { type: String, enum: ['A', 'B', 'C', 'D', null], default: null },
   correctKey: { type: String, enum: ['A', 'B', 'C', 'D'] },
   isCorrect: { type: Boolean, default: null },
-  hintUsed: { type: Boolean, default: false },
   answeredAt: { type: Date, default: null }
 }, { _id: false });
 
-// One study session over a subject's pool. `mode` decides the question set and the reveal
-// behaviour:
-//   topic  -> every question tagged `topic`, in seq order, answers revealed immediately
-//   random -> a random sample of `questionIds.length` questions, answers hidden until complete
-//   all    -> every question in the subject in seq order, answers revealed immediately
-// At most one non-completed attempt per (user, subject, mode, topic) — startAttempt resumes it.
+// One study session over a subject's pool. `mode` decides the question set:
+//   topic  -> every question tagged `topic`, in seq order
+//   random -> a random sample of `questionIds.length` questions
+//   all    -> every question in the subject in seq order
+// The student checks each answer as they go, in every mode.
+// At most one non-completed topic/all attempt per (user, subject, mode, topic) — startAttempt
+// resumes it; random attempts never resume.
 const quizAttemptSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   subject: { type: String, required: true },
 
   mode: { type: String, enum: ['topic', 'random', 'all'], required: true },
   topic: { type: String, default: null },                 // set only when mode === 'topic'
-  revealMode: { type: String, enum: ['immediate', 'end'], required: true },
 
   // The ordered question set for this attempt, snapshotted at creation.
   questionIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
 
   status: { type: String, enum: ['in-progress', 'completed'], default: 'in-progress' },
-  hintsUsed: { type: Number, default: 0 },                // capped at MAX_HINTS in the controller
-  hintedIndexes: { type: [Number], default: [] },         // question indexes whose hint has been unlocked
 
   // Built lazily — one entry per answered question.
   responses: { type: [quizResponseSchema], default: [] },

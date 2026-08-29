@@ -30,3 +30,7 @@ node_modules/
 # Project specific uploads/temp directories
 temp/
 dist/
+
+# local screenshots for chat
+ss/
+scratch/
