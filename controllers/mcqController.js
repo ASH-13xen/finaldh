@@ -33,6 +33,7 @@ const MCQ_QUESTION_FIELD_ALIASES = {
   optionD: ['option d', 'optiond', 'd'],
   correctOption: ['correct option', 'correctoption', 'answer', 'correct answer'],
   explanation: ['explanation', 'solution'],
+  statements: ['statements', 'statement', 'lead in', 'stem lines'],
   difficulty: ['difficulty', 'level'],
   marks: ['marks', 'mark'],
   tags: ['tags', 'tag']
@@ -62,6 +63,7 @@ const stripQuestionForClient = (q) => ({
   _id: q._id,
   order: q.order,
   questionText: q.questionText,
+  statements: q.statements || [],
   options: q.options
 });
 
@@ -209,6 +211,7 @@ export const uploadQuestionsCsv = async (req, res) => {
         test: test._id,
         order: orderNum,
         questionText: row.questionText.trim(),
+        statements: row.statements ? row.statements.split(/\s*\|\s*|\r?\n/).map(s => s.trim()).filter(Boolean) : [],
         options: [
           { label: 'A', text: optA },
           { label: 'B', text: optB },
@@ -330,6 +333,16 @@ async function recomputeTestTotals(testId) {
   await test.save();
 }
 
+// Coerce a `statements` payload (array, or newline-separated string) into a clean string[].
+const sanitizeStatements = (raw) => {
+  const arr = Array.isArray(raw)
+    ? raw
+    : typeof raw === 'string'
+      ? raw.split('\n')
+      : [];
+  return arr.map(s => String(s).trim()).filter(Boolean);
+};
+
 const validateQuestionPayload = (body) => {
   const { questionText, options, correctOption } = body;
   if (!questionText || !questionText.trim()) return 'Question text is required';
@@ -354,7 +367,7 @@ export const createQuestion = async (req, res) => {
     const validationError = validateQuestionPayload(req.body);
     if (validationError) return res.status(400).json({ error: validationError });
 
-    const { questionText, options, correctOption, explanation, difficulty, marks, tags, examSource, questionType } = req.body;
+    const { questionText, options, correctOption, explanation, difficulty, marks, tags, examSource, questionType, statements } = req.body;
     const nextOrder = (await McqQuestion.countDocuments({ test: testId })) + 1;
     const { tags: resolvedTags, rawTags } = await resolveTagsCell(test.subject, tags || '');
 
@@ -362,6 +375,7 @@ export const createQuestion = async (req, res) => {
       test: testId,
       order: nextOrder,
       questionText: questionText.trim(),
+      statements: sanitizeStatements(statements),
       options,
       correctOption,
       explanation: (explanation || '').trim(),
@@ -400,6 +414,7 @@ export const updateQuestion = async (req, res) => {
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) question[field] = req.body[field];
     }
+    if (req.body.statements !== undefined) question.statements = sanitizeStatements(req.body.statements);
     if (req.body.tags !== undefined) {
       const test = await McqTest.findById(testId);
       const { tags: resolvedTags, rawTags } = await resolveTagsCell(test.subject, req.body.tags);
@@ -947,6 +962,7 @@ export const getAttemptResult = async (req, res) => {
       return {
         order: r.order,
         questionText: q?.questionText ?? '(question no longer available)',
+        statements: q?.statements ?? [],
         options: q?.options ?? [],
         selectedOption: r.selectedOption,
         correctOption: r.correctOption,
