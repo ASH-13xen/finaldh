@@ -16,6 +16,7 @@ import progressRoutes from './routes/progressRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import quizRoutes from './routes/quizRoutes.js';
 import questionBankRoutes from './routes/questionBankRoutes.js';
+import toppersCopyRoutes from './routes/toppersCopyRoutes.js';
 
 dotenv.config();
 
@@ -76,6 +77,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/question-banks', questionBankRoutes);
+app.use('/api/toppers-copy', toppersCopyRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
