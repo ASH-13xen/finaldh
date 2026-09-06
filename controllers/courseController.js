@@ -1598,7 +1598,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || "N/A"}`;
       stampPage.drawText(watermarkText, {
         x: 25,
-        y: firstPageHeight - 25,
+        y: firstPageHeight - 50,
         size: 9,
         font: helveticaFont,
         color: rgb(0.6, 0.6, 0.6),
@@ -1828,7 +1828,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
           page.drawText(watermarkText, {
             x: 25,
-            y: height - 25,
+            y: height - 50,
             size: 9,
             font: helveticaFont,
             color: rgb(0.6, 0.6, 0.6),

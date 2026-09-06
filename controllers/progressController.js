@@ -109,10 +109,15 @@ export const upsertTopicsAndQuestions = async (course, fileIndex, rows) => {
       skippedRows.push({ row: rowNum, reason: 'Missing question text' });
       continue;
     }
-    const pageNum = Number(row.pageNumber);
-    if (!row.pageNumber || isNaN(pageNum) || pageNum <= 0) {
-      skippedRows.push({ row: rowNum, reason: 'Missing or invalid page number' });
-      continue;
+    // pageNumber is optional (content-index style checklists have no page numbers to show);
+    // when provided it must be a valid positive number.
+    let pageNum = null;
+    if (row.pageNumber !== undefined && row.pageNumber !== null && row.pageNumber !== '') {
+      pageNum = Number(row.pageNumber);
+      if (isNaN(pageNum) || pageNum <= 0) {
+        skippedRows.push({ row: rowNum, reason: 'Invalid page number' });
+        continue;
+      }
     }
 
     const nameKey = topicName.toLowerCase();

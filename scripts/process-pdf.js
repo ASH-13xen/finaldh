@@ -357,7 +357,7 @@ async function run() {
         
         page.drawText(watermarkText, {
           x: 25,
-          y: height - 25,
+          y: height - 50,
           size: 9,
           font: helveticaFont,
           color: rgb(0.6, 0.6, 0.6),
