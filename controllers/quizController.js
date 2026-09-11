@@ -276,6 +276,119 @@ const buildReview = async (attempt) => {
   });
 };
 
+// --- Performance analysis --------------------------------------------------------------
+// Derived entirely from what an attempt already records (topic, questionType, correctness)
+// plus `answeredAt` deltas — no schema change. Per-question timing, confidence tagging and
+// difficulty are not tracked by the quiz yet, so the panels that need them are absent rather
+// than faked.
+
+const WEAK_THRESHOLD = 50;
+const STRONG_THRESHOLD = 75;
+// topic/all attempts resume across sessions, so a gap this long is the student being away,
+// not thinking about the question. Excluded from the pace estimate.
+const IDLE_GAP_SECONDS = 600;
+// A random/all run spreads a few questions over dozens of topics, so a single unlucky answer
+// would otherwise brand a whole topic "weak". Call a topic weak only on this much evidence.
+const MIN_TOPIC_SAMPLE = 3;
+
+const pct = (num, den) => (den ? Math.round((num / den) * 100) : 0);
+
+const bucketFor = (accuracy, attempted) =>
+  attempted === 0 ? 'Not Attempted'
+  : accuracy < WEAK_THRESHOLD ? 'Weak'
+  : accuracy < STRONG_THRESHOLD ? 'Average'
+  : 'Strong';
+
+// Groups review rows by keyOf(row) into accuracy tallies. Rows with an empty key are skipped
+// (e.g. a question imported without a questionType).
+const groupAccuracy = (review, keyOf) => {
+  const groups = new Map();
+  for (const r of review) {
+    const key = keyOf(r);
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, { total: 0, attempted: 0, correct: 0, wrong: 0 });
+    const g = groups.get(key);
+    g.total++;
+    if (r.selectedKey != null) {
+      g.attempted++;
+      if (r.isCorrect) g.correct++;
+      else g.wrong++;
+    }
+  }
+  return [...groups].map(([name, g]) => ({
+    name,
+    total: g.total,
+    attempted: g.attempted,
+    correct: g.correct,
+    wrong: g.wrong,
+    unattempted: g.total - g.attempted,
+    accuracy: pct(g.correct, g.attempted),
+    bucket: bucketFor(pct(g.correct, g.attempted), g.attempted)
+  }));
+};
+
+// The quiz has no timer, so answer timestamps are the only timing signal. Returns null when
+// nothing usable survives the idle filter, and reports how many gaps it measured so the client
+// can label the number as the estimate it is.
+const estimatePace = (attempt) => {
+  const stamps = attempt.responses
+    .filter((r) => r.answeredAt)
+    .map((r) => new Date(r.answeredAt).getTime())
+    .sort((a, b) => a - b);
+  if (!stamps.length) return null;
+
+  let prev = attempt.startedAt ? new Date(attempt.startedAt).getTime() : stamps[0];
+  let activeSeconds = 0;
+  let measured = 0;
+  for (const stamp of stamps) {
+    const gap = (stamp - prev) / 1000;
+    prev = stamp;
+    if (gap <= 0 || gap > IDLE_GAP_SECONDS) continue;
+    activeSeconds += gap;
+    measured++;
+  }
+  if (!measured) return null;
+
+  return {
+    answeredQuestions: stamps.length,
+    measuredQuestions: measured,
+    activeSeconds: Math.round(activeSeconds),
+    avgSecondsPerQuestion: Math.round(activeSeconds / measured)
+  };
+};
+
+const buildAnalysis = (attempt, review) => {
+  const attempted = review.filter((r) => r.selectedKey != null);
+  const correct = attempted.filter((r) => r.isCorrect).length;
+
+  const topicBreakdown = groupAccuracy(review, (r) => r.topic || MISC_TOPIC)
+    .map(({ name, ...rest }) => ({ topic: name, ...rest }))
+    .sort((a, b) => a.accuracy - b.accuracy || a.topic.localeCompare(b.topic));
+
+  const questionTypeBreakdown = groupAccuracy(review, (r) => r.questionType)
+    .map(({ name, ...rest }) => ({ questionType: name, ...rest }))
+    .sort((a, b) => a.questionType.localeCompare(b.questionType));
+
+  return {
+    summary: {
+      totalQuestions: review.length,
+      totalAttempted: attempted.length,
+      totalCorrect: correct,
+      totalWrong: attempted.length - correct,
+      totalUnattempted: review.length - attempted.length,
+      scorePercent: pct(correct, review.length),         // correct out of every question
+      accuracyPercent: pct(correct, attempted.length)    // correct out of the ones tried
+    },
+    topicBreakdown,
+    weakTopics: topicBreakdown
+      .filter((t) => t.attempted >= MIN_TOPIC_SAMPLE && t.accuracy < WEAK_THRESHOLD)
+      .map((t) => t.topic),
+    minTopicSample: MIN_TOPIC_SAMPLE,
+    questionTypeBreakdown,
+    pace: estimatePace(attempt)
+  };
+};
+
 // POST /api/quiz/attempts/:id/complete
 export const completeAttempt = async (req, res) => {
   try {
@@ -294,6 +407,7 @@ export const completeAttempt = async (req, res) => {
       await attempt.save();
     }
 
+    const review = await buildReview(attempt);
     res.json({
       attemptId: attempt._id,
       mode: attempt.mode,
@@ -302,7 +416,8 @@ export const completeAttempt = async (req, res) => {
       totalCorrect: attempt.totalCorrect,
       totalAnswered: attempt.totalAnswered,
       totalQuestions: attempt.totalQuestions,
-      review: await buildReview(attempt)
+      review,
+      analysis: buildAnalysis(attempt, review)
     });
   } catch (err) {
     console.error('quiz completeAttempt error:', err);
@@ -322,7 +437,10 @@ export const getAttempt = async (req, res) => {
       totalCorrect: attempt.totalCorrect,
       totalAnswered: attempt.totalAnswered
     };
-    if (attempt.status === 'completed') payload.review = await buildReview(attempt);
+    if (attempt.status === 'completed') {
+      payload.review = await buildReview(attempt);
+      payload.analysis = buildAnalysis(attempt, payload.review);
+    }
     res.json(payload);
   } catch (err) {
     console.error('quiz getAttempt error:', err);
