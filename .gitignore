@@ -30,3 +30,7 @@ node_modules/
 # Project specific uploads/temp directories
 temp/
 dist/
+
+# One-off DB migration backups (contain user PII - emails, course access) - local safety
+# net only, never meant to be pushed.
+migration-backups/

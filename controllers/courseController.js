@@ -197,6 +197,7 @@ export const uploadCourse = async (req, res) => {
     useDiscount,
     discountLimitTag,
     telegramGroupLink,
+    examStage,
   } = req.body;
   const files = req.files || [];
 
@@ -322,6 +323,7 @@ export const uploadCourse = async (req, res) => {
       discountLimitTag:
         discountLimitTag === "true" || discountLimitTag === true,
       telegramGroupLink: telegramGroupLink ? telegramGroupLink.trim() : "",
+      examStage: examStage === "Prelims" ? "Prelims" : "Mains",
     });
 
     res.json({
@@ -362,6 +364,7 @@ export const updateCourse = async (req, res) => {
     discountLimitTag,
     progressEnabled,
     telegramGroupLink,
+    examStage,
   } = req.body;
   const files = req.files || [];
 
@@ -396,6 +399,8 @@ export const updateCourse = async (req, res) => {
         progressEnabled === "true" || progressEnabled === true;
     if (telegramGroupLink !== undefined)
       course.telegramGroupLink = telegramGroupLink.trim();
+    if (examStage === "Prelims" || examStage === "Mains")
+      course.examStage = examStage;
 
     let filesConfig = [];
     if (req.body.filesConfig) {

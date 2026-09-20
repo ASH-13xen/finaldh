@@ -17,7 +17,11 @@ const courseSchema = new mongoose.Schema({
   sampleFileName: { type: String, default: '' },
   samplePageCount: { type: Number, default: 0 },
   progressEnabled: { type: Boolean, default: false },
-  telegramGroupLink: { type: String, default: '' }
+  telegramGroupLink: { type: String, default: '' },
+  // Which exam stage this course belongs to. Defaults to 'Mains' so every course created
+  // before this field existed keeps behaving exactly as before with zero data migration
+  // required - only courses explicitly tagged 'Prelims' move into the Prelims section.
+  examStage: { type: String, enum: ['Prelims', 'Mains'], default: 'Mains' }
 }, { timestamps: true });
 
 export default mongoose.model('Course', courseSchema);
