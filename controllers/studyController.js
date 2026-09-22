@@ -127,6 +127,7 @@ const shapeItem = (n, extra = {}) => ({
   quote: n.quote,
   quoteFrom: n.quoteFrom,
   body: n.body,
+  subtopic: n.subtopic || '',
   revisedCount: n.revisedCount,
   lastRevisedAt: n.lastRevisedAt,
   createdAt: n.createdAt,
@@ -163,6 +164,29 @@ const attachMcqs = async (items) => {
   });
 };
 
+// Toppers Copy items get the question's CURRENT sub-topic name (looked up live, not
+// snapshotted) — admins regroup questions after students have saved them.
+const attachSubtopics = async (items) => {
+  const tcIds = [...new Set(items
+    .filter((n) => (n.refType === 'tc_question' || n.refType === 'tc_answer') && n.ref?.toppersCopy)
+    .map((n) => String(n.ref.toppersCopy)))];
+  if (!tcIds.length) return items;
+  const docs = await ToppersCopy.find({ _id: { $in: tcIds } })
+    .select('subtopics questions._id questions.subtopicId')
+    .lean();
+  const nameOf = new Map(); // questionId -> sub-topic name
+  for (const d of docs) {
+    const subs = new Map((d.subtopics || []).map((st) => [String(st._id), st.name]));
+    for (const q of d.questions || []) {
+      if (q.subtopicId && subs.has(String(q.subtopicId))) nameOf.set(String(q._id), subs.get(String(q.subtopicId)));
+    }
+  }
+  return items.map((n) => {
+    const name = n.ref?.question ? nameOf.get(String(n.ref.question)) : null;
+    return name ? { ...n, subtopic: name } : n;
+  });
+};
+
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // GET /api/study/items?kind=&section=&subject=&q=&skip=&limit=
@@ -190,7 +214,7 @@ export const listItems = async (req, res) => {
     ]);
 
     res.json({
-      items: await attachMcqs(items),
+      items: await attachSubtopics(await attachMcqs(items)),
       total,
       skip,
       limit,

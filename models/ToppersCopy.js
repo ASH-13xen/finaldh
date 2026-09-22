@@ -80,8 +80,16 @@ const questionSchema = new mongoose.Schema({
   year: { type: Number, default: null },   // exam year printed with the question, if any
   marks: { type: Number, default: null },
   order: { type: Number, default: 0 },
+  // Admin-made grouping inside the topic (ToppersCopy.subtopics[]._id); null = not grouped.
+  subtopicId: { type: mongoose.Schema.Types.ObjectId, default: null },
   answers: { type: [answerSchema], default: [] },
   aiAnalysis: { type: aiAnalysisSchema, default: () => ({}) },
+});
+
+// A manual sub-topic heading inside one AI-detected topic (e.g. "Rare Earth Minerals").
+// Array order = display order. Questions point at it via question.subtopicId.
+const subtopicSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
 });
 
 const toppersCopySchema = new mongoose.Schema({
@@ -95,6 +103,7 @@ const toppersCopySchema = new mongoose.Schema({
   originalFileName: { type: String, default: '' },
 
   questions: { type: [questionSchema], default: [] },
+  subtopics: { type: [subtopicSchema], default: [] },
 
   published: { type: Boolean, default: false }, // admin flips this once the review looks right
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
