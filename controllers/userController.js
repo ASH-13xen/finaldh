@@ -2,8 +2,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../models/User.js';
+import Course from '../models/Course.js';
 import DownloadRequest from '../models/DownloadRequest.js';
 import bwipjs from 'bwip-js';
+import { sanitizePersonName, sanitizeMobile, sanitizeTelegram } from '../utils/sanitize.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,13 +35,27 @@ export const getUserProfile = async (req, res) => {
 
 // Update authenticated user profile details
 export const updateUserProfile = async (req, res) => {
-  const { fullName, mobileNumber, telegramUsername, interestedCourses } = req.body;
+  // NOTE: interestedCourses is deliberately NOT accepted here. It used to be, and it doubled as the
+  // course access list, so any student could grant themselves any course. Access is now granted only
+  // by admin-approved purchases / the admin user editor (see utils/courseAccess.js).
+  const { fullName, mobileNumber, telegramUsername } = req.body;
   try {
     const updateData = {};
-    if (fullName !== undefined) updateData.fullName = fullName;
-    if (mobileNumber !== undefined) updateData.mobileNumber = mobileNumber;
-    if (telegramUsername !== undefined) updateData.telegramUsername = telegramUsername;
-    if (interestedCourses !== undefined) updateData.interestedCourses = interestedCourses;
+    if (fullName !== undefined) {
+      const clean = sanitizePersonName(fullName);
+      if (!clean) return res.status(400).json({ error: 'Please enter a valid name (letters only).' });
+      updateData.fullName = clean;
+    }
+    if (mobileNumber !== undefined) {
+      const clean = sanitizeMobile(mobileNumber);
+      if (!clean) return res.status(400).json({ error: 'Please enter a valid mobile number.' });
+      updateData.mobileNumber = clean;
+    }
+    if (telegramUsername !== undefined) {
+      const clean = sanitizeTelegram(telegramUsername);
+      if (!clean) return res.status(400).json({ error: 'Please enter a valid Telegram username.' });
+      updateData.telegramUsername = clean;
+    }
 
     const user = await User.findByIdAndUpdate(
       req.userId,
@@ -306,16 +322,22 @@ export const completePurchaseProfile = async (req, res) => {
     const updates = {};
 
     // 1. Verify and Update Name (Always allow updating name)
-    if (!firstName || !firstName.trim() || !lastName || !lastName.trim()) {
-      return res.status(400).json({ error: 'Both First Name and Last Name must be provided.' });
+    const cleanFirst = sanitizePersonName(firstName);
+    const cleanLast = sanitizePersonName(lastName);
+    if (!cleanFirst || !cleanLast) {
+      return res.status(400).json({ error: 'Both First Name and Last Name must be provided (letters only).' });
     }
-    updates.fullName = `${firstName.trim()} ${lastName.trim()}`;
+    updates.fullName = `${cleanFirst} ${cleanLast}`;
 
     // 2. Verify and Update Telegram (Always allow updating telegram)
     if (!telegramUsername || !telegramUsername.trim()) {
       return res.status(400).json({ error: 'Telegram username is required.' });
     }
-    updates.telegramUsername = telegramUsername.trim();
+    const cleanTelegram = sanitizeTelegram(telegramUsername);
+    if (!cleanTelegram) {
+      return res.status(400).json({ error: 'Please enter a valid Telegram username.' });
+    }
+    updates.telegramUsername = cleanTelegram;
 
     // 3. Save Phone (only if not already verified/saved in the DB)
     const isPhoneAlreadyVerified = !!(user.mobileNumber && user.mobileNumber.trim());
@@ -323,7 +345,11 @@ export const completePurchaseProfile = async (req, res) => {
       if (!mobileNumber || !mobileNumber.trim()) {
         return res.status(400).json({ error: 'Phone number is required.' });
       }
-      updates.mobileNumber = mobileNumber.trim();
+      const cleanMobile = sanitizeMobile(mobileNumber);
+      if (!cleanMobile) {
+        return res.status(400).json({ error: 'Please enter a valid mobile number.' });
+      }
+      updates.mobileNumber = cleanMobile;
     }
 
     // Apply updates if any
@@ -396,12 +422,23 @@ export const adminUpdateUserProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (fullName !== undefined) targetUser.fullName = fullName;
-    if (name !== undefined) targetUser.name = name;
+    // Names flow into PDF watermarks and GitHub Actions inputs, so they are normalised here too.
+    if (fullName !== undefined) targetUser.fullName = sanitizePersonName(fullName) || targetUser.fullName;
+    if (name !== undefined) targetUser.name = sanitizePersonName(name) || targetUser.name;
     if (email !== undefined) targetUser.email = email;
-    if (mobileNumber !== undefined) targetUser.mobileNumber = mobileNumber;
-    if (telegramUsername !== undefined) targetUser.telegramUsername = telegramUsername;
-    if (interestedCourses !== undefined) targetUser.interestedCourses = interestedCourses;
+    if (mobileNumber !== undefined) targetUser.mobileNumber = mobileNumber === '' ? '' : (sanitizeMobile(mobileNumber) || targetUser.mobileNumber);
+    if (telegramUsername !== undefined) targetUser.telegramUsername = telegramUsername === '' ? '' : (sanitizeTelegram(telegramUsername) || targetUser.telegramUsername);
+    if (interestedCourses !== undefined) {
+      if (!Array.isArray(interestedCourses)) {
+        return res.status(400).json({ error: 'interestedCourses must be an array' });
+      }
+      const ids = interestedCourses.map(String);
+      targetUser.interestedCourses = ids;
+      // Course access is decided by purchasedCourses (see utils/courseAccess.js). This admin editor is
+      // how access is granted/revoked by hand, so keep the two lists in step (in both directions).
+      const matched = await Course.find({ courseId: { $in: ids } }).select('_id');
+      targetUser.purchasedCourses = matched.map((c) => c._id);
+    }
     if (optionalSubject !== undefined) targetUser.optionalSubject = optionalSubject;
     if (downloadLimits !== undefined) targetUser.downloadLimits = downloadLimits;
 

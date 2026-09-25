@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { peopleConn } from '../config/peopleDb.js';
 
 const purchaseRequestSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -19,4 +20,4 @@ const purchaseRequestSchema = new mongoose.Schema({
   highlight: { type: String, enum: ['none', 'red', 'yellow'], default: 'none' }
 }, { timestamps: true });
 
-export default mongoose.model('PurchaseRequest', purchaseRequestSchema);
+export default peopleConn.model('PurchaseRequest', purchaseRequestSchema);

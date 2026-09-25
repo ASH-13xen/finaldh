@@ -14,7 +14,10 @@ import {
 } from "pdf-lib";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { r2Client } from "../config/r2.js";
+import mongoose from "mongoose";
 import Course from "../models/Course.js";
+import User from "../models/User.js";
+import { userHasCourseAccess } from "../utils/courseAccess.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +27,17 @@ const userEditsDir = path.join(__dirname, "../uploads/user_edits");
 if (!fsSync.existsSync(userEditsDir)) {
   fsSync.mkdirSync(userEditsDir, { recursive: true });
 }
+
+// Maps an editId (a bare file name) to its path inside userEditsDir, or null if it is anything else.
+// path.join(userEditsDir, editId) alone lets "../../.env" (or its %2e%2e%2f form) escape the folder.
+const resolveEditPath = (editId) => {
+  if (typeof editId !== "string" || !editId.startsWith("edited-")) return null;
+  // A bare file name only: no separators and no ".." anywhere, whatever the OS would resolve them to.
+  if (editId.includes("/") || editId.includes("\\") || editId.includes("..")) return null;
+  const base = path.resolve(userEditsDir);
+  const resolved = path.resolve(base, editId);
+  return path.dirname(resolved) === base ? resolved : null;
+};
 
 // 1. Initialize PDF for Editing (copy course PDF or prepare uploaded PDF)
 export const initPDFEdit = async (req, res) => {
@@ -44,12 +58,22 @@ export const initPDFEdit = async (req, res) => {
       console.log(
         `[Init-Edit] Retrieving purchased course details for ID: ${courseId}`,
       );
-      const course = await Course.findById(courseId);
+      const course = mongoose.isValidObjectId(courseId)
+        ? await Course.findById(courseId)
+        : null;
       if (!course) {
         console.error(
           `[Init-Edit] Error: Purchased course not found for ID: ${courseId}`,
         );
         return res.status(404).json({ error: "Course not found" });
+      }
+      // This copies the RAW course PDF, so only someone who owns the course (or an admin) may ask for it.
+      const requester = await User.findById(req.userId);
+      if (!userHasCourseAccess(requester, course)) {
+        if (file) await fs.unlink(file.path).catch(() => {});
+        return res
+          .status(403)
+          .json({ error: "Access denied: you do not own this course" });
       }
       originalName = course.fileName || "course.pdf";
       if (course.fileUrl.startsWith("r2://")) {
@@ -99,7 +123,9 @@ export const initPDFEdit = async (req, res) => {
 
     // Generate unique edit ID and copy the file to user_edits
     const uniqueId = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const sanitizedOriginalName = originalName.replace(/\s+/g, "_");
+    // Keep only filename-safe characters: this name becomes part of a path on disk.
+    const sanitizedOriginalName =
+      originalName.replace(/\s+/g, "_").replace(/[^\w.()-]+/g, "_").slice(0, 120) || "document.pdf";
     const editFileName = `edited-${uniqueId}-${sanitizedOriginalName}`;
     const destinationPath = path.join(userEditsDir, editFileName);
     console.log(`[Init-Edit] Generated session file details:`);
@@ -138,7 +164,7 @@ export const initPDFEdit = async (req, res) => {
       console.log(`[Init-Edit] Move operation completed successfully.`);
     }
 
-    const fileUrl = `/uploads/user_edits/${editFileName}`;
+    const fileUrl = `/api/pdf-editor/file/${encodeURIComponent(editFileName)}`;
     console.log(
       `[Init-Edit] PDF editing session successfully initialized. Client URL: ${fileUrl}`,
     );
@@ -350,7 +376,8 @@ export const applyWhiteout = async (req, res) => {
   }
 
   try {
-    const filePath = path.join(userEditsDir, editId);
+    const filePath = resolveEditPath(editId);
+    if (!filePath) return res.status(400).json({ error: "Invalid editId" });
     console.log(`[Apply-Whiteout] Checking file access at: ${filePath}`);
 
     // Verify file exists
@@ -466,7 +493,7 @@ export const applyWhiteout = async (req, res) => {
 
     res.json({
       message: "Question prefix successfully removed and replaced!",
-      url: `/uploads/user_edits/${editId}?t=${Date.now()}`, // Add timestamp to break frontend browser cache
+      url: `/api/pdf-editor/file/${encodeURIComponent(editId)}?t=${Date.now()}`, // Add timestamp to break frontend browser cache
     });
   } catch (err) {
     console.error("[Apply-Whiteout] Fatal error replacing text in PDF:", err);
@@ -488,7 +515,8 @@ export const downloadPDF = async (req, res) => {
   }
 
   try {
-    const filePath = path.join(userEditsDir, editId);
+    const filePath = resolveEditPath(editId);
+    if (!filePath) return res.status(400).json({ error: "Invalid editId" });
     console.log(`[Download] Resolving file path: ${filePath}`);
 
     // Verify file existence
@@ -517,6 +545,22 @@ export const downloadPDF = async (req, res) => {
   }
 };
 
+// Serves an edited PDF for the in-browser preview. Replaces the old public /uploads/user_edits static
+// folder, which exposed every edit session (including copies of raw course PDFs) to anyone with the URL.
+export const serveEditedPDF = async (req, res) => {
+  const filePath = resolveEditPath(req.params.editId);
+  if (!filePath) return res.status(400).json({ error: "Invalid editId" });
+  try {
+    await fs.access(filePath);
+  } catch {
+    return res.status(404).json({ error: "Edited PDF not found." });
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // sendFile handles HTTP Range requests, which pdf.js uses.
+  res.sendFile(filePath, { headers: { "Content-Type": "application/pdf" } });
+};
+
 // 5. Auto-Clean Entire PDF in Chunks of Pages
 export const autoCleanPDF = async (req, res) => {
   const {
@@ -539,7 +583,8 @@ export const autoCleanPDF = async (req, res) => {
     : null;
 
   try {
-    const filePath = path.join(userEditsDir, editId);
+    const filePath = resolveEditPath(editId);
+    if (!filePath) return res.status(400).json({ error: "Invalid editId" });
     console.log(`[Auto-Clean] Initializing auto-clean for file: ${filePath}`);
 
     // Verify file exists
@@ -835,7 +880,7 @@ Return your response strictly as a JSON array of objects for each page that cont
     console.log(`[Auto-Clean] Auto-cleaning complete for file: ${filePath}!`);
     res.json({
       message: "PDF automatically cleaned and questions replaced successfully!",
-      url: `/uploads/user_edits/${editId}?t=${Date.now()}`,
+      url: `/api/pdf-editor/file/${encodeURIComponent(editId)}?t=${Date.now()}`,
     });
   } catch (err) {
     console.error(
@@ -868,7 +913,8 @@ export const cleanPagesPDF = async (req, res) => {
   }
 
   try {
-    const filePath = path.join(userEditsDir, editId);
+    const filePath = resolveEditPath(editId);
+    if (!filePath) return res.status(400).json({ error: "Invalid editId" });
     console.log(`[Clean-Pages] Checking file access at: ${filePath}`);
 
     // Verify file exists
@@ -1167,7 +1213,7 @@ Return your response strictly as a JSON array of objects for each page that cont
     );
     res.json({
       message: `PDF successfully cleaned for selected pages! Cleaned ${totalCleanedCount} page(s).`,
-      url: `/uploads/user_edits/${editId}?t=${Date.now()}`,
+      url: `/api/pdf-editor/file/${encodeURIComponent(editId)}?t=${Date.now()}`,
     });
   } catch (err) {
     console.error("[Clean-Pages] Fatal error during PDF cleaning:", err);

@@ -7,7 +7,6 @@ import {
   updateCourse,
   deleteCourse,
   listCourses,
-  checkoutCart,
   getPurchasedCourses,
   analyzeCoursePage,
   downloadSecuredCoursePdf,
@@ -18,7 +17,8 @@ import {
   removeCourseSample,
   getCourseSamplePdf,
   getSiteContent,
-  updateSiteContent
+  updateSiteContent,
+  listDownloadLogs
 } from '../controllers/courseController.js';
 import {
   createPurchaseRequest,
@@ -38,6 +38,7 @@ import {
   deleteComboOffer
 } from '../controllers/comboOfferController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { requireAdmin } from '../middlewares/adminMiddleware.js';
 
 const tempUploadDir = 'uploads/temp';
 if (!fs.existsSync(tempUploadDir)) {
@@ -62,11 +63,14 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post('/upload', upload.array('files', 50), uploadCourse);
-router.put('/:id', upload.array('files', 50), updateCourse);
-router.delete('/:id', deleteCourse);
+// Admin-only. These three routes used to have no auth at all, so anyone on the internet could upload,
+// overwrite or delete courses (and their files in R2). Auth runs BEFORE multer so unauthenticated
+// callers cannot make the server buffer a 750MB upload.
+router.post('/upload', authenticateToken, requireAdmin, upload.array('files', 50), uploadCourse);
+router.put('/:id', authenticateToken, requireAdmin, upload.array('files', 50), updateCourse);
+router.delete('/:id', authenticateToken, requireAdmin, deleteCourse);
 router.get('/list', listCourses);
-router.post('/checkout', authenticateToken, checkoutCart);
+// (POST /checkout was removed: it was a leftover "mock payment" that let any student mark any course as purchased.)
 router.get('/purchased', authenticateToken, getPurchasedCourses);
 router.post('/analyze-page', authenticateToken, analyzeCoursePage);
 
@@ -78,6 +82,9 @@ router.get('/download/:courseId', authenticateToken, downloadSecuredCoursePdf);
 
 // Real-time download progress endpoint
 router.get('/download-progress/:courseId', authenticateToken, getDownloadProgress);
+
+// Admin: trace a leaked PDF back to whoever it was issued to (by License ID, email, user id...)
+router.get('/admin/download-logs', authenticateToken, requireAdmin, listDownloadLogs);
 
 // Course sample PDF endpoints
 router.post('/:id/sample', authenticateToken, upload.single('sample'), uploadCourseSample);

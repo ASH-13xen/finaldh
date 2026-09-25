@@ -15,6 +15,10 @@ const mcqTestSchema = new mongoose.Schema({
   isPublished: { type: Boolean, default: false },
   instructions: { type: [String], default: [] },
 
+  // How many times one student may start this test, Test and Practice modes combined. Admins can
+  // grant an individual student extra attempts (see McqAttemptQuota.extra).
+  maxAttempts: { type: Number, default: 2, min: 1, max: 20 },
+
   // Paywall fields, mirroring Course.js's pricing shape (price default 499) so the same UPI
   // purchase-request flow/UI pattern can be reused for MCQ tests. Locked by default - admin
   // marks specific tests free per subject via the requiresPurchase toggle.

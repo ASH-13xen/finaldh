@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { peopleConn } from '../config/peopleDb.js';
 
 // Mirrors PurchaseRequest.js's shape, scoped to McqTest/subject instead of Course/combo
 // bundles - same manual UPI-screenshot-plus-admin-approval flow, separate collection so
@@ -25,4 +26,4 @@ const mcqPurchaseRequestSchema = new mongoose.Schema({
   highlight: { type: String, enum: ['none', 'red', 'yellow'], default: 'none' }
 }, { timestamps: true });
 
-export default mongoose.model('McqPurchaseRequest', mcqPurchaseRequestSchema);
+export default peopleConn.model('McqPurchaseRequest', mcqPurchaseRequestSchema);

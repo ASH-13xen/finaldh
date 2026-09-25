@@ -1,4 +1,5 @@
 import McqPurchaseRequest from '../models/McqPurchaseRequest.js';
+import { escapeRegExp } from '../utils/sanitize.js';
 import User from '../models/User.js';
 import McqTest from '../models/McqTest.js';
 import McqSubjectPricing from '../models/McqSubjectPricing.js';
@@ -38,7 +39,7 @@ export const createMcqPurchaseRequest = async (req, res) => {
 
     if (cleanedTxnId) {
       const existingTxn = await McqPurchaseRequest.findOne({
-        upiTxnId: { $regex: new RegExp(`^${cleanedTxnId}$`, 'i') }
+        upiTxnId: { $regex: new RegExp(`^${escapeRegExp(cleanedTxnId)}$`, 'i') }
       });
       if (existingTxn) {
         return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });

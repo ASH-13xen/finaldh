@@ -1,4 +1,6 @@
 import PurchaseRequest from '../models/PurchaseRequest.js';
+import { escapeRegExp } from '../utils/sanitize.js';
+import { userHasCourseAccess } from '../utils/courseAccess.js';
 import User from '../models/User.js';
 import Course from '../models/Course.js';
 import ComboOffer from '../models/ComboOffer.js';
@@ -30,8 +32,9 @@ export const createPurchaseRequest = async (req, res) => {
 
     if (cleanedTxnId) {
       // Check if the UPI transaction ID has already been used (case-insensitive check)
+      // escapeRegExp: the ID is user input and must never be interpreted as a pattern (regex injection / ReDoS)
       const existingTxn = await PurchaseRequest.findOne({
-        upiTxnId: { $regex: new RegExp(`^${cleanedTxnId}$`, 'i') }
+        upiTxnId: { $regex: new RegExp(`^${escapeRegExp(cleanedTxnId)}$`, 'i') }
       });
       if (existingTxn) {
         return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });
@@ -48,11 +51,8 @@ export const createPurchaseRequest = async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    // Check if course is already in student's interestedCourses
-    const hasPurchased = user.interestedCourses.some(
-      (cId) => cId.toLowerCase() === courseId.toLowerCase()
-    );
-    if (hasPurchased) {
+    // Already owns it? (purchasedCourses is the source of truth for access)
+    if (userHasCourseAccess(user, course)) {
       return res.status(400).json({ error: 'You have already purchased this course' });
     }
 
@@ -128,9 +128,7 @@ const createComboPurchaseRequest = async ({ req, res, user, comboOfferId, screen
     return res.status(404).json({ error: 'One or more courses in this combo are no longer available' });
   }
 
-  const alreadyOwned = finalCourseIds.some((id) =>
-    user.interestedCourses.some((cId) => cId.toLowerCase() === id.toLowerCase())
-  );
+  const alreadyOwned = courseDocs.some((c) => userHasCourseAccess(user, c));
   if (alreadyOwned) {
     return res.status(400).json({ error: 'You already have access to one or more courses in this combo' });
   }
@@ -175,7 +173,7 @@ export const getStudentPurchaseRequests = async (req, res) => {
     const requests = await PurchaseRequest.find({ userId: req.userId })
       .select('-screenshotData')
       .sort({ createdAt: -1 })
-      .populate('courses', 'name courseId')
+      .populate({ path: 'courses', select: 'name courseId', model: Course })
       .populate('comboOffer', 'label price');
     res.json(requests);
   } catch (err) {
@@ -204,7 +202,7 @@ export const getAdminPurchaseRequests = async (req, res) => {
     const requests = await PurchaseRequest.find({})
       .select('-screenshotData')
       .sort({ createdAt: -1 })
-      .populate('courses', 'name courseId')
+      .populate({ path: 'courses', select: 'name courseId', model: Course })
       .populate('comboOffer', 'label price');
     res.json(requests);
   } catch (err) {

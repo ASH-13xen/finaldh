@@ -1,13 +1,12 @@
 import fs from "fs/promises";
-import { createReadStream, createWriteStream } from "fs";
+import { createReadStream } from "fs";
+import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { PDFParse } = require("pdf-parse");
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { PDFDocument, rgb } from "pdf-lib";
-import bwipjs from "bwip-js";
 import { encryptPDF } from "@pdfsmaller/pdf-encrypt-lite";
 import {
   PutObjectCommand,
@@ -18,6 +17,10 @@ import { r2Client } from "../config/r2.js";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import DownloadSession from "../models/DownloadSession.js";
+import DownloadLog from "../models/DownloadLog.js";
+import { userHasCourseAccess } from "../utils/courseAccess.js";
+import { escapeRegExp } from "../utils/sanitize.js";
+import { buildSecuredPdf, generateLicenseId, fingerprintOf } from "../lib/pdfStamp.js";
 import SiteContent from "../models/SiteContent.js";
 import mongoose from "mongoose";
 import { exec } from "child_process";
@@ -664,48 +667,11 @@ export const listCourses = async (req, res) => {
   }
 };
 
-// Checkout Shopping Cart (Mock Payment)
-export const checkoutCart = async (req, res) => {
-  const { courseIds } = req.body; // Array of Course IDs
-
-  if (!courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
-    return res
-      .status(400)
-      .json({ error: "Invalid or empty courseIds array provided" });
-  }
-
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ error: "User profile not found" });
-    }
-
-    // Add unique course IDs to user's purchasedCourses list
-    const currentPurchases = user.purchasedCourses.map((id) => id.toString());
-    courseIds.forEach((id) => {
-      if (!currentPurchases.includes(id)) {
-        user.purchasedCourses.push(id);
-      }
-    });
-
-    await user.save();
-
-    res.json({
-      message: "Checkout successful! Payment Completed.",
-      purchasedCoursesCount: user.purchasedCourses.length,
-    });
-  } catch (err) {
-    console.error("Error checking out cart:", err);
-    res
-      .status(500)
-      .json({ error: "Server error during mock payment checkout" });
-  }
-};
-
 // Retrieve user's purchased courses
 export const getPurchasedCourses = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).populate("purchasedCourses");
+    // Course lives in the content cluster, User in the people cluster, so the model must be given explicitly.
+    const user = await User.findById(req.userId).populate({ path: "purchasedCourses", model: Course });
     if (!user) {
       return res.status(404).json({ error: "User profile not found" });
     }
@@ -951,7 +917,67 @@ Return your analysis strictly as a JSON object with this format (do not wrap in 
   }
 };
 
-// Handle secured PDF download with top watermarks and bottom barcode
+// Where the GitHub worker POSTs progress/completion. The worker sends CALLBACK_SECRET to this URL, so it
+// must never be built from an attacker-controllable Host header in production (a student could point it
+// at their own server, capture the secret and forge "failed" callbacks to refund download credits).
+const resolveCallbackBase = (req) => {
+  const configured = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL;
+  if (configured) return configured.replace(/\/$/, "");
+  const host = (req.hostname || "").toLowerCase();
+  const allowed = (process.env.CALLBACK_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  if (["localhost", "127.0.0.1", "::1"].includes(host) || allowed.includes(host)) {
+    return `${req.protocol}://${req.get("host")}`;
+  }
+  return null;
+};
+
+// The password a student opens the secured PDF with: last 10 digits of their mobile, else their email.
+const openingPassword = (user) => {
+  const mobile = (user.mobileNumber || "").trim();
+  const digits = mobile.replace(/\D/g, "");
+  if (digits && mobile !== "N/A") return digits.length >= 10 ? digits.slice(-10) : digits;
+  return String(user.email || "").trim().toLowerCase();
+};
+
+async function loadCourseFileBuffer(url) {
+  if (url.startsWith("r2://")) {
+    const r2Response = await r2Client.send(
+      new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: url.replace("r2://", "") }),
+    );
+    return Buffer.from(await r2Response.Body.transformToByteArray());
+  }
+  return fs.readFile(path.join(__dirname, "../", url));
+}
+
+// Every secured PDF gets a unique License ID that is printed on each page, hidden in the file and
+// recorded here, so a leaked copy can be traced back to who it was issued to, when, and from where.
+async function issueLicense({ req, user, course, compositeCourseId, fileIndex }) {
+  const licenseId = generateLicenseId();
+  const issuedAt = new Date();
+  await DownloadLog.create({
+    licenseId,
+    fingerprint: fingerprintOf(licenseId),
+    userId: user._id,
+    userEmail: user.email,
+    userName: user.fullName || user.name || "",
+    userMobile: user.mobileNumber || "",
+    courseObjectId: course._id,
+    courseId: compositeCourseId,
+    courseName: course.name || "",
+    fileIndex,
+    ip: req.ip || "",
+    forwardedFor: String(req.headers["x-forwarded-for"] || "").slice(0, 300),
+    userAgent: String(req.headers["user-agent"] || "").slice(0, 300),
+    status: "queued",
+    issuedAt,
+  });
+  return { licenseId, issuedAt };
+}
+
+// Handle secured PDF download: centred watermark, bottom credentials strip, barcode and hidden trace marks
 export const downloadSecuredCoursePdf = async (req, res) => {
   const { courseId } = req.params;
   const { checkOnly, index: indexStr } = req.query;
@@ -985,6 +1011,13 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       return res.status(404).json({ error: "Course not found" });
     }
     console.log(`[PDF Security] Course found (${course.name})`);
+
+    // Reject a bad file index up front: an unchecked NaN/out-of-range index used to crash later,
+    // after the student's download credit had already been spent.
+    const fileCount = Math.max(1, (course.fileUrls && course.fileUrls.length) || 0);
+    if (!Number.isInteger(fileIndex) || fileIndex < 0 || fileIndex >= fileCount) {
+      return res.status(400).json({ error: "Invalid file index" });
+    }
 
     compositeCourseId =
       course.fileUrls && course.fileUrls.length > 1
@@ -1026,24 +1059,15 @@ export const downloadSecuredCoursePdf = async (req, res) => {
       await setSessionProgress(req.userId, compositeCourseId, 3, "idle");
     }
 
-    // 3. Verify user has access to this course (check if interestedCourses contains courseId)
+    // 3. Verify user has access to this course (purchasedCourses, or admin - see utils/courseAccess.js)
     console.log(`[PDF Security] Step 3: Verifying student course permissions`);
-    const interestedList = Array.isArray(user.interestedCourses)
-      ? user.interestedCourses
-      : [];
-    const hasAccess = interestedList.some(
-      (id) => id.toLowerCase() === courseId.toLowerCase(),
-    );
-
-    if (!hasAccess) {
+    if (!userHasCourseAccess(user, course)) {
       console.log(
         `[PDF Security] Step 3: Access denied for user ${user.email} on course ${courseId}`,
       );
-      return res
-        .status(403)
-        .json({
-          error: "Access denied: This course is not in your interested list",
-        });
+      return res.status(403).json({
+        error: "Access denied: You have not purchased this course",
+      });
     }
     console.log(`[PDF Security] Step 3: Access verified`);
 
@@ -1122,6 +1146,11 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           console.log(
             `[PDF Security] Direct Stream: Successfully completed streaming secured PDF for courseId: ${compositeCourseId}`,
           );
+          DownloadLog.findOneAndUpdate(
+            { userId: req.userId, courseId: compositeCourseId, status: "ready" },
+            { status: "delivered" },
+            { sort: { issuedAt: -1 } },
+          ).catch(() => {});
         });
         res.on("close", () => {
           console.log(
@@ -1185,6 +1214,30 @@ export const downloadSecuredCoursePdf = async (req, res) => {
 
     if (mode === "github-actions") {
       const destinationKey = `secured-${req.userId}-${courseId}${course.fileUrls && course.fileUrls.length > 1 ? `_${fileIndex}` : ""}.pdf`;
+
+      // Fail fast on misconfiguration BEFORE claiming a session slot or spending a download credit
+      // (this check used to run after both, leaving the student with a spent credit and a stuck session).
+      const callbackBase = resolveCallbackBase(req);
+      if (!callbackBase) {
+        console.error(
+          "[PDF Security] Cannot determine a trusted callback URL. Set BACKEND_URL (or RENDER_EXTERNAL_URL) in the backend environment.",
+        );
+        return res
+          .status(500)
+          .json({ error: "Download service is not fully configured" });
+      }
+      if (
+        !process.env.GITHUB_REPO_OWNER ||
+        !process.env.GITHUB_REPO_NAME ||
+        !process.env.GITHUB_PAT
+      ) {
+        console.error(
+          "[PDF Security] Missing GitHub repository info or PAT in env",
+        );
+        return res
+          .status(500)
+          .json({ error: "GitHub Actions background worker is not fully configured" });
+      }
 
       // Atomically claim this download slot before doing any work. A plain
       // "find, then later mark queued" sequence leaves a race window (the GitHub
@@ -1291,10 +1344,7 @@ export const downloadSecuredCoursePdf = async (req, res) => {
             : course.fileUrl;
       const sourceKeys = singleUrl.replace("r2://", "");
 
-      let callbackUrl = `${req.protocol}://${req.get("host")}/api/courses/github-callback`;
-      if (process.env.BACKEND_URL) {
-        callbackUrl = `${process.env.BACKEND_URL.replace(/\/$/, "")}/api/courses/github-callback`;
-      }
+      const callbackUrl = `${callbackBase}/api/courses/github-callback`;
 
       const dispatchUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/actions/workflows/pdf-processor.yml/dispatches`;
 
@@ -1302,7 +1352,9 @@ export const downloadSecuredCoursePdf = async (req, res) => {
         `[PDF Security] Triggering GitHub workflow dispatch at: ${dispatchUrl}`,
       );
 
+      let license = null;
       try {
+        license = await issueLicense({ req, user, course, compositeCourseId, fileIndex });
         const response = await fetch(dispatchUrl, {
           method: "POST",
           headers: {
@@ -1323,6 +1375,8 @@ export const downloadSecuredCoursePdf = async (req, res) => {
               sourceKey: sourceKeys,
               destinationKey: destinationKey,
               callbackUrl: callbackUrl,
+              licenseId: license.licenseId,
+              issuedAt: license.issuedAt.toISOString(),
             },
           }),
         });
@@ -1351,6 +1405,12 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           `[PDF Security] Error triggering workflow dispatch:`,
           dispatchErr,
         );
+        if (license) {
+          await DownloadLog.updateOne(
+            { licenseId: license.licenseId },
+            { status: "failed" },
+          ).catch(() => {});
+        }
         if (creditIncremented) {
           const refundUser = await User.findById(req.userId);
           if (refundUser) {
@@ -1452,467 +1512,57 @@ export const downloadSecuredCoursePdf = async (req, res) => {
           : course.fileUrl;
     const partUrls = [singleUrl];
 
-    // --- MODE 1: CLIENT-SIDE PROCESSING ---
-    if (mode === "client-side") {
-      // Fall back to server-native if the course is multi-part, since concatenated PDFs are invalid
-      if (partUrls.length > 1) {
-        console.log(
-          `[PDF Security] Client-side Mode: Multi-part course detected. Automatically falling back to server-native mode.`,
-        );
-        mode = "server-native";
-      } else {
-        res.setHeader("x-download-mode", "client-side");
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="${course.fileName.replace(/\s+/g, "_")}_raw.pdf"`,
-        );
-
-        if (course.fileUrl.startsWith("r2://")) {
-          const r2Key = course.fileUrl.replace("r2://", "");
-          console.log(
-            `[PDF Security] Client-side Mode: Proxy streaming from Cloudflare R2 (key: ${r2Key})`,
-          );
-          const r2Response = await r2Client.send(
-            new GetObjectCommand({
-              Bucket: process.env.R2_BUCKET_NAME,
-              Key: r2Key,
-            }),
-          );
-
-          r2Response.Body.pipe(res);
-        } else {
-          console.log(
-            `[PDF Security] Client-side Mode: Streaming from local disk`,
-          );
-          const filePath = path.join(__dirname, "../", course.fileUrl);
-          const fileStream = createReadStream(filePath);
-          fileStream.pipe(res);
-        }
-        return;
-      }
+    // --- LOCAL PROCESSING (used when DOWNLOAD_MODE is not "github-actions") ---
+    // This used to be three separate modes (client-side / server-native (qpdf) / server-js), each with its
+    // own copy of the watermark code - and "client-side" streamed the RAW, unwatermarked file. They now all
+    // run the one shared pipeline in lib/pdfStamp.js, so the output is identical to the GitHub Actions worker.
+    if (mode !== "server-js") {
+      console.warn(
+        `[PDF Security] DOWNLOAD_MODE "${mode}" is retired; using the shared server-js pipeline instead.`,
+      );
     }
+    await setSessionProgress(req.userId, compositeCourseId, 5, "processing");
 
-    // --- MODE 2: SERVER-SIDE NATIVE (QPDF) PROCESSING ---
-    if (mode === "server-native") {
-      await setSessionProgress(req.userId, courseId, 5, "processing");
+    const license = await issueLicense({ req, user, course, compositeCourseId, fileIndex });
+    try {
+      const sources = [];
+      for (const partUrl of partUrls) sources.push(await loadCourseFileBuffer(partUrl));
 
-      // Ensure temp directory exists
-      const tempDir = path.join(__dirname, "../uploads/temp");
-      await fs.mkdir(tempDir, { recursive: true });
-
-      tempStampPath = path.join(tempDir, `stamp_${req.userId}_${courseId}.pdf`);
-      tempWarningPath = path.join(
-        tempDir,
-        `warning_${req.userId}_${courseId}.pdf`,
-      );
-      tempOutputPath = path.join(
-        tempDir,
-        `output_${req.userId}_${courseId}.pdf`,
-      );
-
-      let totalPages = 0;
-      let firstPageWidth = 595.276; // Default A4
-      let firstPageHeight = 841.89;
-
-      // 5. Download and process parts sequentially to save memory
-      for (let i = 0; i < partUrls.length; i++) {
-        const partUrl = partUrls[i];
-        const rawPartPath = path.join(
-          tempDir,
-          `part_${i}_raw_${req.userId}_${courseId}.pdf`,
-        );
-        const securedPartPath = path.join(
-          tempDir,
-          `part_${i}_secured_${req.userId}_${courseId}.pdf`,
-        );
-        rawPartPaths.push(rawPartPath);
-        securedPartPaths.push(securedPartPath);
-
-        if (partUrl.startsWith("r2://")) {
-          const r2Key = partUrl.replace("r2://", "");
-          console.log(
-            `[PDF Security] Native Mode: Downloading part ${i + 1}/${partUrls.length} from R2 (key: ${r2Key})`,
-          );
-          const r2Response = await r2Client.send(
-            new GetObjectCommand({
-              Bucket: process.env.R2_BUCKET_NAME,
-              Key: r2Key,
-            }),
-          );
-          await pipeline(r2Response.Body, createWriteStream(rawPartPath));
-        } else {
-          console.log(
-            `[PDF Security] Native Mode: Copying local part ${i + 1}/${partUrls.length}`,
-          );
-          const localFilePath = path.join(__dirname, "../", partUrl);
-          await fs.copyFile(localFilePath, rawPartPath);
-        }
-
-        // Get dimensions and page count of part using qpdf
-        const { stdout: qpdfInfo } = await execPromise(
-          `qpdf --show-pages "${rawPartPath}"`,
-        );
-        const partPageCount = (qpdfInfo.match(/page \d+:/g) || []).length;
-        totalPages += partPageCount;
-
-        if (i === 0) {
-          const sizeMatch = qpdfInfo.match(
-            /page 1:[^]*?size: ([\d.]+) x ([\d.]+)/i,
-          );
-          if (sizeMatch) {
-            firstPageWidth = parseFloat(sizeMatch[1]);
-            firstPageHeight = parseFloat(sizeMatch[2]);
-          }
-        }
-      }
-      console.log(
-        `[PDF Security] Native Mode: All parts downloaded. Total pages: ${totalPages}`,
-      );
-
-      await setSessionProgress(req.userId, courseId, 6, "processing");
-
-      // 6. Generate barcode buffer
-      console.log(`[PDF Security] Native Mode: Generating user barcode`);
-      let barcodePngBuffer = await new Promise((resolve, reject) => {
-        bwipjs.toBuffer(
-          {
-            bcid: "code128",
-            text: user._id.toString(),
-            scale: 2,
-            height: 10,
-            includetext: true,
-            textxalign: "center",
-          },
-          (err, png) => {
-            if (err) reject(err);
-            else resolve(png);
-          },
-        );
+      const stepNumbers = { barcode: 6, stamping: 7, saving: 8 };
+      const stamped = await buildSecuredPdf({
+        sources,
+        user: {
+          userId: String(user._id),
+          name: user.fullName || user.name,
+          email: user.email,
+          mobile: user.mobileNumber,
+        },
+        license,
+        docInfo: { title: course.name, subject: course.subject },
+        onStep: (step) =>
+          setSessionProgress(req.userId, compositeCourseId, stepNumbers[step], "processing"),
       });
 
-      await setSessionProgress(req.userId, courseId, 7, "processing");
+      const encrypted = await encryptPDF(stamped, openingPassword(user));
+      await setSessionProgress(req.userId, compositeCourseId, 9, "completed");
+      await DownloadLog.updateOne({ licenseId: license.licenseId }, { status: "delivered" });
 
-      // Create stamp PDF (1 page with watermark & barcode)
-      console.log(`[PDF Security] Native Mode: Creating watermark stamp PDF`);
-      const stampDoc = await PDFDocument.create();
-      const helveticaFont = await stampDoc.embedFont("Helvetica");
-      const helveticaBoldFont = await stampDoc.embedFont("Helvetica-Bold");
-      const stampPage = stampDoc.addPage([firstPageWidth, firstPageHeight]);
-
-      const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || "N/A"}`;
-      stampPage.drawText(watermarkText, {
-        x: 25,
-        y: firstPageHeight - 50,
-        size: 9,
-        font: helveticaFont,
-        color: rgb(0.6, 0.6, 0.6),
-      });
-
-      const barcodeImage = await stampDoc.embedPng(barcodePngBuffer);
-      const barcodeWidth = 90;
-      const barcodeHeight = 20;
-      stampPage.drawImage(barcodeImage, {
-        x: firstPageWidth - barcodeWidth - 25,
-        y: 15,
-        width: barcodeWidth,
-        height: barcodeHeight,
-      });
-
-      const stampBytes = await stampDoc.save();
-      await fs.writeFile(tempStampPath, stampBytes);
-
-      // Create warning PDF (1 page)
-      console.log(`[PDF Security] Native Mode: Creating warning page PDF`);
-      const warningDoc = await PDFDocument.create();
-      const warningPage = warningDoc.addPage([firstPageWidth, firstPageHeight]);
-      drawSecurityWarningPage(
-        warningPage,
-        user,
-        course,
-        helveticaFont,
-        helveticaBoldFont,
-      );
-      const warningBytes = await warningDoc.save();
-      await fs.writeFile(tempWarningPath, warningBytes);
-
-      // 7. Apply watermark stamp to each part sequentially
-      for (let i = 0; i < partUrls.length; i++) {
-        console.log(
-          `[PDF Security] Native Mode: Watermarking part ${i + 1}/${partUrls.length}`,
-        );
-        const qpdfStampCmd = `qpdf "${rawPartPaths[i]}" --overlay "${tempStampPath}" --repeat=1-z -- "${securedPartPaths[i]}"`;
-        await execPromise(qpdfStampCmd);
-        // Clean up the raw file immediately
-        await fs.unlink(rawPartPaths[i]).catch(() => {});
-      }
-
-      await setSessionProgress(req.userId, courseId, 8, "processing");
-
-      // Determine warning page positions in global page space.
-      // The first warning page always lands exactly on page 2.
-      const numPagesToAdd = Math.max(1, Math.floor(totalPages / 50));
-      const insertPositions = [2];
-      for (let j = 1; j < numPagesToAdd; j++) {
-        insertPositions.push(Math.floor(Math.random() * (totalPages + 1)) + 1);
-      }
-      insertPositions.sort((a, b) => a - b);
-
-      // Get page counts of each secured part
-      const partPageCounts = [];
-      for (let i = 0; i < securedPartPaths.length; i++) {
-        const { stdout: partInfo } = await execPromise(
-          `qpdf --show-pages "${securedPartPaths[i]}"`,
-        );
-        const count = (partInfo.match(/page \d+:/g) || []).length;
-        partPageCounts.push(count);
-      }
-
-      // Map insertPositions globally to construct pages list
-      const qpdfPages = [];
-      let currentPartIdx = 0;
-      let currentPartPageStart = 1;
-      let globalPageCursor = 1;
-
-      for (const insertPos of insertPositions) {
-        while (currentPartIdx < securedPartPaths.length) {
-          const partLength = partPageCounts[currentPartIdx];
-          const partGlobalEnd =
-            globalPageCursor + (partLength - currentPartPageStart);
-
-          if (insertPos <= partGlobalEnd) {
-            const localInsertOffset = insertPos - globalPageCursor;
-            const localInsertPage = currentPartPageStart + localInsertOffset;
-
-            if (localInsertPage > currentPartPageStart) {
-              qpdfPages.push(
-                `"${securedPartPaths[currentPartIdx]}"`,
-                `${currentPartPageStart}-${localInsertPage - 1}`,
-              );
-            }
-            qpdfPages.push(`"${tempWarningPath}"`, `1`);
-
-            currentPartPageStart = localInsertPage;
-            globalPageCursor = insertPos;
-            break;
-          } else {
-            if (currentPartPageStart <= partLength) {
-              qpdfPages.push(
-                `"${securedPartPaths[currentPartIdx]}"`,
-                `${currentPartPageStart}-z`,
-              );
-            }
-            globalPageCursor += partLength - currentPartPageStart + 1;
-            currentPartIdx++;
-            currentPartPageStart = 1;
-          }
-        }
-      }
-
-      while (currentPartIdx < securedPartPaths.length) {
-        const partLength = partPageCounts[currentPartIdx];
-        if (currentPartPageStart <= partLength) {
-          qpdfPages.push(
-            `"${securedPartPaths[currentPartIdx]}"`,
-            `${currentPartPageStart}-z`,
-          );
-        }
-        currentPartIdx++;
-        currentPartPageStart = 1;
-      }
-
-      // 8. Execute qpdf to merge stamped parts, insert warnings, and encrypt
-      console.log(
-        `[PDF Security] Native Mode: Running final qpdf merge & encrypt`,
-      );
-      let userPassword = user.email.trim().toLowerCase();
-      if (
-        user.mobileNumber &&
-        user.mobileNumber.trim() !== "N/A" &&
-        user.mobileNumber.trim() !== ""
-      ) {
-        const digits = user.mobileNumber.replace(/\D/g, "");
-        userPassword = digits.length >= 10 ? digits.slice(-10) : digits;
-      }
-
-      const qpdfCommand = `qpdf --empty --pages ${qpdfPages.join(" ")} -- --encrypt "${userPassword}" "${userPassword}" 256 -- "${tempOutputPath}"`;
-      await execPromise(qpdfCommand);
-
-      await setSessionProgress(req.userId, courseId, 9, "completed");
-
-      // Stream output file
-      const outputStats = await fs.stat(tempOutputPath);
+      const activeFileName =
+        course.fileNames && course.fileNames.length > 1
+          ? course.fileNames[fileIndex]
+          : course.fileName;
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${course.fileName.replace(/\s+/g, "_")}_secured.pdf"`,
+        `attachment; filename="${String(activeFileName || "course").replace(/[^\w.-]+/g, "_")}_secured.pdf"`,
       );
-      res.setHeader("Content-Length", outputStats.size);
-
-      await pipeline(createReadStream(tempOutputPath), res);
-      console.log(
-        `[PDF Security] Native Mode: Secured PDF streamed successfully!`,
-      );
+      res.setHeader("Content-Length", encrypted.length);
+      res.end(Buffer.from(encrypted));
+      console.log(`[PDF Security] Local pipeline: secured PDF streamed (license ${license.licenseId}).`);
       return;
-    }
-
-    // --- MODE 3: SERVER-SIDE JS (FALLBACK) PROCESSING ---
-    if (mode === "server-js") {
-      await setSessionProgress(req.userId, courseId, 5, "processing");
-
-      const pdfDocs = [];
-      for (let i = 0; i < partUrls.length; i++) {
-        const partUrl = partUrls[i];
-        let pdfBuffer;
-        if (partUrl.startsWith("r2://")) {
-          const r2Key = partUrl.replace("r2://", "");
-          console.log(
-            `[PDF Security] JS Mode: Loading part ${i + 1}/${partUrls.length} from Cloudflare R2 (key: ${r2Key})`,
-          );
-          const r2Response = await r2Client.send(
-            new GetObjectCommand({
-              Bucket: process.env.R2_BUCKET_NAME,
-              Key: r2Key,
-            }),
-          );
-          pdfBuffer = Buffer.from(await r2Response.Body.transformToByteArray());
-        } else {
-          console.log(
-            `[PDF Security] JS Mode: Loading part ${i + 1}/${partUrls.length} from local disk`,
-          );
-          const filePath = path.join(__dirname, "../", partUrl);
-          pdfBuffer = await fs.readFile(filePath);
-        }
-        const doc = await PDFDocument.load(pdfBuffer);
-        pdfDocs.push(doc);
-      }
-
-      await setSessionProgress(req.userId, courseId, 6, "processing");
-
-      let barcodePngBuffer = await new Promise((resolve, reject) => {
-        bwipjs.toBuffer(
-          {
-            bcid: "code128",
-            text: user._id.toString(),
-            scale: 2,
-            height: 10,
-            includetext: true,
-            textxalign: "center",
-          },
-          (err, png) => {
-            if (err) reject(err);
-            else resolve(png);
-          },
-        );
-      });
-
-      await setSessionProgress(req.userId, courseId, 7, "processing");
-
-      const mergedPdfDoc = await PDFDocument.create();
-      const barcodeImage = await mergedPdfDoc.embedPng(barcodePngBuffer);
-      const helveticaFont = await mergedPdfDoc.embedFont("Helvetica");
-      const helveticaBoldFont = await mergedPdfDoc.embedFont("Helvetica-Bold");
-
-      mergedPdfDoc.setTitle(course.name || "Secured Course PDF");
-      mergedPdfDoc.setAuthor(user.email);
-      mergedPdfDoc.setSubject(course.subject || "Syllabus Course Content");
-      mergedPdfDoc.setProducer("The Dark Horse UPSC");
-      mergedPdfDoc.setCreator("The Dark Horse UPSC");
-      mergedPdfDoc.setKeywords([user._id.toString(), user.email]);
-
-      const watermarkText = `Name: ${user.fullName || user.name}  |  Email: ${user.email}  |  Mobile: ${user.mobileNumber || "N/A"}`;
-
-      let totalOriginalPages = 0;
-      for (const doc of pdfDocs) {
-        const copiedPages = await mergedPdfDoc.copyPages(
-          doc,
-          doc.getPageIndices(),
-        );
-        for (const page of copiedPages) {
-          const { width, height } = page.getSize();
-
-          page.drawText(watermarkText, {
-            x: 25,
-            y: height - 50,
-            size: 9,
-            font: helveticaFont,
-            color: rgb(0.6, 0.6, 0.6),
-          });
-
-          const barcodeWidth = 90;
-          const barcodeHeight = 20;
-          page.drawImage(barcodeImage, {
-            x: width - barcodeWidth - 25,
-            y: 15,
-            width: barcodeWidth,
-            height: barcodeHeight,
-          });
-
-          mergedPdfDoc.addPage(page);
-          totalOriginalPages++;
-        }
-      }
-
-      if (totalOriginalPages > 0) {
-        const firstPage = mergedPdfDoc.getPages()[0];
-        const { width, height } = firstPage.getSize();
-        const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 50));
-        // First warning page always lands exactly on page 2 (index 1).
-        const insertIndices = [1];
-        let currentPagesCount = totalOriginalPages + 1;
-        for (let j = 1; j < numPagesToAdd; j++) {
-          let maxIdx = currentPagesCount;
-          let minIdx = 2;
-          insertIndices.push(
-            Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx,
-          );
-          currentPagesCount++;
-        }
-        insertIndices.sort((a, b) => a - b);
-        for (const insertIdx of insertIndices) {
-          const newPage = mergedPdfDoc.insertPage(insertIdx, [width, height]);
-          drawSecurityWarningPage(
-            newPage,
-            user,
-            course,
-            helveticaFont,
-            helveticaBoldFont,
-          );
-        }
-      }
-
-      await setSessionProgress(req.userId, courseId, 8, "processing");
-      const modifiedPdfBuffer = await mergedPdfDoc.save({
-        useObjectStreams: false,
-        updateFieldAppearances: false,
-      });
-
-      await setSessionProgress(req.userId, courseId, 9, "completed");
-      let userPassword = user.email.trim().toLowerCase();
-      if (
-        user.mobileNumber &&
-        user.mobileNumber.trim() !== "N/A" &&
-        user.mobileNumber.trim() !== ""
-      ) {
-        const digits = user.mobileNumber.replace(/\D/g, "");
-        userPassword = digits.length >= 10 ? digits.slice(-10) : digits;
-      }
-      const encryptedPdfBuffer = await encryptPDF(
-        modifiedPdfBuffer,
-        userPassword,
-      );
-
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${course.fileName.replace(/\s+/g, "_")}_secured.pdf"`,
-      );
-      res.setHeader("Content-Length", encryptedPdfBuffer.length);
-      res.end(Buffer.from(encryptedPdfBuffer));
-      console.log(
-        `[PDF Security] JS Mode: Secured and password-protected PDF streamed successfully!`,
-      );
-      return;
+    } catch (localErr) {
+      await DownloadLog.updateOne({ licenseId: license.licenseId }, { status: "failed" }).catch(() => {});
+      throw localErr;
     }
   } catch (err) {
     console.error(
@@ -1948,196 +1598,6 @@ export const downloadSecuredCoursePdf = async (req, res) => {
   }
 };
 
-// Helper function to wrap text for PDF rendering
-const wrapText = (text, maxWidth, font, fontSize) => {
-  const words = text.split(/\s+/);
-  const lines = [];
-  let currentLine = "";
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-    if (testWidth > maxWidth) {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  return lines;
-};
-
-// Helper function to draw warning details on a newly inserted page
-const drawSecurityWarningPage = (page, user, course, font, boldFont) => {
-  const { width, height } = page.getSize();
-
-  // Draw a subtle border or background card
-  page.drawRectangle({
-    x: 40,
-    y: 40,
-    width: width - 80,
-    height: height - 80,
-    borderColor: rgb(0.8, 0.2, 0.2),
-    borderWidth: 2.5,
-    color: rgb(0.99, 0.98, 0.98),
-  });
-
-  // Top header red bar
-  page.drawRectangle({
-    x: 40,
-    y: height - 90,
-    width: width - 80,
-    height: 50,
-    color: rgb(0.75, 0.15, 0.15),
-  });
-
-  // Draw header text
-  const titleText = "SECURITY NOTICE & LICENSE AGREEMENT";
-  const titleWidth = boldFont.widthOfTextAtSize(titleText, 13);
-  page.drawText(titleText, {
-    x: (width - titleWidth) / 2,
-    y: height - 70,
-    size: 13,
-    font: boldFont,
-    color: rgb(1, 1, 1),
-  });
-
-  let currentY = height - 120;
-
-  // Draw License info box header
-  page.drawText("LICENSE REGISTRATION DETAILS", {
-    x: 60,
-    y: currentY,
-    size: 11,
-    font: boldFont,
-    color: rgb(0.2, 0.2, 0.2),
-  });
-
-  currentY -= 25;
-
-  // Draw licensee details
-  const details = [
-    {
-      label: "Authorized Licensee:",
-      value: user.fullName || user.name || "N/A",
-    },
-    { label: "Registered Email:", value: user.email },
-    { label: "Mobile Number:", value: user.mobileNumber || "N/A" },
-    { label: "License Tracking ID:", value: user._id.toString() },
-    { label: "Document Name:", value: course.name || "N/A" },
-  ];
-
-  details.forEach((item) => {
-    page.drawText(item.label, {
-      x: 70,
-      y: currentY,
-      size: 9.5,
-      font: boldFont,
-      color: rgb(0.35, 0.35, 0.35),
-    });
-    page.drawText(item.value, {
-      x: 210,
-      y: currentY,
-      size: 9.5,
-      font: font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-    currentY -= 18;
-  });
-
-  currentY -= 15;
-
-  // Divider
-  page.drawLine({
-    start: { x: 60, y: currentY },
-    end: { x: width - 60, y: currentY },
-    color: rgb(0.85, 0.85, 0.85),
-    thickness: 1,
-  });
-
-  currentY -= 25;
-
-  // Draw warning details
-  page.drawText("LEGAL TERMS & SHARE RESTRICTIONS", {
-    x: 60,
-    y: currentY,
-    size: 11,
-    font: boldFont,
-    color: rgb(0.75, 0.15, 0.15),
-  });
-
-  currentY -= 20;
-
-  const warningParagraphs = [
-    "1. LICENSED USE: This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
-    "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
-    "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
-    "4. LEGAL CONSEQUENCES: Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
-  ];
-
-  warningParagraphs.forEach((p) => {
-    const lines = wrapText(p, width - 120, font, 9);
-    lines.forEach((line) => {
-      page.drawText(line, {
-        x: 65,
-        y: currentY,
-        size: 9,
-        font: font,
-        color: rgb(0.25, 0.25, 0.25),
-      });
-      currentY -= 14;
-    });
-    currentY -= 6; // gap between paragraphs
-  });
-
-  currentY -= 10;
-
-  // Styled callout box for the tracking/enforcement note
-  const noteText =
-    "NOTE - This document is individually licensed and embedded with traceable ownership credentials, both VISIBLE and INVISIBLE based on license tracking id. Any unauthorized acquisition and distribution will result in enforcement of appropriate legal remedies, without further notice.";
-  const noteLines = wrapText(noteText, width - 150, boldFont, 8.5);
-  const noteBoxPadding = 10;
-  const noteBoxHeight = noteLines.length * 13 + noteBoxPadding * 2;
-  const noteBoxTop = currentY;
-  const noteBoxY = noteBoxTop - noteBoxHeight;
-
-  page.drawRectangle({
-    x: 60,
-    y: noteBoxY,
-    width: width - 120,
-    height: noteBoxHeight,
-    color: rgb(0.98, 0.94, 0.88),
-    borderColor: rgb(0.85, 0.55, 0.1),
-    borderWidth: 1,
-  });
-
-  let noteY = noteBoxTop - noteBoxPadding - 2;
-  noteLines.forEach((line) => {
-    page.drawText(line, {
-      x: 70,
-      y: noteY,
-      size: 8.5,
-      font: boldFont,
-      color: rgb(0.55, 0.32, 0.02),
-    });
-    noteY -= 13;
-  });
-
-  currentY = noteBoxY - 15;
-  // Footer message
-  const footerText =
-    "Thank you for supporting honest learning and respecting authors' copy rights.";
-  const footerW = font.widthOfTextAtSize(footerText, 8.5);
-  page.drawText(footerText, {
-    x: (width - footerW) / 2,
-    y: currentY,
-    size: 8.5,
-    font: font,
-    color: rgb(0.5, 0.5, 0.5),
-  });
-};
-
 // Retrieve raw course PDF (Admin or Authorized Student)
 export const getRawCoursePdf = async (req, res) => {
   const { id } = req.params;
@@ -2157,28 +1617,11 @@ export const getRawCoursePdf = async (req, res) => {
       return res.status(404).json({ error: "Course not found" });
     }
 
-    // 3. Verify user access: must be admin OR have courseId in interestedCourses
-    const isAdmin = [
-      process.env.ADMIN_EMAIL,
-      process.env.ADMIN_EMAIL1,
-      process.env.ADMIN_EMAIL2,
-    ]
-      .filter(Boolean)
-      .map((e) => e.toLowerCase())
-      .includes((user.email || "").toLowerCase());
-    const interestedList = Array.isArray(user.interestedCourses)
-      ? user.interestedCourses
-      : [];
-    const hasAccess = interestedList.some(
-      (cId) => cId.toLowerCase() === course.courseId.toLowerCase(),
-    );
-
-    if (!isAdmin && !hasAccess) {
-      return res
-        .status(403)
-        .json({
-          error: "Access denied: You do not have permissions for this resource",
-        });
+    // 3. Verify user access: must be admin OR own the course (purchasedCourses)
+    if (!userHasCourseAccess(user, course)) {
+      return res.status(403).json({
+        error: "Access denied: You do not have permissions for this resource",
+      });
     }
 
     const targetUrl =
@@ -2571,38 +2014,81 @@ export const githubCallback = async (req, res) => {
   // if that wasn't set to the exact same value the webhook would 401 on every
   // call and completion/failure would never be recorded. Accept either name.
   const secret = process.env.CALLBACK_SECRET || process.env.GITHUB_CALLBACK_SECRET;
-  const expectedSecret = `Bearer ${secret}`;
-
-  if (!authHeader || authHeader !== expectedSecret) {
+  // With no secret configured the expected header used to become the literal "Bearer undefined",
+  // which anyone could send. Refuse to accept callbacks at all until a secret is set.
+  if (!secret) {
+    console.error("[GitHub Callback] No CALLBACK_SECRET configured - rejecting callback");
+    return res.status(503).json({ error: "Callback not configured" });
+  }
+  const expectedSecret = Buffer.from(`Bearer ${secret}`);
+  const provided = Buffer.from(authHeader || "");
+  if (
+    provided.length !== expectedSecret.length ||
+    !crypto.timingSafeEqual(provided, expectedSecret)
+  ) {
     console.warn("[GitHub Callback] Unauthorized webhook callback attempt");
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { status, courseId, userId, destinationKey, step, error } = req.body;
+  const { status, courseId, userId, destinationKey, step, error, licenseId } = req.body;
   console.log(
-    `[GitHub Callback] Received update. status: ${status}, courseId: ${courseId}, userId: ${userId}, step: ${step}`,
+    `[GitHub Callback] Received update. status: ${status}, courseId: ${courseId}, userId: ${userId}, step: ${step}, license: ${licenseId || "-"}`,
   );
 
   if (status === "progress") {
     await setSessionProgress(userId, courseId, step, "processing");
   } else if (status === "completed") {
     await setSessionProgress(userId, courseId, 9, "completed");
+    if (licenseId) {
+      await DownloadLog.updateOne({ licenseId, status: "queued" }, { status: "ready" }).catch(() => {});
+    }
     console.log(
       `[GitHub Callback] PDF processing completed successfully. Key: ${destinationKey}`,
     );
   } else if (status === "failed") {
-    await setSessionProgress(
-      userId,
-      courseId,
-      0,
-      "failed",
-      error || "Processing failed",
-    );
-    console.error(`[GitHub Callback] PDF processing failed: ${error}`);
-    await refundDownloadCredit(userId, courseId);
+    // Only a job that is still queued can fail-and-refund. Once a license is ready/delivered the file
+    // exists, so a late or replayed "failed" call must not hand the student their credit back.
+    let mayRefund = true;
+    if (licenseId) {
+      const moved = await DownloadLog.updateOne({ licenseId, status: "queued" }, { status: "failed" });
+      mayRefund = moved.modifiedCount > 0;
+    }
+    if (mayRefund) {
+      await setSessionProgress(
+        userId,
+        courseId,
+        0,
+        "failed",
+        error || "Processing failed",
+      );
+      console.error(`[GitHub Callback] PDF processing failed: ${error}`);
+      await refundDownloadCredit(userId, courseId);
+    } else {
+      console.warn(`[GitHub Callback] Ignored failure report for license ${licenseId} (not in queued state)`);
+    }
   }
 
   res.json({ status: "ok" });
+};
+
+// Admin: trace a leaked PDF. Search by the License ID printed on its pages (or by email / name / user id /
+// course) to see who the copy was issued to, when, and from which IP.
+export const listDownloadLogs = async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim().slice(0, 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    const filter = {};
+    if (q) {
+      const rx = new RegExp(escapeRegExp(q), "i");
+      filter.$or = [{ licenseId: rx }, { userEmail: rx }, { userName: rx }, { courseName: rx }];
+      if (mongoose.isValidObjectId(q)) filter.$or.push({ userId: q });
+    }
+    const logs = await DownloadLog.find(filter).sort({ issuedAt: -1 }).limit(limit).lean();
+    res.json({ logs });
+  } catch (err) {
+    console.error("Error listing download logs:", err);
+    res.status(500).json({ error: "Server error listing download logs" });
+  }
 };
 
 // Retrieve a piece of admin-editable site text by key (public — shown to guests too)

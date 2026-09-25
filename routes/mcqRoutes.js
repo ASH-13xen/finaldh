@@ -17,8 +17,24 @@ import {
   saveResponse,
   submitAttempt,
   getAttemptResult,
-  getAttemptHistory
+  getAttemptHistory,
+  getOverview,
+  revealAnswer,
+  updateAttemptSettings,
+  startFlaggedPractice,
+  startMistakesPractice,
+  getAttemptQuotaAdmin,
+  updateAttemptQuotaAdmin
 } from '../controllers/mcqController.js';
+import { flagQuestion, unflagQuestion, listFlags } from '../controllers/mcqFlagController.js';
+import {
+  submitReport,
+  myReports,
+  listReportsAdmin,
+  reportsCountAdmin,
+  resolveReport,
+  rejectAllForQuestion
+} from '../controllers/mcqReportController.js';
 import {
   createMcqPurchaseRequest,
   getStudentMcqPurchaseRequests,
@@ -59,15 +75,37 @@ router.post('/admin/tests/:testId/questions', authenticateToken, createQuestion)
 router.patch('/admin/tests/:testId/questions/:questionId', authenticateToken, updateQuestion);
 router.delete('/admin/tests/:testId/questions/:questionId', authenticateToken, deleteQuestionById);
 
+// Admin: reported questions (grouped per question) + one-click resolution
+router.get('/admin/reports/count', authenticateToken, reportsCountAdmin);
+router.get('/admin/reports', authenticateToken, listReportsAdmin);
+router.post('/admin/reports/:reportId/resolve', authenticateToken, resolveReport);
+router.post('/admin/questions/:questionId/reports/reject-all', authenticateToken, rejectAllForQuestion);
+
+// Admin: per-student attempt allowance (support tool)
+router.get('/admin/quota', authenticateToken, getAttemptQuotaAdmin);
+router.post('/admin/quota', authenticateToken, updateAttemptQuotaAdmin);
+
 // Student
 router.get('/subjects', authenticateToken, getSubjects);
+router.get('/overview', authenticateToken, getOverview);
 router.get('/tests', authenticateToken, getTests);
 router.post('/tests/:testId/start', authenticateToken, startTest);
+router.post('/practice/flagged', authenticateToken, startFlaggedPractice);
+router.post('/practice/mistakes', authenticateToken, startMistakesPractice);
 router.get('/attempts/history', authenticateToken, getAttemptHistory);
 router.get('/attempts/:attemptId', authenticateToken, getAttempt);
 router.patch('/attempts/:attemptId/responses/:order', authenticateToken, saveResponse);
+router.post('/attempts/:attemptId/responses/:order/reveal', authenticateToken, revealAnswer);
+router.patch('/attempts/:attemptId/settings', authenticateToken, updateAttemptSettings);
 router.post('/attempts/:attemptId/submit', authenticateToken, submitAttempt);
 router.get('/attempts/:attemptId/result', authenticateToken, getAttemptResult);
+
+// Flagged questions (a student's personal bookmarks) and question reports
+router.get('/flags', authenticateToken, listFlags);
+router.put('/flags/:questionId', authenticateToken, flagQuestion);
+router.delete('/flags/:questionId', authenticateToken, unflagQuestion);
+router.post('/questions/:questionId/report', authenticateToken, submitReport);
+router.get('/reports/mine', authenticateToken, myReports);
 
 // UPI MCQ test purchase endpoints (mirrors courseRoutes.js's purchase-request flow)
 router.post('/purchase-requests', authenticateToken, uploadScreenshot.single('screenshot'), createMcqPurchaseRequest);

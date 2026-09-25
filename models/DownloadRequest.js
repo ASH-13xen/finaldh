@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { peopleConn } from '../config/peopleDb.js';
 
 const downloadRequestSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -11,4 +12,4 @@ const downloadRequestSchema = new mongoose.Schema({
   requestedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-export default mongoose.model('DownloadRequest', downloadRequestSchema);
+export default peopleConn.model('DownloadRequest', downloadRequestSchema);

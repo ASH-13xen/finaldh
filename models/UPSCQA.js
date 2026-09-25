@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { peopleConn } from '../config/peopleDb.js';
 
 const upscQaSchema = new mongoose.Schema({
   question_text: { type: String, required: true },
@@ -18,5 +19,5 @@ const upscQaSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export const UPSCQA = mongoose.model('UPSCQA', upscQaSchema);
+export const UPSCQA = peopleConn.model('UPSCQA', upscQaSchema);
 export default UPSCQA;

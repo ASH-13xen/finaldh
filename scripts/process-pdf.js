@@ -1,257 +1,68 @@
-import { PDFDocument, rgb } from 'pdf-lib';
-import bwipjs from 'bwip-js';
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt-lite';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import axios from 'axios';
-import fs from 'fs/promises';
-import path from 'path';
+import { buildSecuredPdf } from '../lib/pdfStamp.js';
 
-// Setup robust argument parser
-const args = {};
-const argv = process.argv.slice(2);
-for (let i = 0; i < argv.length; i++) {
-  const val = argv[i];
-  if (val.startsWith('--')) {
+// GitHub Actions worker: downloads a course PDF from R2, stamps it for one student (see
+// lib/pdfStamp.js), password-protects it, uploads it back and reports to the backend via a webhook.
+//
+// Inputs are read from PDF_* environment variables (what the workflow uses - values passed through the
+// environment are never parsed by a shell, so a hostile student name cannot inject commands) and fall
+// back to --key=value CLI arguments so the script can still be run by hand.
+
+const cliArgs = {};
+{
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    const val = argv[i];
+    if (!val.startsWith('--')) continue;
     if (val.includes('=')) {
-      const parts = val.split('=');
-      const key = parts[0].substring(2);
-      const value = parts.slice(1).join('=');
-      args[key] = value;
+      const at = val.indexOf('=');
+      cliArgs[val.substring(2, at)] = val.substring(at + 1);
+    } else if (argv[i + 1] && !argv[i + 1].startsWith('--')) {
+      cliArgs[val.substring(2)] = argv[++i];
     } else {
-      const key = val.substring(2);
-      const nextVal = argv[i + 1];
-      if (nextVal && !nextVal.startsWith('--')) {
-        args[key] = nextVal;
-        i++; // skip next element
-      } else {
-        args[key] = 'true';
-      }
+      cliArgs[val.substring(2)] = 'true';
     }
   }
 }
+const input = (name, envName) => process.env[envName] ?? cliArgs[name] ?? '';
 
-const {
-  courseId,
-  userId,
-  userName,
-  userEmail,
-  userMobile,
-  sourceKey, // Comma separated list of keys in R2
-  destinationKey,
-  callbackUrl
-} = args;
+const courseId = input('courseId', 'PDF_COURSE_ID');
+const userId = input('userId', 'PDF_USER_ID');
+const userName = input('userName', 'PDF_USER_NAME');
+const userEmail = input('userEmail', 'PDF_USER_EMAIL');
+const userMobile = input('userMobile', 'PDF_USER_MOBILE');
+const sourceKey = input('sourceKey', 'PDF_SOURCE_KEY'); // comma separated list of keys in R2
+const destinationKey = input('destinationKey', 'PDF_DESTINATION_KEY');
+const callbackUrl = input('callbackUrl', 'PDF_CALLBACK_URL');
+const licenseId = input('licenseId', 'PDF_LICENSE_ID');
+const issuedAtRaw = input('issuedAt', 'PDF_ISSUED_AT');
 
+// Deliberately no names / emails / phone numbers in the logs.
 console.log('--- Starting PDF Asynchronous Processing Script ---');
 console.log(`Course ID: ${courseId}`);
 console.log(`User ID: ${userId}`);
-console.log(`User Name: ${userName}`);
-console.log(`User Email: ${userEmail}`);
+console.log(`License ID: ${licenseId}`);
 console.log(`Source Keys: ${sourceKey}`);
 console.log(`Destination Key: ${destinationKey}`);
 console.log(`Callback URL: ${callbackUrl}`);
 console.log('--- Environment Variables Check ---');
-console.log(`CLOUDFLARE_ACCOUNT_ID: ${process.env.CLOUDFLARE_ACCOUNT_ID ? 'defined' : 'undefined'}`);
-console.log(`CLOUDFLARE_ACCESS_KEY_ID: ${process.env.CLOUDFLARE_ACCESS_KEY_ID ? 'defined' : 'undefined'}`);
-console.log(`CLOUDFLARE_SECRET_ACCESS_KEY: ${process.env.CLOUDFLARE_SECRET_ACCESS_KEY ? 'defined' : 'undefined'}`);
-console.log(`R2_BUCKET_NAME: ${process.env.R2_BUCKET_NAME ? 'defined (' + process.env.R2_BUCKET_NAME.length + ' chars)' : 'undefined'}`);
-console.log(`CALLBACK_SECRET: ${process.env.CALLBACK_SECRET ? 'defined' : 'undefined'}`);
+for (const k of ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCESS_KEY_ID', 'CLOUDFLARE_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME', 'CALLBACK_SECRET']) {
+  console.log(`${k}: ${process.env[k] ? 'defined' : 'undefined'}`);
+}
 
 const r2Client = new S3Client({
   region: 'auto',
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID,
-    secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY,
-  },
+    secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY
+  }
 });
 
-const wrapText = (text, maxWidth, font, fontSize) => {
-  const words = text.split(/\s+/);
-  const lines = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-    if (testWidth > maxWidth) {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  return lines;
-};
-
-const drawSecurityWarningPage = (page, user, font, boldFont) => {
-  const { width, height } = page.getSize();
-
-  // Draw a subtle border or background card
-  page.drawRectangle({
-    x: 40,
-    y: 40,
-    width: width - 80,
-    height: height - 80,
-    borderColor: rgb(0.8, 0.2, 0.2),
-    borderWidth: 2.5,
-    color: rgb(0.99, 0.98, 0.98),
-  });
-
-  // Top header red bar
-  page.drawRectangle({
-    x: 40,
-    y: height - 90,
-    width: width - 80,
-    height: 50,
-    color: rgb(0.75, 0.15, 0.15),
-  });
-
-  // Draw header text
-  const titleText = "SECURITY NOTICE & LICENSE AGREEMENT";
-  const titleWidth = boldFont.widthOfTextAtSize(titleText, 13);
-  page.drawText(titleText, {
-    x: (width - titleWidth) / 2,
-    y: height - 70,
-    size: 13,
-    font: boldFont,
-    color: rgb(1, 1, 1),
-  });
-
-  let currentY = height - 120;
-
-  // Draw License info box header
-  page.drawText("LICENSE REGISTRATION DETAILS", {
-    x: 60,
-    y: currentY,
-    size: 11,
-    font: boldFont,
-    color: rgb(0.2, 0.2, 0.2),
-  });
-
-  currentY -= 25;
-
-  // Draw licensee details
-  const details = [
-    { label: "Authorized Licensee:", value: user.userName || "N/A" },
-    { label: "Registered Email:", value: user.userEmail || "N/A" },
-    { label: "Mobile Number:", value: user.userMobile || "N/A" },
-    { label: "License Tracking ID:", value: user.userId },
-    { label: "Document Name:", value: user.courseId }
-  ];
-
-  details.forEach(item => {
-    page.drawText(item.label, {
-      x: 70,
-      y: currentY,
-      size: 9.5,
-      font: boldFont,
-      color: rgb(0.35, 0.35, 0.35),
-    });
-    page.drawText(item.value, {
-      x: 210,
-      y: currentY,
-      size: 9.5,
-      font: font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-    currentY -= 18;
-  });
-
-  currentY -= 15;
-
-  // Divider
-  page.drawLine({
-    start: { x: 60, y: currentY },
-    end: { x: width - 60, y: currentY },
-    color: rgb(0.85, 0.85, 0.85),
-    thickness: 1,
-  });
-
-  currentY -= 25;
-
-  // Draw warning details
-  page.drawText("LEGAL TERMS & SHARE RESTRICTIONS", {
-    x: 60,
-    y: currentY,
-    size: 11,
-    font: boldFont,
-    color: rgb(0.75, 0.15, 0.15),
-  });
-
-  currentY -= 20;
-
-  const warningParagraphs = [
-    "1. LICENSED USE: This document is uniquely registered to the individual named above and is intended solely for the registered user’s personal educational use.",
-    "2. PROHIBITED SHARING: It is strictly prohibited to share, publish, distribute, resell, or upload this PDF to any private/public forum, website, Telegram channel, Google Drive, WhatsApp group, or social media platform.",
-    "3. SECURITY TRACING: This document is embedded with active visible watermarks and dynamic, invisible steganographic tracking signatures. Any leaked copies found online will be auto-scanned to retrieve these tracking IDs.",
-    "4. LEGAL CONSEQUENCES: Unauthorized sharing, distribution and reproduction of this document constitutes a breach of this license agreement. Violations will result in immediate termination of access without refund and initiation of appropriate legal proceedings."
-  ];
-
-  warningParagraphs.forEach(p => {
-    const lines = wrapText(p, width - 120, font, 9);
-    lines.forEach(line => {
-      page.drawText(line, {
-        x: 65,
-        y: currentY,
-        size: 9,
-        font: font,
-        color: rgb(0.25, 0.25, 0.25),
-      });
-      currentY -= 14;
-    });
-    currentY -= 6; // gap between paragraphs
-  });
-
-  currentY -= 10;
-
-  // Styled callout box for the tracking/enforcement note
-  const noteText = "NOTE - This document is individually licensed and embedded with traceable ownership credentials, both VISIBLE and INVISIBLE based on license tracking id. Any unauthorized acquisition and distribution will result in enforcement of appropriate legal remedies, without further notice.";
-  const noteLines = wrapText(noteText, width - 150, boldFont, 8.5);
-  const noteBoxPadding = 10;
-  const noteBoxHeight = noteLines.length * 13 + noteBoxPadding * 2;
-  const noteBoxTop = currentY;
-  const noteBoxY = noteBoxTop - noteBoxHeight;
-
-  page.drawRectangle({
-    x: 60,
-    y: noteBoxY,
-    width: width - 120,
-    height: noteBoxHeight,
-    color: rgb(0.98, 0.94, 0.88),
-    borderColor: rgb(0.85, 0.55, 0.1),
-    borderWidth: 1,
-  });
-
-  let noteY = noteBoxTop - noteBoxPadding - 2;
-  noteLines.forEach(line => {
-    page.drawText(line, {
-      x: 70,
-      y: noteY,
-      size: 8.5,
-      font: boldFont,
-      color: rgb(0.55, 0.32, 0.02),
-    });
-    noteY -= 13;
-  });
-
-  currentY = noteBoxY - 15;
-  // Footer message
-  const footerText = "Thank you for supporting honest learning and respecting authors' copy rights.";
-  const footerW = font.widthOfTextAtSize(footerText, 8.5);
-  page.drawText(footerText, {
-    x: (width - footerW) / 2,
-    y: currentY,
-    size: 8.5,
-    font: font,
-    color: rgb(0.5, 0.5, 0.5),
-  });
-};
-
-// Cloudflare R2 occasionally returns a transient 500 InternalError that the AWS
-// SDK's own default retry (3 attempts within ~100ms total) is too fast to ride
-// out. Wrap the R2 calls that matter most (download/upload) with a slower,
-// longer-running retry so a brief R2 hiccup doesn't fail the whole job.
+// Cloudflare R2 occasionally returns a transient 500 InternalError that the AWS SDK's own default retry
+// (3 attempts within ~100ms total) is too fast to ride out. Wrap the R2 calls that matter most with a
+// slower, longer-running retry so a brief R2 hiccup doesn't fail the whole job.
 async function withRetry(fn, { attempts = 5, baseDelayMs = 1000 } = {}) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
@@ -268,197 +79,80 @@ async function withRetry(fn, { attempts = 5, baseDelayMs = 1000 } = {}) {
   throw lastErr;
 }
 
+async function callback(body) {
+  const res = await fetch(callbackUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CALLBACK_SECRET}` },
+    body: JSON.stringify({ courseId, userId, licenseId, ...body })
+  });
+  if (!res.ok) throw new Error(`Callback responded ${res.status}`);
+}
+
 async function updateProgress(step) {
   console.log(`Reporting progress step: ${step}`);
   try {
-    await axios.post(callbackUrl, {
-      status: 'progress',
-      step,
-      courseId,
-      userId
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.CALLBACK_SECRET}`
-      }
-    });
+    await callback({ status: 'progress', step });
   } catch (err) {
     console.error(`Failed to report progress step ${step}:`, err.message);
   }
 }
 
+// The password the student opens the file with: last 10 digits of their mobile, else their email.
+function openingPassword() {
+  const digits = (userMobile || '').replace(/\D/g, '');
+  if (digits && userMobile.trim() !== 'N/A') return digits.length >= 10 ? digits.slice(-10) : digits;
+  return userEmail.trim().toLowerCase();
+}
+
 async function run() {
   try {
-    const keys = sourceKey.split(',').map(k => k.trim());
-    const pdfDocs = [];
+    const keys = sourceKey.split(',').map((k) => k.trim()).filter(Boolean);
+    if (keys.length === 0 || !userId || !userEmail || !licenseId || !destinationKey || !callbackUrl) {
+      throw new Error('Missing required inputs');
+    }
 
-    // Notify backend that we started downloading parts (Step 5)
-    await updateProgress(5);
+    await updateProgress(5); // downloading
 
-    // 1. Download files from R2
+    const sources = [];
     for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-      console.log(`Downloading part ${i+1}/${keys.length} from Cloudflare R2: ${key}`);
-      const r2Response = await withRetry(() => r2Client.send(new GetObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: key,
-      })));
-
+      console.log(`Downloading part ${i + 1}/${keys.length} from Cloudflare R2: ${keys[i]}`);
+      const r2Response = await withRetry(() => r2Client.send(new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: keys[i] })));
       const chunks = [];
-      for await (const chunk of r2Response.Body) {
-        chunks.push(chunk);
-      }
-      const fileBuffer = Buffer.concat(chunks);
-      const doc = await PDFDocument.load(fileBuffer);
-      pdfDocs.push(doc);
+      for await (const chunk of r2Response.Body) chunks.push(chunk);
+      sources.push(Buffer.concat(chunks));
     }
 
-    // Notify backend that we are generating the barcode (Step 6)
-    await updateProgress(6);
-
-    // 2. Generate barcode buffer
-    console.log(`Generating user barcode image for userId: ${userId}`);
-    const barcodePngBuffer = await new Promise((resolve, reject) => {
-      bwipjs.toBuffer({
-        bcid: 'code128',
-        text: userId,
-        scale: 2,
-        height: 10,
-        includetext: true,
-        textxalign: 'center',
-      }, (err, png) => {
-        if (err) reject(err);
-        else resolve(png);
-      });
+    const stepNumbers = { barcode: 6, stamping: 7, saving: 8 };
+    const issuedAt = issuedAtRaw && !Number.isNaN(Date.parse(issuedAtRaw)) ? new Date(issuedAtRaw) : new Date();
+    const stamped = await buildSecuredPdf({
+      sources,
+      user: { userId, name: userName, email: userEmail, mobile: userMobile },
+      license: { licenseId, issuedAt },
+      docInfo: { title: courseId },
+      onStep: (step) => updateProgress(stepNumbers[step])
     });
 
-    // Notify backend that we are applying watermarks (Step 7)
-    await updateProgress(7);
-
-    // 3. Setup stamp & watermarks in a merged document
-    const mergedPdfDoc = await PDFDocument.create();
-    const barcodeImage = await mergedPdfDoc.embedPng(barcodePngBuffer);
-    const helveticaFont = await mergedPdfDoc.embedFont('Helvetica');
-    const helveticaBoldFont = await mergedPdfDoc.embedFont('Helvetica-Bold');
-
-    mergedPdfDoc.setTitle(courseId);
-    mergedPdfDoc.setAuthor(userEmail);
-    mergedPdfDoc.setProducer('The Dark Horse UPSC');
-    mergedPdfDoc.setCreator('The Dark Horse UPSC');
-    mergedPdfDoc.setKeywords([userId, userEmail]);
-
-    const watermarkText = `Name: ${userName}  |  Email: ${userEmail}  |  Mobile: ${userMobile || 'N/A'}`;
-
-    let totalOriginalPages = 0;
-    for (const doc of pdfDocs) {
-      const copiedPages = await mergedPdfDoc.copyPages(doc, doc.getPageIndices());
-      for (const page of copiedPages) {
-        const { width, height } = page.getSize();
-        
-        page.drawText(watermarkText, {
-          x: 25,
-          y: height - 50,
-          size: 9,
-          font: helveticaFont,
-          color: rgb(0.6, 0.6, 0.6),
-        });
-
-        const barcodeWidth = 90;
-        const barcodeHeight = 20;
-        page.drawImage(barcodeImage, {
-          x: width - barcodeWidth - 25,
-          y: 15,
-          width: barcodeWidth,
-          height: barcodeHeight,
-        });
-
-        mergedPdfDoc.addPage(page);
-        totalOriginalPages++;
-      }
-    }
-
-    // 4. Insert security warning pages
-    if (totalOriginalPages > 0) {
-      const firstPage = mergedPdfDoc.getPages()[0];
-      const { width, height } = firstPage.getSize();
-      const numPagesToAdd = Math.max(1, Math.floor(totalOriginalPages / 50));
-      // First warning page always lands exactly on page 2 (index 1).
-      const insertIndices = [1];
-      let currentPagesCount = totalOriginalPages + 1;
-      for (let j = 1; j < numPagesToAdd; j++) {
-        let maxIdx = currentPagesCount;
-        let minIdx = 2;
-        insertIndices.push(Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx);
-        currentPagesCount++;
-      }
-      insertIndices.sort((a, b) => a - b);
-      for (const insertIdx of insertIndices) {
-        const newPage = mergedPdfDoc.insertPage(insertIdx, [width, height]);
-        drawSecurityWarningPage(newPage, { userName, userEmail, userMobile, userId, courseId }, helveticaFont, helveticaBoldFont);
-      }
-    }
-
-    // Notify backend that we are saving the PDF (Step 8)
-    await updateProgress(8);
-
-    // 5. Save modified PDF
-    console.log('Saving watermarked PDF...');
-    const modifiedPdfBuffer = await mergedPdfDoc.save({
-      useObjectStreams: false,
-      updateFieldAppearances: false
-    });
-
-    // Notify backend that we are encrypting and uploading (Step 9)
-    await updateProgress(9);
-
-    // 6. Encrypt PDF with user's mobile number (fallback to email if not registered)
+    await updateProgress(9); // encrypting + uploading
     console.log('Encrypting PDF...');
-    let userPassword = userEmail.trim().toLowerCase();
-    if (userMobile && userMobile.trim() !== 'N/A' && userMobile.trim() !== '') {
-      const digits = userMobile.replace(/\D/g, '');
-      userPassword = digits.length >= 10 ? digits.slice(-10) : digits;
-    }
-    const encryptedPdfBuffer = await encryptPDF(modifiedPdfBuffer, userPassword);
+    const encrypted = await encryptPDF(stamped, openingPassword());
 
-    // 7. Upload to R2
     console.log(`Uploading processed PDF back to R2: ${destinationKey}`);
-    await withRetry(() => r2Client.send(new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: destinationKey,
-      Body: Buffer.from(encryptedPdfBuffer),
-      ContentType: 'application/pdf',
-    })));
+    await withRetry(() =>
+      r2Client.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: destinationKey,
+        Body: Buffer.from(encrypted),
+        ContentType: 'application/pdf'
+      }))
+    );
 
-    // 8. Ping callback URL
     console.log(`Pinging callback webhook: ${callbackUrl}`);
-    await axios.post(callbackUrl, {
-      status: 'completed',
-      courseId,
-      userId,
-      destinationKey
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.CALLBACK_SECRET}`
-      }
-    });
-
+    await callback({ status: 'completed', destinationKey });
     console.log('Asynchronous processing completed successfully!');
   } catch (err) {
     console.error('Error during asynchronous PDF generation:', err);
     try {
-      // Notify failure
-      await axios.post(callbackUrl, {
-        status: 'failed',
-        courseId,
-        userId,
-        error: err.message || 'Unknown error during script run'
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CALLBACK_SECRET}`
-        }
-      });
+      await callback({ status: 'failed', error: err.message || 'Unknown error during script run' });
     } catch (cbErr) {
       console.error('Failed to notify callback URL of failure:', cbErr.message);
     }

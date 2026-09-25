@@ -8,6 +8,7 @@ import {
   detectPrefix, 
   applyWhiteout, 
   downloadPDF,
+  serveEditedPDF,
   autoCleanPDF,
   cleanPagesPDF
 } from '../controllers/pdfEditorController.js';
@@ -39,11 +40,17 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post('/init', upload.single('file'), initPDFEdit);
+// Every route requires a login. `init` used to be open to the whole internet: it accepted 2GB uploads
+// and could copy any course's raw PDF into a publicly served folder. Ownership of the requested course
+// is now checked inside initPDFEdit.
+router.post('/init', authenticateToken, upload.single('file'), initPDFEdit);
 router.post('/detect-prefix', authenticateToken, detectPrefix);
 router.post('/apply-whiteout', authenticateToken, applyWhiteout);
 router.post('/auto-clean', authenticateToken, autoCleanPDF);
 router.post('/clean-pages', authenticateToken, cleanPagesPDF);
-router.get('/download/:editId', downloadPDF);
+// Edited files are served only through these authenticated routes (the browser <a href> and pdf.js
+// pass ?token= / a header); /uploads/user_edits is no longer served statically.
+router.get('/file/:editId', authenticateToken, serveEditedPDF);
+router.get('/download/:editId', authenticateToken, downloadPDF);
 
 export default router;

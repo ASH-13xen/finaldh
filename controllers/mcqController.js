@@ -1,17 +1,28 @@
+import mongoose from 'mongoose';
 import { parse } from 'csv-parse/sync';
 import McqTest from '../models/McqTest.js';
 import McqQuestion from '../models/McqQuestion.js';
 import McqAttempt from '../models/McqAttempt.js';
+import McqAttemptQuota from '../models/McqAttemptQuota.js';
+import McqFlag from '../models/McqFlag.js';
+import McqReport from '../models/McqReport.js';
 import McqSubjectPricing from '../models/McqSubjectPricing.js';
 import User from '../models/User.js';
 import { resolveTagsCell } from '../utils/syllabusTagMatcher.js';
-
-const isAdminEmail = (email) => {
-  return [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2]
-    .filter(Boolean)
-    .map(e => e.toLowerCase())
-    .includes((email || '').toLowerCase());
-};
+import { isAdminEmail } from '../middlewares/adminMiddleware.js';
+import { round2 } from '../utils/mcqScoring.js';
+import { correctAnswerKey } from '../utils/mcqAnswerKey.js';
+import {
+  userCanAccessTest,
+  maxAttemptsFor,
+  consumeAttempt,
+  quotaInfo,
+  finalizeAttempt,
+  finalizeIfExpired,
+  buildResponses,
+  attemptPayload,
+  isFinished
+} from '../utils/mcqAttempts.js';
 
 const requireAdmin = async (req, res) => {
   const user = await User.findById(req.userId);
@@ -35,7 +46,9 @@ const MCQ_QUESTION_FIELD_ALIASES = {
   explanation: ['explanation', 'solution'],
   difficulty: ['difficulty', 'level'],
   marks: ['marks', 'mark'],
-  tags: ['tags', 'tag']
+  tags: ['tags', 'tag'],
+  examSource: ['exam source', 'examsource', 'source', 'appeared in', 'exam'],
+  questionType: ['question type', 'questiontype', 'type']
 };
 
 const mapRecord = (record, fieldAliases) => {
@@ -57,62 +70,24 @@ const parseCsvBuffer = (buffer) => {
   return parse(text, { columns: true, skip_empty_lines: true, trim: true });
 };
 
-// Strips answer-revealing fields before a question reaches the client during a live (in-progress) attempt.
-const stripQuestionForClient = (q) => ({
-  _id: q._id,
-  order: q.order,
-  questionText: q.questionText,
-  options: q.options
-});
-
 // Thresholds used by the analyzer (section 2 of the plan) - named constants for easy tuning.
 const WEAK_THRESHOLD = 50;
 const STRONG_THRESHOLD = 75;
 const TOO_FAST_RATIO = 0.4;
 const TOO_SLOW_RATIO = 2.0;
 
-// Computes final score/aggregates server-side and marks the attempt submitted. Never trusts
-// any score/answer data from the client - only reads what's already stored on the attempt.
-async function finalizeAttempt(attempt, isAuto) {
-  let totalMarksObtained = 0;
-  let totalCorrect = 0;
-  let totalWrong = 0;
-  let totalUnattempted = 0;
-  let totalMarked = 0;
-  let totalTimeSpentSeconds = 0;
+const OPTION_VALUES = ['A', 'B', 'C', 'D'];
+const STATUS_VALUES = ['not-visited', 'not-answered', 'answered', 'marked-for-review', 'answered-marked-for-review'];
+// Attempts with no `source` (created before modes existed) are all normal test attempts.
+const TEST_SOURCE = { $in: ['test', null] };
+const MAX_DELTA_SECONDS_PER_SAVE = 1800; // a single save can never claim more than 30 minutes on one question
 
-  for (const r of attempt.responses) {
-    totalTimeSpentSeconds += r.timeSpentSeconds;
-    if (r.status === 'marked-for-review' || r.status === 'answered-marked-for-review') totalMarked += 1;
-
-    if (r.selectedOption === null) {
-      r.isCorrect = null;
-      r.marksAwarded = 0;
-      totalUnattempted += 1;
-    } else {
-      r.isCorrect = r.selectedOption === r.correctOption;
-      r.marksAwarded = r.isCorrect ? r.maxMarks : -r.negativeMarks;
-      if (r.isCorrect) totalCorrect += 1;
-      else totalWrong += 1;
-      totalMarksObtained += r.marksAwarded;
-    }
-  }
-
-  attempt.totalMarksObtained = Math.round(totalMarksObtained * 100) / 100;
-  attempt.totalCorrect = totalCorrect;
-  attempt.totalWrong = totalWrong;
-  attempt.totalUnattempted = totalUnattempted;
-  attempt.totalMarked = totalMarked;
-  attempt.accuracyPercent = (totalCorrect + totalWrong) > 0
-    ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 10000) / 100
-    : 0;
-  attempt.totalTimeSpentSeconds = totalTimeSpentSeconds;
-  attempt.status = isAuto ? 'auto-submitted' : 'submitted';
-  attempt.submittedAt = new Date();
-
-  await attempt.save();
-  return attempt;
-}
+const attemptLabel = (attempt, test) => {
+  if (test?.title) return test.title;
+  if (attempt.source === 'flagged') return 'Flagged questions practice';
+  if (attempt.source === 'mistakes') return 'Mistakes practice';
+  return 'Practice session';
+};
 
 // ================= Admin =================
 
@@ -120,10 +95,13 @@ export const createTest = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
 
-  const { title, subject, description, durationMinutes, marksPerQuestion, negativeMarkingRatio, instructions, requiresPurchase, price, discountedPrice, useDiscount } = req.body;
+  const { title, subject, description, durationMinutes, marksPerQuestion, negativeMarkingRatio, instructions, requiresPurchase, price, discountedPrice, useDiscount, maxAttempts } = req.body;
 
   if (!title || !subject || !durationMinutes) {
     return res.status(400).json({ error: 'title, subject and durationMinutes are required' });
+  }
+  if (maxAttempts !== undefined && maxAttempts !== '' && !(Number.isInteger(Number(maxAttempts)) && Number(maxAttempts) >= 1 && Number(maxAttempts) <= 20)) {
+    return res.status(400).json({ error: 'maxAttempts must be a whole number from 1 to 20' });
   }
 
   try {
@@ -138,7 +116,8 @@ export const createTest = async (req, res) => {
       requiresPurchase: requiresPurchase !== undefined ? !!requiresPurchase : true,
       price: price !== undefined && price !== '' ? Number(price) : 499,
       discountedPrice: discountedPrice !== undefined && discountedPrice !== '' ? Number(discountedPrice) : 0,
-      useDiscount: !!useDiscount
+      useDiscount: !!useDiscount,
+      maxAttempts: maxAttempts !== undefined && maxAttempts !== '' ? Number(maxAttempts) : 2
     });
     res.json({ test });
   } catch (err) {
@@ -147,6 +126,22 @@ export const createTest = async (req, res) => {
   }
 };
 
+// Recomputes questionCount/totalMarks from the ACTIVE question set - shared by the single-question
+// builder endpoints and the CSV upload.
+async function recomputeTestTotals(testId) {
+  const test = await McqTest.findById(testId);
+  if (!test) return;
+  const questions = await McqQuestion.find({ test: testId, isActive: { $ne: false } }).select('marks');
+  const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? test.marksPerQuestion), 0);
+  test.questionCount = questions.length;
+  test.totalMarks = Math.round(totalMarks * 100) / 100;
+  await test.save();
+}
+
+// Upload = the full source of truth for the test, but questions are matched by number and UPDATED IN
+// PLACE. They used to be deleted and recreated, which gave every question a new id and orphaned past
+// attempts, students' flags and reports. Questions missing from the CSV are removed, or retired when
+// students already have attempts on them.
 export const uploadQuestionsCsv = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -167,6 +162,7 @@ export const uploadQuestionsCsv = async (req, res) => {
     const docs = [];
     const skippedRows = [];
     const unmatchedTagsSet = new Set();
+    const seenOrders = new Set();
     const validDifficulties = ['Easy', 'Medium', 'Hard'];
 
     for (let i = 0; i < records.length; i++) {
@@ -176,6 +172,10 @@ export const uploadQuestionsCsv = async (req, res) => {
       const orderNum = Number(row.order);
       if (!row.order || isNaN(orderNum) || orderNum <= 0) {
         skippedRows.push({ row: rowNum, reason: 'Missing or invalid order' });
+        continue;
+      }
+      if (seenOrders.has(orderNum)) {
+        skippedRows.push({ row: rowNum, reason: `Duplicate question number ${orderNum}` });
         continue;
       }
       if (!row.questionText || !row.questionText.trim()) {
@@ -193,7 +193,7 @@ export const uploadQuestionsCsv = async (req, res) => {
       }
 
       const correctOption = (row.correctOption || '').trim().toUpperCase();
-      if (!['A', 'B', 'C', 'D'].includes(correctOption)) {
+      if (!OPTION_VALUES.includes(correctOption)) {
         skippedRows.push({ row: rowNum, reason: 'Correct option must be A, B, C or D' });
         continue;
       }
@@ -205,8 +205,10 @@ export const uploadQuestionsCsv = async (req, res) => {
       const { tags, rawTags } = await resolveTagsCell(test.subject, row.tags);
       tags.filter(t => !t.matched).forEach(t => unmatchedTagsSet.add(t.title));
 
+      const questionType = ['conceptual', 'factual'].find(t => t === (row.questionType || '').trim().toLowerCase());
+
+      seenOrders.add(orderNum);
       docs.push({
-        test: test._id,
         order: orderNum,
         questionText: row.questionText.trim(),
         options: [
@@ -220,22 +222,88 @@ export const uploadQuestionsCsv = async (req, res) => {
         difficulty,
         marks,
         tags,
-        rawTags
+        rawTags,
+        examSource: (row.examSource || '').trim(),
+        questionType
       });
     }
 
-    // Replace semantics: this upload becomes the full source of truth for this test's questions.
-    await McqQuestion.deleteMany({ test: test._id });
-    const inserted = docs.length > 0 ? await McqQuestion.insertMany(docs) : [];
+    const active = await McqQuestion.find({ test: test._id, isActive: { $ne: false } });
+    const byOrder = new Map(active.map(q => [q.order, q]));
+    let added = 0;
+    let updated = 0;
+    let rescoredAttempts = 0;
 
-    const totalMarks = inserted.reduce((sum, q) => sum + (q.marks ?? test.marksPerQuestion), 0);
-    test.questionCount = inserted.length;
-    test.totalMarks = Math.round(totalMarks * 100) / 100;
-    await test.save();
+    for (const d of docs) {
+      const existing = byOrder.get(d.order);
+      if (existing) {
+        existing.questionText = d.questionText;
+        existing.options = d.options;
+        existing.difficulty = d.difficulty;
+        existing.marks = d.marks;
+        existing.tags = d.tags;
+        existing.rawTags = d.rawTags;
+        if (d.examSource) existing.examSource = d.examSource;
+        if (d.questionType) existing.questionType = d.questionType;
+        // A changed answer key must also reach past attempts, so it goes through the shared helper.
+        const result = await correctAnswerKey({
+          question: existing,
+          correctOption: d.correctOption,
+          explanation: d.explanation,
+          changedBy: admin._id,
+          note: 'CSV re-upload'
+        });
+        rescoredAttempts += result.rescoredAttempts;
+        updated += 1;
+        byOrder.delete(d.order);
+      } else {
+        await McqQuestion.create({
+          test: test._id,
+          order: d.order,
+          questionText: d.questionText,
+          options: d.options,
+          correctOption: d.correctOption,
+          explanation: d.explanation,
+          difficulty: d.difficulty,
+          marks: d.marks,
+          tags: d.tags,
+          rawTags: d.rawTags,
+          examSource: d.examSource,
+          questionType: d.questionType || 'conceptual'
+        });
+        added += 1;
+      }
+    }
 
+    // Anything left was not in the CSV.
+    let removed = 0;
+    let retired = 0;
+    for (const leftover of byOrder.values()) {
+      const inUse = await McqAttempt.exists({ 'responses.question': leftover._id });
+      if (inUse) {
+        leftover.isActive = false;
+        await leftover.save();
+        retired += 1;
+      } else {
+        await leftover.deleteOne();
+        removed += 1;
+      }
+    }
+
+    await recomputeTestTotals(test._id);
+    const fresh = await McqTest.findById(test._id).select('questionCount');
+
+    const parts = [`${updated} updated`, `${added} added`];
+    if (removed) parts.push(`${removed} removed`);
+    if (retired) parts.push(`${retired} retired (students already have attempts on them)`);
     res.json({
-      message: `Replaced questions for this test with ${inserted.length} question(s).`,
-      insertedCount: inserted.length,
+      message: `Questions synced: ${parts.join(', ')}. The test now has ${fresh.questionCount} question(s).`,
+      insertedCount: fresh.questionCount,
+      addedCount: added,
+      updatedCount: updated,
+      removedCount: removed,
+      retiredCount: retired,
+      rescoredAttempts,
       skippedRows,
       unmatchedTags: Array.from(unmatchedTagsSet)
     });
@@ -262,10 +330,18 @@ export const updateTest = async (req, res) => {
   if (!admin) return;
   try {
     const { testId } = req.params;
-    const allowedFields = ['title', 'description', 'durationMinutes', 'negativeMarkingRatio', 'marksPerQuestion', 'isPublished', 'instructions', 'requiresPurchase', 'price', 'discountedPrice', 'useDiscount'];
+    const allowedFields = ['title', 'description', 'durationMinutes', 'negativeMarkingRatio', 'marksPerQuestion', 'isPublished', 'instructions', 'requiresPurchase', 'price', 'discountedPrice', 'useDiscount', 'maxAttempts'];
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+
+    if (updates.maxAttempts !== undefined) {
+      const n = Number(updates.maxAttempts);
+      if (!Number.isInteger(n) || n < 1 || n > 20) {
+        return res.status(400).json({ error: 'maxAttempts must be a whole number from 1 to 20' });
+      }
+      updates.maxAttempts = n;
     }
 
     if (updates.isPublished === true) {
@@ -276,7 +352,7 @@ export const updateTest = async (req, res) => {
       }
     }
 
-    const test = await McqTest.findByIdAndUpdate(testId, updates, { new: true });
+    const test = await McqTest.findByIdAndUpdate(testId, updates, { new: true, runValidators: true });
     if (!test) return res.status(404).json({ error: 'Test not found' });
     res.json({ test });
   } catch (err) {
@@ -309,6 +385,7 @@ export const listQuestionsAdmin = async (req, res) => {
   if (!admin) return;
   try {
     const { testId } = req.params;
+    // Retired questions are included (flagged isActive:false) so the admin can still see and restore them.
     const questions = await McqQuestion.find({ test: testId }).sort({ order: 1 });
     res.json({ questions });
   } catch (err) {
@@ -317,32 +394,19 @@ export const listQuestionsAdmin = async (req, res) => {
   }
 };
 
-// Recomputes questionCount/totalMarks from the actual question set - shared by the
-// single-question builder endpoints below and kept independent of the CSV upload path's
-// own inline calculation (which replaces the whole question set atomically instead).
-async function recomputeTestTotals(testId) {
-  const test = await McqTest.findById(testId);
-  if (!test) return;
-  const questions = await McqQuestion.find({ test: testId }).select('marks');
-  const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? test.marksPerQuestion), 0);
-  test.questionCount = questions.length;
-  test.totalMarks = Math.round(totalMarks * 100) / 100;
-  await test.save();
-}
-
 const validateQuestionPayload = (body) => {
   const { questionText, options, correctOption } = body;
   if (!questionText || !questionText.trim()) return 'Question text is required';
   if (!Array.isArray(options) || options.length !== 4) return 'Exactly 4 options are required';
   const labels = options.map(o => o.label);
-  if (!['A', 'B', 'C', 'D'].every(l => labels.includes(l))) return 'Options must be labeled A, B, C and D';
+  if (!OPTION_VALUES.every(l => labels.includes(l))) return 'Options must be labeled A, B, C and D';
   if (options.some(o => !o.text || !o.text.trim())) return 'All 4 options must have text';
-  if (!['A', 'B', 'C', 'D'].includes(correctOption)) return 'Correct option must be A, B, C or D';
+  if (!OPTION_VALUES.includes(correctOption)) return 'Correct option must be A, B, C or D';
   return null;
 };
 
-// Builder: add one question to a test at a time (as opposed to the CSV path, which replaces
-// the whole question set atomically). Appends at the end - order is always questionCount+1.
+// Builder: add one question to a test at a time. Appends after the highest existing number
+// (retired questions keep theirs, so "count + 1" could collide).
 export const createQuestion = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -355,7 +419,8 @@ export const createQuestion = async (req, res) => {
     if (validationError) return res.status(400).json({ error: validationError });
 
     const { questionText, options, correctOption, explanation, difficulty, marks, tags, examSource, questionType } = req.body;
-    const nextOrder = (await McqQuestion.countDocuments({ test: testId })) + 1;
+    const last = await McqQuestion.findOne({ test: testId }).sort({ order: -1 }).select('order');
+    const nextOrder = (last?.order || 0) + 1;
     const { tags: resolvedTags, rawTags } = await resolveTagsCell(test.subject, tags || '');
 
     const question = await McqQuestion.create({
@@ -396,8 +461,8 @@ export const updateQuestion = async (req, res) => {
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
-    const allowedFields = ['questionText', 'options', 'correctOption', 'explanation', 'difficulty', 'marks', 'examSource', 'questionType'];
-    for (const field of allowedFields) {
+    const plainFields = ['questionText', 'options', 'difficulty', 'marks', 'examSource', 'questionType', 'isActive'];
+    for (const field of plainFields) {
       if (req.body[field] !== undefined) question[field] = req.body[field];
     }
     if (req.body.tags !== undefined) {
@@ -407,9 +472,19 @@ export const updateQuestion = async (req, res) => {
       question.rawTags = rawTags;
     }
 
-    await question.save();
+    // The answer key (and explanation) go through the shared helper: it records who changed what and, when
+    // the key changed, re-scores every past attempt that contained this question. Saving the old key on
+    // each attempt used to leave students seeing the wrong answer after an admin fixed it.
+    const result = await correctAnswerKey({
+      question,
+      correctOption: req.body.correctOption,
+      explanation: req.body.explanation,
+      changedBy: admin._id,
+      rescore: req.body.rescore !== false
+    });
+
     await recomputeTestTotals(testId);
-    res.json({ question });
+    res.json({ question, rescoredAttempts: result.rescoredAttempts, answerChanged: result.optionChanged });
   } catch (err) {
     console.error('Error updating MCQ question:', err);
     res.status(500).json({ error: 'Server error updating question' });
@@ -421,11 +496,23 @@ export const deleteQuestionById = async (req, res) => {
   if (!admin) return;
   try {
     const { testId, questionId } = req.params;
-    const deleted = await McqQuestion.findOneAndDelete({ _id: questionId, test: testId });
-    if (!deleted) return res.status(404).json({ error: 'Question not found' });
+    const question = await McqQuestion.findOne({ _id: questionId, test: testId });
+    if (!question) return res.status(404).json({ error: 'Question not found' });
 
-    // Renumber remaining questions sequentially so order stays gap-free (1..N).
-    const remaining = await McqQuestion.find({ test: testId }).sort({ order: 1 });
+    // Students' past attempts, flags and reports point at this question, so it can only be hard-deleted
+    // when nothing does. Otherwise it is retired: hidden from new attempts, kept for history.
+    const inUse = await McqAttempt.exists({ 'responses.question': question._id });
+    if (inUse) {
+      question.isActive = false;
+      await question.save();
+      await recomputeTestTotals(testId);
+      return res.json({ message: 'Question retired: students already have attempts on it, so it was kept for their history and will not appear in new attempts.', retired: true });
+    }
+
+    await question.deleteOne();
+
+    // Renumber the remaining active questions sequentially so numbering stays gap-free (1..N).
+    const remaining = await McqQuestion.find({ test: testId, isActive: { $ne: false } }).sort({ order: 1 });
     for (let i = 0; i < remaining.length; i++) {
       if (remaining[i].order !== i + 1) {
         remaining[i].order = i + 1;
@@ -441,7 +528,64 @@ export const deleteQuestionById = async (req, res) => {
   }
 };
 
+// Support tool: how many attempts has this student used on a test, and grant more.
+export const getAttemptQuotaAdmin = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'email is required' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'No student with that email' });
+
+    const tests = await McqTest.find({}).select('title subject maxAttempts').sort({ subject: 1, title: 1 });
+    const rows = await McqAttemptQuota.find({ user: user._id });
+    const byTest = new Map(rows.map(r => [String(r.test), r]));
+    res.json({
+      student: { _id: user._id, name: user.fullName || user.name, email: user.email },
+      tests: tests
+        .map(t => {
+          const q = byTest.get(String(t._id));
+          const max = maxAttemptsFor(t) + (q?.extra || 0);
+          return { testId: t._id, title: t.title, subject: t.subject, used: q?.used || 0, extra: q?.extra || 0, max, remaining: Math.max(0, max - (q?.used || 0)) };
+        })
+        .filter(t => t.used > 0 || t.extra > 0)
+    });
+  } catch (err) {
+    console.error('Error reading attempt quota:', err);
+    res.status(500).json({ error: 'Server error reading attempts' });
+  }
+};
+
+export const updateAttemptQuotaAdmin = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { email, testId, action } = req.body || {};
+    const user = await User.findOne({ email: String(email || '').trim().toLowerCase() });
+    if (!user) return res.status(404).json({ error: 'No student with that email' });
+    const test = await McqTest.findById(testId);
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+
+    if (action === 'grant') {
+      const amount = Number(req.body.amount ?? 1);
+      if (!Number.isInteger(amount) || amount < 1 || amount > 5) return res.status(400).json({ error: 'amount must be a whole number from 1 to 5' });
+      await McqAttemptQuota.updateOne({ user: user._id, test: test._id }, { $inc: { extra: amount } }, { upsert: true });
+    } else if (action === 'reset') {
+      await McqAttemptQuota.updateOne({ user: user._id, test: test._id }, { $set: { used: 0 } }, { upsert: true });
+    } else {
+      return res.status(400).json({ error: "action must be 'grant' or 'reset'" });
+    }
+    res.json({ ok: true, attempts: await quotaInfo(user._id, test) });
+  } catch (err) {
+    console.error('Error updating attempt quota:', err);
+    res.status(500).json({ error: 'Server error updating attempts' });
+  }
+};
+
 // ================= Student =================
+
+const REQUESTER_FIELDS = 'purchasedMcqTests purchasedMcqSubjects';
 
 export const getSubjects = async (req, res) => {
   try {
@@ -458,6 +602,15 @@ export const getSubjects = async (req, res) => {
     const pricingBySubject = {};
     pricingDocs.forEach(p => { pricingBySubject[p.subject] = p; });
 
+    // How many distinct tests in each subject this student has finished (drives the progress ring).
+    const attemptedRows = await McqAttempt.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(req.userId), status: { $in: ['submitted', 'auto-submitted'] }, source: TEST_SOURCE, test: { $ne: null } } },
+      { $group: { _id: { subject: '$subject', test: '$test' } } },
+      { $group: { _id: '$_id.subject', testsAttempted: { $sum: 1 } } }
+    ]);
+    const attemptedBySubject = {};
+    attemptedRows.forEach(r => { attemptedBySubject[r._id] = r.testsAttempted; });
+
     res.json({
       subjects: results.map(r => {
         const pricing = pricingBySubject[r._id];
@@ -465,6 +618,8 @@ export const getSubjects = async (req, res) => {
           subject: r._id,
           testCount: r.testCount,
           lockedCount: r.lockedCount,
+          freeCount: r.testCount - r.lockedCount,
+          testsAttempted: Math.min(attemptedBySubject[r._id] || 0, r.testCount),
           isOwned: r.lockedCount === 0 || ownedSubjects.has(r._id),
           price: pricing?.price ?? null,
           discountedPrice: pricing?.discountedPrice ?? 0,
@@ -478,56 +633,139 @@ export const getSubjects = async (req, res) => {
   }
 };
 
+// Home-screen summary: unfinished attempts to resume, lifetime stats and the flagged count.
+export const getOverview = async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.userId);
+
+    const open = await McqAttempt.find({ user: userId, status: 'in-progress' }).sort({ updatedAt: -1 }).limit(12).populate('test', 'title');
+    const inProgress = [];
+    for (const attempt of open) {
+      if (await finalizeIfExpired(attempt)) continue;
+      inProgress.push({
+        attemptId: attempt._id,
+        title: attemptLabel(attempt, attempt.test),
+        subject: attempt.subject,
+        mode: attempt.mode || 'test',
+        source: attempt.source || 'test',
+        startedAt: attempt.startedAt,
+        serverDeadline: attempt.serverDeadline || null,
+        answered: attempt.responses.filter(r => r.selectedOption).length,
+        total: attempt.responses.length
+      });
+    }
+
+    const [stats] = await McqAttempt.aggregate([
+      { $match: { user: userId, status: { $in: ['submitted', 'auto-submitted'] } } },
+      { $group: { _id: null, attempts: { $sum: 1 }, avgAccuracy: { $avg: '$accuracyPercent' }, questions: { $sum: { $add: ['$totalCorrect', '$totalWrong'] } } } }
+    ]);
+    const flaggedCount = await McqFlag.countDocuments({ user: userId });
+
+    res.json({
+      inProgress,
+      flaggedCount,
+      stats: {
+        attemptsTaken: stats?.attempts || 0,
+        avgAccuracy: stats ? round2(stats.avgAccuracy || 0) : 0,
+        questionsAnswered: stats?.questions || 0
+      }
+    });
+  } catch (err) {
+    console.error('Error building MCQ overview:', err);
+    res.status(500).json({ error: 'Server error loading overview' });
+  }
+};
+
 export const getTests = async (req, res) => {
   const { subject } = req.query;
   if (!subject) return res.status(400).json({ error: 'subject query param is required' });
 
   try {
-    const tests = await McqTest.find({ subject, isPublished: true }).sort({ createdAt: -1 });
+    // Natural title order ("Mock 2" before "Mock 10", "Test 1" before "Test 2") - students expect a numbered
+    // series to read in order, not newest-first.
+    const tests = await McqTest.find({ subject, isPublished: true })
+      .sort({ title: 1, createdAt: 1 })
+      .collation({ locale: 'en', numericOrdering: true });
     const testIds = tests.map(t => t._id);
 
-    const attempts = await McqAttempt.find({
+    // Finished attempts (light - no per-question data) newest first
+    const finishedAttempts = await McqAttempt.find({
       user: req.userId,
       test: { $in: testIds },
+      source: TEST_SOURCE,
       status: { $in: ['submitted', 'auto-submitted'] }
-    }).sort({ submittedAt: -1 });
+    }).select('-responses').sort({ submittedAt: -1 });
 
-    const lastAttemptByTest = {};
-    for (const a of attempts) {
+    const historyByTest = {};
+    for (const a of finishedAttempts) {
       const key = a.test.toString();
-      if (!lastAttemptByTest[key]) {
-        lastAttemptByTest[key] = {
-          score: a.totalMarksObtained,
-          accuracyPercent: a.accuracyPercent,
-          submittedAt: a.submittedAt
-        };
-      }
+      (historyByTest[key] = historyByTest[key] || []).push({
+        attemptId: a._id,
+        mode: a.mode || 'test',
+        score: a.totalMarksObtained,
+        totalMarks: a.totalMaxMarks || 0,
+        accuracyPercent: a.accuracyPercent,
+        submittedAt: a.submittedAt
+      });
     }
 
-    const requester = await User.findById(req.userId).select('purchasedMcqTests purchasedMcqSubjects');
-    const ownedTestIds = new Set((requester?.purchasedMcqTests || []).map(id => id.toString()));
-    const ownedSubjects = new Set(requester?.purchasedMcqSubjects || []);
-    const subjectOwned = ownedSubjects.has(subject);
+    // Unfinished attempts: auto-submit any that ran out of time while the student was away
+    const openAttempts = await McqAttempt.find({ user: req.userId, test: { $in: testIds }, source: TEST_SOURCE, status: 'in-progress' });
+    const inProgressByTest = {};
+    for (const a of openAttempts) {
+      if (await finalizeIfExpired(a)) {
+        const key = a.test.toString();
+        (historyByTest[key] = historyByTest[key] || []).unshift({
+          attemptId: a._id, mode: a.mode || 'test', score: a.totalMarksObtained, totalMarks: a.totalMaxMarks || 0,
+          accuracyPercent: a.accuracyPercent, submittedAt: a.submittedAt
+        });
+        continue;
+      }
+      inProgressByTest[a.test.toString()] = {
+        attemptId: a._id,
+        mode: a.mode || 'test',
+        startedAt: a.startedAt,
+        serverDeadline: a.serverDeadline || null,
+        answered: a.responses.filter(r => r.selectedOption).length,
+        total: a.responses.length
+      };
+    }
 
+    const quotaRows = await McqAttemptQuota.find({ user: req.userId, test: { $in: testIds } });
+    const quotaByTest = {};
+    quotaRows.forEach(q => { quotaByTest[q.test.toString()] = q; });
+
+    const requester = await User.findById(req.userId).select(REQUESTER_FIELDS);
+    const subjectOwned = (requester?.purchasedMcqSubjects || []).includes(subject);
     const pricing = await McqSubjectPricing.findOne({ subject });
 
     res.json({
-      tests: tests.map(t => ({
-        _id: t._id,
-        title: t.title,
-        description: t.description,
-        durationMinutes: t.durationMinutes,
-        totalMarks: t.totalMarks,
-        questionCount: t.questionCount,
-        negativeMarkingRatio: t.negativeMarkingRatio,
-        instructions: t.instructions,
-        requiresPurchase: t.requiresPurchase,
-        price: t.price,
-        discountedPrice: t.discountedPrice,
-        useDiscount: t.useDiscount,
-        isOwned: !t.requiresPurchase || ownedTestIds.has(t._id.toString()) || subjectOwned,
-        lastAttempt: lastAttemptByTest[t._id.toString()] || null
-      })),
+      tests: tests.map(t => {
+        const key = t._id.toString();
+        const history = historyByTest[key] || [];
+        const q = quotaByTest[key];
+        const max = maxAttemptsFor(t) + (q?.extra || 0);
+        const used = q?.used || 0;
+        return {
+          _id: t._id,
+          title: t.title,
+          description: t.description,
+          durationMinutes: t.durationMinutes,
+          totalMarks: t.totalMarks,
+          questionCount: t.questionCount,
+          negativeMarkingRatio: t.negativeMarkingRatio,
+          instructions: t.instructions,
+          requiresPurchase: t.requiresPurchase,
+          price: t.price,
+          discountedPrice: t.discountedPrice,
+          useDiscount: t.useDiscount,
+          isOwned: userCanAccessTest(requester, t) || subjectOwned,
+          attempts: { max, used, remaining: Math.max(0, max - used) },
+          inProgress: inProgressByTest[key] || null,
+          lastAttempt: history[0] || null,
+          history: history.slice(0, 5)
+        };
+      }),
       subjectAccess: {
         subject,
         isOwned: subjectOwned,
@@ -543,184 +781,348 @@ export const getTests = async (req, res) => {
   }
 };
 
+// Starts (or resumes) a test attempt in 'test' or 'practice' mode.
+// Every NEW attempt uses up one of the student's attempts for this test, Test and Practice combined;
+// resuming an unfinished attempt does not.
 export const startTest = async (req, res) => {
   const { testId } = req.params;
+  const mode = req.body?.mode === 'practice' ? 'practice' : 'test';
+  const timerEnabled = req.body?.timerEnabled !== false;
 
   try {
     const test = await McqTest.findById(testId);
     if (!test || !test.isPublished) return res.status(404).json({ error: 'Test not found' });
 
-    if (test.requiresPurchase) {
-      const requester = await User.findById(req.userId).select('purchasedMcqTests purchasedMcqSubjects');
-      const ownedTest = (requester?.purchasedMcqTests || []).some(id => id.equals(test._id));
-      const ownedSubject = (requester?.purchasedMcqSubjects || []).includes(test.subject);
-      if (!ownedTest && !ownedSubject) return res.status(403).json({ error: 'This test requires purchase. Please buy the subject first.' });
+    const requester = await User.findById(req.userId).select(REQUESTER_FIELDS);
+    if (!userCanAccessTest(requester, test)) {
+      return res.status(403).json({ error: 'This test requires purchase. Please buy the subject first.' });
     }
 
-    // Idempotent: resume an existing in-progress attempt rather than creating a duplicate.
-    let attempt = await McqAttempt.findOne({ user: req.userId, test: testId, status: 'in-progress' });
+    const resumePayload = async (attempt) =>
+      attemptPayload(attempt, { testTitle: test.title, resumed: true, attempts: await quotaInfo(req.userId, test) });
 
+    // Idempotent: resume an existing unfinished attempt rather than creating a duplicate.
+    let attempt = await McqAttempt.findOne({ user: req.userId, test: testId, source: TEST_SOURCE, status: 'in-progress' });
     if (attempt) {
-      if (new Date() > attempt.serverDeadline) {
-        await finalizeAttempt(attempt, true);
-        attempt = null;
-      } else {
-        const questions = await McqQuestion.find({ test: testId }).sort({ order: 1 });
-        return res.json({
-          attemptId: attempt._id,
-          serverDeadline: attempt.serverDeadline,
-          durationMinutes: attempt.durationMinutes,
-          lastActiveQuestionOrder: attempt.lastActiveQuestionOrder,
-          responses: attempt.responses.map(r => ({ order: r.order, status: r.status, selectedOption: r.selectedOption, confidenceTag: r.confidenceTag })),
-          questions: questions.map(stripQuestionForClient)
-        });
-      }
+      if (await finalizeIfExpired(attempt)) attempt = null;
+      else return res.json(await resumePayload(attempt));
     }
 
-    const questions = await McqQuestion.find({ test: testId }).sort({ order: 1 });
+    const questions = await McqQuestion.find({ test: testId, isActive: { $ne: false } }).sort({ order: 1 });
     if (questions.length === 0) return res.status(400).json({ error: 'This test has no questions yet' });
 
+    // Already out of attempts? (A plain read is enough here: an exhausted student stays exhausted.)
+    const limitReached = async () => {
+      const info = await quotaInfo(req.userId, test);
+      return res.status(403).json({
+        error: `You have used all ${info.max} attempts for this test. You can still review your answers any time.`,
+        code: 'ATTEMPT_LIMIT',
+        attempts: info
+      });
+    };
+    if ((await quotaInfo(req.userId, test)).remaining <= 0) return limitReached();
+
     const startedAt = new Date();
-    const serverDeadline = new Date(startedAt.getTime() + test.durationMinutes * 60 * 1000);
-
-    const responses = questions.map(q => {
-      const maxMarks = q.marks ?? test.marksPerQuestion;
-      return {
-        question: q._id,
-        order: q.order,
-        difficulty: q.difficulty,
-        tags: q.tags.map(t => ({ section: t.section, title: t.title })),
-        maxMarks,
-        negativeMarks: Math.round(maxMarks * test.negativeMarkingRatio * 100) / 100,
-        correctOption: q.correctOption,
-        status: 'not-visited'
-      };
-    });
-
-    attempt = await McqAttempt.create({
+    const doc = {
       user: req.userId,
       test: test._id,
       subject: test.subject,
+      mode,
+      source: 'test',
+      timerEnabled: mode === 'practice' ? timerEnabled : true,
       startedAt,
       durationMinutes: test.durationMinutes,
-      serverDeadline,
-      responses,
+      responses: buildResponses(questions, new Map([[String(test._id), test]])),
       lastActiveQuestionOrder: 1
-    });
+    };
+    if (mode === 'test') doc.serverDeadline = new Date(startedAt.getTime() + test.durationMinutes * 60 * 1000);
 
-    res.json({
-      attemptId: attempt._id,
-      serverDeadline: attempt.serverDeadline,
-      durationMinutes: attempt.durationMinutes,
-      lastActiveQuestionOrder: attempt.lastActiveQuestionOrder,
-      responses: attempt.responses.map(r => ({ order: r.order, status: r.status, selectedOption: r.selectedOption, confidenceTag: r.confidenceTag })),
-      questions: questions.map(stripQuestionForClient)
-    });
+    // Take the "one unfinished attempt per student per test" lock FIRST, by inserting the attempt. When a
+    // double-click or a second tab fires several starts at once, the unique index lets exactly one insert
+    // through; the others resume that attempt and never touch the quota, so they can't see a bogus
+    // "limit reached" and can't use up extra slots.
+    try {
+      attempt = await McqAttempt.create(doc);
+    } catch (err) {
+      if (err.code === 11000) {
+        const winner = await McqAttempt.findOne({ user: req.userId, test: testId, source: TEST_SOURCE, status: 'in-progress' });
+        if (winner) return res.json(await resumePayload(winner));
+      }
+      throw err;
+    }
+
+    // Only the winner uses up an attempt. The increment is a single conditional update (see
+    // consumeAttempt), so it holds even against races the unique index can't see.
+    const quota = await consumeAttempt(req.userId, test._id, maxAttemptsFor(test));
+    if (!quota) {
+      await McqAttempt.deleteOne({ _id: attempt._id });
+      return limitReached();
+    }
+
+    res.json(await attemptPayload(attempt, { testTitle: test.title, attempts: await quotaInfo(req.userId, test) }));
   } catch (err) {
     console.error('Error starting MCQ test:', err);
     res.status(500).json({ error: 'Server error starting test' });
   }
 };
 
-export const getAttempt = async (req, res) => {
-  const { attemptId } = req.params;
-  try {
-    const attempt = await McqAttempt.findById(attemptId);
-    if (!attempt) return res.status(404).json({ error: 'Attempt not found' });
-    if (attempt.user.toString() !== req.userId) return res.status(403).json({ error: 'Access denied' });
+// Practice sessions built from questions spread across tests (the student's flagged questions, or the
+// questions they got wrong in an attempt). They are always practice mode, never use up an attempt and
+// are never ranked.
+async function startCrossTestPractice(req, res, { source, questionIds, subject, sourceAttempt }) {
+  const timerEnabled = req.body?.timerEnabled !== false;
+  const questions = await McqQuestion.find({ _id: { $in: questionIds }, isActive: { $ne: false } });
+  const tests = await McqTest.find({ _id: { $in: [...new Set(questions.map(q => String(q.test)))] }, isPublished: true });
+  const testsById = new Map(tests.map(t => [String(t._id), t]));
+  const requester = await User.findById(req.userId).select(REQUESTER_FIELDS);
 
-    if (attempt.status === 'in-progress' && new Date() > attempt.serverDeadline) {
-      await finalizeAttempt(attempt, true);
+  const rank = new Map(questionIds.map((id, i) => [String(id), i]));
+  const usable = questions
+    .filter(q => { const t = testsById.get(String(q.test)); return t && userCanAccessTest(requester, t); })
+    .sort((a, b) => rank.get(String(a._id)) - rank.get(String(b._id)));
+
+  if (usable.length === 0) return res.status(400).json({ error: 'None of those questions are available to you right now.' });
+
+  const attempt = await McqAttempt.create({
+    user: req.userId,
+    subject,
+    mode: 'practice',
+    source,
+    sourceAttempt,
+    timerEnabled,
+    startedAt: new Date(),
+    durationMinutes: Math.max(1, Math.ceil(usable.length * 1.2)),
+    responses: buildResponses(usable, testsById),
+    lastActiveQuestionOrder: 1
+  });
+
+  res.json(await attemptPayload(attempt, {
+    testTitle: attemptLabel(attempt, null),
+    skippedUnavailable: questionIds.length - usable.length
+  }));
+}
+
+export const startFlaggedPractice = async (req, res) => {
+  try {
+    const subject = req.body?.subject || '';
+    const flags = await McqFlag.find({ user: req.userId, ...(subject ? { subject } : {}) }).sort({ createdAt: -1 }).limit(100);
+    if (flags.length === 0) return res.status(400).json({ error: 'You have not flagged any questions yet.' });
+    await startCrossTestPractice(req, res, { source: 'flagged', questionIds: flags.map(f => f.question), subject: subject || 'Mixed' });
+  } catch (err) {
+    console.error('Error starting flagged practice:', err);
+    res.status(500).json({ error: 'Server error starting flagged practice' });
+  }
+};
+
+export const startMistakesPractice = async (req, res) => {
+  try {
+    const source = await McqAttempt.findById(req.body?.attemptId);
+    if (!source) return res.status(404).json({ error: 'Attempt not found' });
+    if (source.user.toString() !== req.userId) return res.status(403).json({ error: 'Access denied' });
+    if (!isFinished(source.status)) return res.status(400).json({ error: 'Finish the attempt first.' });
+
+    const wrongIds = source.responses.filter(r => r.isCorrect === false).map(r => r.question);
+    if (wrongIds.length === 0) return res.status(400).json({ error: 'You got nothing wrong in this attempt - nothing to practice.' });
+    await startCrossTestPractice(req, res, { source: 'mistakes', questionIds: wrongIds, subject: source.subject, sourceAttempt: source._id });
+  } catch (err) {
+    console.error('Error starting mistakes practice:', err);
+    res.status(500).json({ error: 'Server error starting mistakes practice' });
+  }
+};
+
+const loadOwnAttempt = async (req, res) => {
+  const attempt = await McqAttempt.findById(req.params.attemptId);
+  if (!attempt) { res.status(404).json({ error: 'Attempt not found' }); return null; }
+  if (attempt.user.toString() !== req.userId) { res.status(403).json({ error: 'Access denied' }); return null; }
+  return attempt;
+};
+
+export const getAttempt = async (req, res) => {
+  try {
+    const attempt = await loadOwnAttempt(req, res);
+    if (!attempt) return;
+
+    if (await finalizeIfExpired(attempt)) {
       return res.json({ deadlineExpired: true, attemptId: attempt._id });
     }
-
     if (attempt.status !== 'in-progress') {
       return res.json({ deadlineExpired: false, status: attempt.status, attemptId: attempt._id });
     }
 
-    const questions = await McqQuestion.find({ test: attempt.test }).sort({ order: 1 });
-    res.json({
-      attemptId: attempt._id,
-      serverDeadline: attempt.serverDeadline,
-      durationMinutes: attempt.durationMinutes,
-      lastActiveQuestionOrder: attempt.lastActiveQuestionOrder,
-      responses: attempt.responses.map(r => ({ order: r.order, status: r.status, selectedOption: r.selectedOption, confidenceTag: r.confidenceTag })),
-      questions: questions.map(stripQuestionForClient)
-    });
+    const test = attempt.test ? await McqTest.findById(attempt.test).select('title maxAttempts') : null;
+    res.json(await attemptPayload(attempt, {
+      testTitle: attemptLabel(attempt, test),
+      ...(test ? { attempts: await quotaInfo(req.userId, test) } : {})
+    }));
   } catch (err) {
     console.error('Error fetching MCQ attempt:', err);
     res.status(500).json({ error: 'Server error fetching attempt' });
   }
 };
 
-export const saveResponse = async (req, res) => {
-  const { attemptId, order } = req.params;
-  const { selectedOption, status, deltaTimeSpentSeconds, isVisit, confidenceTag } = req.body;
-  const orderNum = Number(order);
-
-  try {
-    const attempt = await McqAttempt.findById(attemptId);
-    if (!attempt) return res.status(404).json({ error: 'Attempt not found' });
-    if (attempt.user.toString() !== req.userId) return res.status(403).json({ error: 'Access denied' });
+// Applies a mutation to one response and saves, retrying if a concurrent autosave got there first.
+async function mutateResponse(req, res, mutate) {
+  for (let tryNo = 0; tryNo < 4; tryNo++) {
+    const attempt = await loadOwnAttempt(req, res);
+    if (!attempt) return null;
 
     if (attempt.status !== 'in-progress') {
-      return res.status(409).json({ error: 'This attempt is no longer in progress' });
+      res.status(409).json({ error: 'This attempt is no longer in progress' });
+      return null;
+    }
+    if (await finalizeIfExpired(attempt)) {
+      res.json({ ok: true, deadlineExpired: true, attemptId: attempt._id });
+      return null;
     }
 
-    if (new Date() > attempt.serverDeadline) {
-      await finalizeAttempt(attempt, true);
-      return res.json({ ok: true, deadlineExpired: true, attemptId: attempt._id });
-    }
-
+    const orderNum = Number(req.params.order);
     const response = attempt.responses.find(r => r.order === orderNum);
-    if (!response) return res.status(404).json({ error: 'Question not found in this attempt' });
-
-    if (selectedOption !== undefined) {
-      if (response.selectedOption !== null && selectedOption !== response.selectedOption) {
-        response.answerChangedCount += 1;
-      }
-      response.selectedOption = selectedOption;
+    if (!response) {
+      res.status(404).json({ error: 'Question not found in this attempt' });
+      return null;
     }
-    if (status !== undefined) response.status = status;
-    if (confidenceTag !== undefined) {
-      if (confidenceTag === null || ['sure', 'elimination', 'guess'].includes(confidenceTag)) {
+
+    const outcome = await mutate(attempt, response, orderNum);
+    if (outcome === false) return null; // mutate already responded
+
+    try {
+      await attempt.save();
+      return { attempt, response, outcome };
+    } catch (err) {
+      if (err instanceof mongoose.Error.VersionError && tryNo < 3) continue; // concurrent autosave - reload and retry
+      throw err;
+    }
+  }
+  return null;
+}
+
+const applyTimeDelta = (response, delta) => {
+  const d = Number(delta);
+  if (Number.isFinite(d) && d > 0) response.timeSpentSeconds += Math.min(d, MAX_DELTA_SECONDS_PER_SAVE);
+};
+
+export const saveResponse = async (req, res) => {
+  const { selectedOption, status, deltaTimeSpentSeconds, isVisit, confidenceTag } = req.body;
+
+  // Reject junk with a 400 instead of letting the schema validator turn it into a 500.
+  if (selectedOption !== undefined && selectedOption !== null && !OPTION_VALUES.includes(selectedOption)) {
+    return res.status(400).json({ error: 'selectedOption must be A, B, C, D or null' });
+  }
+  if (status !== undefined && !STATUS_VALUES.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  try {
+    const result = await mutateResponse(req, res, (attempt, response, orderNum) => {
+      let locked = false;
+      if (selectedOption !== undefined) {
+        if (response.revealed) {
+          locked = true; // the student already saw the answer in practice mode
+        } else {
+          if (response.selectedOption !== null && selectedOption !== response.selectedOption) {
+            response.answerChangedCount += 1;
+          }
+          response.selectedOption = selectedOption;
+        }
+      }
+      if (status !== undefined) response.status = status;
+      if (confidenceTag !== undefined && (confidenceTag === null || ['sure', 'elimination', 'guess'].includes(confidenceTag))) {
         response.confidenceTag = confidenceTag;
       }
-    }
-    if (typeof deltaTimeSpentSeconds === 'number' && deltaTimeSpentSeconds > 0) {
-      response.timeSpentSeconds += deltaTimeSpentSeconds;
-    }
-    if (isVisit) {
-      response.visitCount += 1;
-      if (!response.firstVisitedAt) response.firstVisitedAt = new Date();
-      response.lastVisitedAt = new Date();
-      if (response.status === 'not-visited') response.status = 'not-answered';
-    }
-
-    attempt.lastActiveQuestionOrder = orderNum;
-    await attempt.save();
-
-    res.json({ ok: true });
+      applyTimeDelta(response, deltaTimeSpentSeconds);
+      if (isVisit) {
+        response.visitCount += 1;
+        if (!response.firstVisitedAt) response.firstVisitedAt = new Date();
+        response.lastVisitedAt = new Date();
+        if (response.status === 'not-visited') response.status = 'not-answered';
+      }
+      attempt.lastActiveQuestionOrder = orderNum;
+      return { locked };
+    });
+    if (result) res.json({ ok: true, ...(result.outcome.locked ? { locked: true } : {}) });
   } catch (err) {
     console.error('Error saving MCQ response:', err);
     res.status(500).json({ error: 'Server error saving response' });
   }
 };
 
+// Practice mode only: "Check answer". Reveals the key + explanation for ONE question and locks it.
+// Test-mode attempts can never reach this - the key stays server-side until the attempt is submitted.
+export const revealAnswer = async (req, res) => {
+  const { selectedOption, deltaTimeSpentSeconds } = req.body || {};
+  if (selectedOption !== undefined && selectedOption !== null && !OPTION_VALUES.includes(selectedOption)) {
+    return res.status(400).json({ error: 'selectedOption must be A, B, C, D or null' });
+  }
+
+  try {
+    let denied = false;
+    const result = await mutateResponse(req, res, (attempt, response) => {
+      if (attempt.mode !== 'practice') {
+        denied = true;
+        res.status(403).json({ error: 'Answers stay hidden in Test mode until you submit.' });
+        return false;
+      }
+      if (!response.revealed) {
+        if (selectedOption !== undefined && selectedOption !== response.selectedOption) {
+          if (response.selectedOption !== null) response.answerChangedCount += 1;
+          response.selectedOption = selectedOption;
+        }
+        applyTimeDelta(response, deltaTimeSpentSeconds);
+        if (response.selectedOption) {
+          const wasMarked = response.status === 'marked-for-review' || response.status === 'answered-marked-for-review';
+          response.status = wasMarked ? 'answered-marked-for-review' : 'answered';
+        }
+        response.revealed = true;
+      }
+      return true;
+    });
+    if (!result || denied) return;
+
+    const { response } = result;
+    const question = await McqQuestion.findById(response.question).select('explanation examSource');
+    res.json({
+      correctOption: response.correctOption,
+      selectedOption: response.selectedOption,
+      isCorrect: response.selectedOption ? response.selectedOption === response.correctOption : null,
+      explanation: question?.explanation || '',
+      examSource: question?.examSource || '',
+      tags: response.tags
+    });
+  } catch (err) {
+    console.error('Error revealing MCQ answer:', err);
+    res.status(500).json({ error: 'Server error revealing answer' });
+  }
+};
+
+// Practice mode: turn the on-screen stopwatch on/off.
+export const updateAttemptSettings = async (req, res) => {
+  try {
+    const attempt = await loadOwnAttempt(req, res);
+    if (!attempt) return;
+    if (attempt.status !== 'in-progress') return res.status(409).json({ error: 'This attempt is no longer in progress' });
+    if (attempt.mode !== 'practice') return res.status(400).json({ error: 'The timer can only be switched off in Practice mode.' });
+    if (typeof req.body?.timerEnabled === 'boolean') {
+      await McqAttempt.updateOne({ _id: attempt._id }, { $set: { timerEnabled: req.body.timerEnabled } });
+    }
+    res.json({ ok: true, timerEnabled: typeof req.body?.timerEnabled === 'boolean' ? req.body.timerEnabled : attempt.timerEnabled });
+  } catch (err) {
+    console.error('Error updating attempt settings:', err);
+    res.status(500).json({ error: 'Server error updating settings' });
+  }
+};
+
 export const submitAttempt = async (req, res) => {
-  const { attemptId } = req.params;
   const { autoSubmit } = req.body;
 
   try {
-    const attempt = await McqAttempt.findById(attemptId);
-    if (!attempt) return res.status(404).json({ error: 'Attempt not found' });
-    if (attempt.user.toString() !== req.userId) return res.status(403).json({ error: 'Access denied' });
+    const attempt = await loadOwnAttempt(req, res);
+    if (!attempt) return;
 
     if (attempt.status !== 'in-progress') {
       return res.json({ attemptId: attempt._id, redirectToResult: true });
     }
 
-    await finalizeAttempt(attempt, !!autoSubmit);
+    await finalizeAttempt(attempt, !!autoSubmit && attempt.mode !== 'practice');
     res.json({ attemptId: attempt._id, redirectToResult: true });
   } catch (err) {
     console.error('Error submitting MCQ attempt:', err);
@@ -737,8 +1139,15 @@ export const getAttemptResult = async (req, res) => {
     if (attempt.user.toString() !== req.userId) return res.status(403).json({ error: 'Access denied' });
     if (attempt.status === 'in-progress') return res.status(400).json({ error: 'Attempt has not been submitted yet' });
 
-    const test = await McqTest.findById(attempt.test);
-    const questions = await McqQuestion.find({ test: attempt.test }).sort({ order: 1 });
+    // Look questions up by the ids stored on the attempt (not "everything currently in the test"), so
+    // retired/deleted questions and cross-test practice sessions all resolve correctly.
+    const test = attempt.test ? await McqTest.findById(attempt.test) : null;
+    const questions = await McqQuestion.find({ _id: { $in: attempt.responses.map(r => r.question) } });
+    const isRanked = !!attempt.test && attempt.mode !== 'practice' && (attempt.source || 'test') === 'test';
+    const flagRows = await McqFlag.find({ user: attempt.user, question: { $in: questions.map(q => q._id) } }).select('question');
+    const flaggedIds = new Set(flagRows.map(f => String(f.question)));
+    const openReports = await McqReport.find({ reporter: attempt.user, status: 'pending', question: { $in: questions.map(q => q._id) } }).select('question');
+    const reportedIds = new Set(openReports.map(r => String(r.question)));
     const questionById = {};
     questions.forEach(q => { questionById[q._id.toString()] = q; });
 
@@ -749,7 +1158,7 @@ export const getAttemptResult = async (req, res) => {
     // --- Summary ---
     const summary = {
       totalMarksObtained: attempt.totalMarksObtained,
-      totalMarks: test?.totalMarks ?? 0,
+      totalMarks: attempt.totalMaxMarks || round2(responses.reduce((s, r) => s + r.maxMarks, 0)),
       accuracyPercent: attempt.accuracyPercent,
       totalCorrect: attempt.totalCorrect,
       totalWrong: attempt.totalWrong,
@@ -878,7 +1287,8 @@ export const getAttemptResult = async (req, res) => {
     const totalDurationSeconds = attempt.durationMinutes * 60;
     const SLOT_LABELS = ['Q1 (0-25%)', 'Q2 (25-50%)', 'Q3 (50-75%)', 'Q4 (75-100%)'];
     const slotBuckets = SLOT_LABELS.map(label => ({ slot: label, correct: 0, wrong: 0, unattempted: 0, totalTime: 0, visited: 0 }));
-    if (totalDurationSeconds > 0) {
+    // Quarter-of-the-exam analysis only makes sense for a timed test, not untimed practice.
+    if (totalDurationSeconds > 0 && attempt.mode !== 'practice') {
       for (const r of responses) {
         if (!r.firstVisitedAt) continue;
         const elapsedSeconds = (new Date(r.firstVisitedAt).getTime() - new Date(attempt.startedAt).getTime()) / 1000;
@@ -946,8 +1356,11 @@ export const getAttemptResult = async (req, res) => {
       const q = questionById[r.question.toString()];
       return {
         order: r.order,
-        questionText: q?.questionText ?? '(question no longer available)',
-        options: q?.options ?? [],
+        questionId: r.question,
+        // Live text wins (so a corrected typo shows up in old results); the attempt's own snapshot
+        // covers questions that have since been deleted.
+        questionText: q?.questionText ?? r.questionText ?? '(question no longer available)',
+        options: q?.options?.length ? q.options : (r.options ?? []),
         selectedOption: r.selectedOption,
         correctOption: r.correctOption,
         isCorrect: r.isCorrect,
@@ -959,7 +1372,9 @@ export const getAttemptResult = async (req, res) => {
         timeSpentSeconds: r.timeSpentSeconds,
         status: r.status,
         marksAwarded: r.marksAwarded,
-        answerChangedCount: r.answerChangedCount
+        answerChangedCount: r.answerChangedCount,
+        flagged: flaggedIds.has(String(r.question)),
+        reported: reportedIds.has(String(r.question))
       };
     });
 
@@ -1074,12 +1489,17 @@ export const getAttemptResult = async (req, res) => {
     // --- Rank / percentile ---
     // Best-score-per-user aggregation (not a raw attempt sort) so a student who retakes this
     // test multiple times doesn't occupy multiple leaderboard slots.
-    const rankAgg = await McqAttempt.aggregate([
-      { $match: { test: attempt.test, status: { $in: ['submitted', 'auto-submitted'] } } },
-      { $sort: { totalMarksObtained: -1, totalTimeSpentSeconds: 1 } },
-      { $group: { _id: '$user', bestMarks: { $first: '$totalMarksObtained' }, bestTime: { $first: '$totalTimeSpentSeconds' } } },
-      { $sort: { bestMarks: -1, bestTime: 1 } }
-    ]);
+    // Only timed Test-mode attempts are ranked: practice sessions (untimed, answers visible) would
+    // otherwise let someone climb the leaderboard by peeking.
+    let rankAgg = [];
+    if (isRanked) {
+      rankAgg = await McqAttempt.aggregate([
+        { $match: { test: attempt.test, status: { $in: ['submitted', 'auto-submitted'] }, mode: { $ne: 'practice' }, source: TEST_SOURCE } },
+        { $sort: { totalMarksObtained: -1, totalTimeSpentSeconds: 1 } },
+        { $group: { _id: '$user', bestMarks: { $first: '$totalMarksObtained' }, bestTime: { $first: '$totalTimeSpentSeconds' } } },
+        { $sort: { bestMarks: -1, bestTime: 1 } }
+      ]);
+    }
     const totalParticipants = rankAgg.length;
     const rankIndex = rankAgg.findIndex(r => r._id.toString() === attempt.user.toString());
     const rank = rankIndex >= 0 ? rankIndex + 1 : null;
@@ -1120,8 +1540,15 @@ export const getAttemptResult = async (req, res) => {
 
     res.json({
       attemptId: attempt._id,
-      testTitle: test?.title ?? '',
+      testId: attempt.test || null,
+      testTitle: attemptLabel(attempt, test),
       subject: attempt.subject,
+      mode: attempt.mode || 'test',
+      source: attempt.source || 'test',
+      isRanked,
+      submittedAt: attempt.submittedAt,
+      attempts: test ? await quotaInfo(attempt.user, test) : null,
+      mistakeCount: attempt.totalWrong,
       summary,
       topicBreakdown,
       weakTopics,
@@ -1155,7 +1582,7 @@ export const getAttemptHistory = async (req, res) => {
     if (testId) filter.test = testId;
 
     const attempts = await McqAttempt.find(filter).sort({ submittedAt: 1 }).populate('test', 'title subject totalMarks');
-
+    // Timed Test-mode attempts get their own "progress" series on the client; practice sessions are labelled.
     const history = attempts.map(a => {
       const topicMap = {};
       for (const r of a.responses) {
@@ -1175,12 +1602,15 @@ export const getAttemptHistory = async (req, res) => {
       return {
         attemptId: a._id,
         testId: a.test?._id,
-        testTitle: a.test?.title ?? '',
+        testTitle: attemptLabel(a, a.test),
         subject: a.subject,
+        mode: a.mode || 'test',
+        source: a.source || 'test',
         submittedAt: a.submittedAt,
         totalMarksObtained: a.totalMarksObtained,
-        totalMarks: a.test?.totalMarks ?? 0,
+        totalMarks: a.totalMaxMarks || a.test?.totalMarks || 0,
         accuracyPercent: a.accuracyPercent,
+        totalTimeSpentSeconds: a.totalTimeSpentSeconds,
         topicAccuracy
       };
     });
