@@ -16,7 +16,7 @@ if (!URI) {
 
   const { default: express } = await import('express');
   const { default: mongoose } = await import('mongoose');
-  const { default: jwt } = await import('jsonwebtoken');
+  const { startSession } = await import('../utils/session.js');
   const { default: mcqRoutes } = await import('../routes/mcqRoutes.js');
   const { default: User } = await import('../models/User.js');
   const { default: McqTest } = await import('../models/McqTest.js');
@@ -50,7 +50,8 @@ if (!URI) {
 
   const makeUser = async (key, email) => {
     users[key] = await User.create({ googleId: `g-${key}`, email, name: key, fullName: key });
-    tokens[key] = jwt.sign({ userId: users[key]._id, email }, 'test-secret');
+    // Real login path: students' tokens are only accepted with a live session (utils/session.js).
+    tokens[key] = await startSession(users[key], `device-${key}`, 'test');
   };
 
   // 5 questions, correct answers A B C D A, 2 marks each, 0.33 negative ratio => -0.66 per wrong answer

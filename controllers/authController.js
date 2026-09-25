@@ -1,6 +1,8 @@
 import { OAuth2Client } from 'google-auth-library';
-import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
+import { getLoginBlock, startSession } from '../utils/session.js';
+import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -8,6 +10,43 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export const getGoogleConfig = (req, res) => {
   res.json({
     googleClientId: process.env.GOOGLE_CLIENT_ID
+  });
+};
+
+// Browser-generated id kept in localStorage; anything missing or malformed gets a
+// throwaway id, so it counts as a new device rather than slipping past the lock.
+const readDeviceId = (req) => {
+  const id = req.body?.deviceId;
+  return typeof id === 'string' && /^[\w-]{8,100}$/.test(id) ? id : `anon-${crypto.randomUUID()}`;
+};
+
+// Shared tail of both login flows: enforce one active session, then issue the token.
+export const completeLogin = async (req, res, user) => {
+  const deviceId = readDeviceId(req);
+  const block = getLoginBlock(user, deviceId);
+  if (block) {
+    return res.status(409).json({
+      code: 'SESSION_ACTIVE',
+      error: block.loggedOut
+        ? `This account was just used on ${block.device}. To stop account sharing, a different device can sign in only after an hour.`
+        : `This account is in use on ${block.device}. Log out there - you can sign in on this device after an hour of no activity on that one.`,
+      ...block
+    });
+  }
+
+  const token = await startSession(user, deviceId, req.headers['user-agent']);
+  res.json({
+    token,
+    user: {
+      name: user.name,
+      email: user.email,
+      picture: user.picture,
+      fullName: user.fullName,
+      mobileNumber: user.mobileNumber,
+      telegramUsername: user.telegramUsername,
+      interestedCourses: user.interestedCourses,
+      isAdmin: isAdminEmail(user.email)
+    }
   });
 };
 
@@ -57,26 +96,7 @@ export const verifyGoogleToken = async (req, res) => {
       });
     }
 
-    // Generate our own JWT for session management
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      token,
-      user: {
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-        fullName: user.fullName,
-        mobileNumber: user.mobileNumber,
-        telegramUsername: user.telegramUsername,
-        interestedCourses: user.interestedCourses,
-        isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
-      }
-    });
+    await completeLogin(req, res, user);
   } catch (dbError) {
     console.error('Database error during Google verification:', dbError);
     res.status(500).json({ error: 'Database connection/timeout error. Please verify database connectivity.' });
@@ -97,27 +117,29 @@ export const mockLogin = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      token,
-      user: {
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-        fullName: user.fullName,
-        mobileNumber: user.mobileNumber,
-        telegramUsername: user.telegramUsername,
-        interestedCourses: user.interestedCourses,
-        isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
-      }
-    });
+    await completeLogin(req, res, user);
   } catch (err) {
     console.error('Mock login database error:', err);
     res.status(500).json({ error: 'Database error during mock login.' });
   }
+};
+
+// Ends this device's session. The account's lastSeenAt stays, so another device still
+// has to wait out the switch lock (see utils/session.js).
+export const logout = async (req, res) => {
+  try {
+    await User.updateOne(
+      { _id: req.userId, 'session.id': req.sessionId },
+      { $set: { 'session.id': null, 'session.lastSeenAt': new Date() } }
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+};
+
+// Heartbeat target: the auth middleware already validated and refreshed the session.
+export const getSession = (req, res) => {
+  res.json({ ok: true });
 };

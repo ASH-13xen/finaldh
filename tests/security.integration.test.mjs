@@ -15,7 +15,7 @@ if (!URI) {
 
   const { default: express } = await import('express');
   const { default: mongoose } = await import('mongoose');
-  const { default: jwt } = await import('jsonwebtoken');
+  const { startSession } = await import('../utils/session.js');
   const { default: courseRoutes } = await import('../routes/courseRoutes.js');
   const { default: userRoutes } = await import('../routes/userRoutes.js');
   const { default: pdfEditorRoutes } = await import('../routes/pdfEditorRoutes.js');
@@ -55,7 +55,8 @@ if (!URI) {
 
   const makeUser = async (key, email, extra = {}) => {
     users[key] = await User.create({ googleId: `g-${key}`, email, name: key, fullName: key, ...extra });
-    tokens[key] = jwt.sign({ userId: users[key]._id, email }, 'test-secret');
+    // Real login path: students' tokens are only accepted with a live session (utils/session.js).
+    tokens[key] = await startSession(users[key], `device-${key}`, 'test');
   };
 
   before(async () => {

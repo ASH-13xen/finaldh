@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec \"node --max-old-space-size=4096\" index.js",
-    "test": "node --test tests/pdfStamp.test.mjs tests/mcq.integration.test.mjs tests/security.integration.test.mjs tests/peopleSplit.integration.test.mjs"
+    "test": "node --test tests/pdfStamp.test.mjs tests/mcq.integration.test.mjs tests/security.integration.test.mjs tests/peopleSplit.integration.test.mjs tests/session.integration.test.mjs"
   },
   "keywords": [],
   "author": "",

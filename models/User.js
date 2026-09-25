@@ -17,6 +17,15 @@ const userSchema = new mongoose.Schema({
   // Owning a subject unlocks every test in it - present and future - rather than a fixed
   // snapshot; see McqSubjectPricing and the isOwned checks in mcqController.js.
   purchasedMcqSubjects: [{ type: String }],
+  // The one active login for this account - see utils/session.js. id is cleared on
+  // logout; lastSeenAt is kept so the device-switch lock still applies afterwards.
+  session: {
+    id: { type: String, default: null },
+    deviceId: { type: String, default: null },
+    device: { type: String, default: null },
+    startedAt: { type: Date, default: null },
+    lastSeenAt: { type: Date, default: null }
+  },
   downloadLimits: [{
     courseId: { type: String, required: true },
     downloadedCount: { type: Number, default: 0 },
