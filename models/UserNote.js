@@ -9,14 +9,15 @@ import mongoose from 'mongoose';
 //   tc_answer   -> ref.toppersCopy + ref.question + ref.answerIdx (one topper's scanned answer)
 //   tc_pyq      -> ref.pyq                                      (a Related PYQ)
 //   qb_question -> ref.quizQuestion                             (a Question Bank MCQ)
+//   em_topic    -> ref.economyTopic                             (an Economy Master File topic)
 // `refKey` is the canonical string form of the ref, built server-side (studyController), so
 // bookmark uniqueness and client-side "is this starred?" lookups are one string compare.
 //
 // `context` is a snapshot taken at save time (question text, topper, pages…) so the list still
 // reads sensibly if the source is later edited or re-imported with new _ids.
 
-export const REF_TYPES = ['tc_question', 'tc_answer', 'tc_pyq', 'qb_question'];
-export const SECTIONS = ['toppers_copy', 'question_bank'];
+export const REF_TYPES = ['tc_question', 'tc_answer', 'tc_pyq', 'qb_question', 'em_topic'];
+export const SECTIONS = ['toppers_copy', 'question_bank', 'economy_master'];
 
 const userNoteSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -30,6 +31,7 @@ const userNoteSchema = new mongoose.Schema({
     answerIdx: { type: Number, default: null },
     pyq: { type: mongoose.Schema.Types.ObjectId, ref: 'ToppersPyq', default: null },
     quizQuestion: { type: mongoose.Schema.Types.ObjectId, ref: 'QuizQuestion', default: null },
+    economyTopic: { type: mongoose.Schema.Types.ObjectId, ref: 'EconomyTopic', default: null },
   },
 
   context: {

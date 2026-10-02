@@ -7,11 +7,13 @@
 // save a note against content that doesn't exist or smuggle in a fake title.
 
 import mongoose from 'mongoose';
-import UserNote, { REF_TYPES } from '../models/UserNote.js';
+import UserNote, { REF_TYPES, SECTIONS } from '../models/UserNote.js';
 import ToppersSeen from '../models/ToppersSeen.js';
 import ToppersCopy from '../models/ToppersCopy.js';
 import ToppersPyq from '../models/ToppersPyq.js';
 import QuizQuestion from '../models/QuizQuestion.js';
+import EconomyTopic from '../models/EconomyTopic.js';
+import EconomyTheme from '../models/EconomyTheme.js';
 import User from '../models/User.js';
 
 const QUOTE_MAX = 4000;
@@ -88,6 +90,30 @@ const resolveRef = async (body = {}, userId) => {
         topic: pyq.topic || pyq.microtheme || '',
         title: pyq.questionText,
         subtitle: [`PYQ ${pyq.year}`, pyq.marks ? `${pyq.marks} marks` : ''].filter(Boolean).join(' · '),
+      },
+    };
+  }
+
+  if (refType === 'em_topic') {
+    const { economyTopicId } = body;
+    if (!isId(economyTopicId)) fail(400, 'economyTopicId is required');
+    const t = await EconomyTopic.findById(economyTopicId).select('themeKey title number source pages hidden');
+    if (!t || t.hidden) fail(404, 'Topic not found');
+    const theme = await EconomyTheme.findOne({ key: t.themeKey }).select('title isPublished');
+    if (!theme || (!theme.isPublished && !(await isAdmin(userId)))) fail(404, 'Topic not found');
+    const part = { forum: 'Forum', partB: 'Part B', vision: 'Vision' }[t.source] || '';
+    return {
+      refType,
+      refKey: `em_topic:${t._id}`,
+      ref: { economyTopic: t._id },
+      context: {
+        section: 'economy_master',
+        subject: 'Economy',
+        topic: theme.title,
+        title: t.title,
+        subtitle: [part, t.pages?.length ? `p. ${t.pages[0]}` : ''].filter(Boolean).join(' · '),
+        startPage: t.pages?.[0] ?? null,
+        endPage: t.pages?.[t.pages.length - 1] ?? null,
       },
     };
   }
@@ -194,7 +220,7 @@ export const listItems = async (req, res) => {
   try {
     const filter = { user: req.userId };
     if (['bookmark', 'note'].includes(req.query.kind)) filter.kind = req.query.kind;
-    if (['toppers_copy', 'question_bank'].includes(req.query.section)) filter['context.section'] = req.query.section;
+    if (SECTIONS.includes(req.query.section)) filter['context.section'] = req.query.section;
     if (typeof req.query.subject === 'string' && req.query.subject) filter['context.subject'] = req.query.subject;
     const q = clip(req.query.q, 200);
     if (q) {
@@ -230,7 +256,7 @@ export const listItems = async (req, res) => {
 export const listBookmarkKeys = async (req, res) => {
   try {
     const filter = { user: req.userId, kind: 'bookmark' };
-    if (['toppers_copy', 'question_bank'].includes(req.query.section)) filter['context.section'] = req.query.section;
+    if (SECTIONS.includes(req.query.section)) filter['context.section'] = req.query.section;
     const rows = await UserNote.find(filter).select('refKey').lean();
     res.json({ keys: rows.map((r) => r.refKey) });
   } catch (err) {
