@@ -16,6 +16,9 @@ const userSchema = new mongoose.Schema({
   // Owning a subject unlocks every test in it - present and future - rather than a fixed
   // snapshot; see McqSubjectPricing and the isOwned checks in mcqController.js.
   purchasedMcqSubjects: [{ type: String }],
+  // Toppers Copy subjects this student bought ('GS-1', ...), or ALL_SUBJECTS for the
+  // all-subjects bundle - see ToppersCopyPricing and utils/toppersAccess.js.
+  purchasedToppersSubjects: [{ type: String }],
   downloadLimits: [{
     courseId: { type: String, required: true },
     downloadedCount: { type: Number, default: 0 },

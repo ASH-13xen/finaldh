@@ -29,7 +29,19 @@ import {
   listTopics,
   getToppersCopy,
   streamToppersCopyPdf,
+  setQuestionFreePreview,
 } from '../controllers/toppersCopyController.js';
+import {
+  getToppersStore,
+  createToppersPurchaseRequest,
+  getToppersPurchaseScreenshot,
+  trackToppersTelegramNotification,
+  getAdminToppersPurchaseRequests,
+  approveToppersPurchaseRequest,
+  rejectToppersPurchaseRequest,
+  getToppersPricingAdmin,
+  upsertToppersPricing,
+} from '../controllers/toppersPurchaseController.js';
 import {
   enhanceAnswer,
   listEnhancements,
@@ -57,7 +69,26 @@ const uploadImage = multer({
     cb(/^image\/(png|jpe?g|webp|gif)$/i.test(file.mimetype) ? null : new Error('Only PNG/JPG/WebP/GIF images'), true),
 });
 
+// Payment screenshots are stored in MongoDB, same as mcqRoutes.js.
+const uploadScreenshot = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) =>
+    cb(/^image\//i.test(file.mimetype) ? null : new Error('Only image screenshots'), true),
+});
+
 const router = express.Router();
+
+// -------- Buying access (per subject or the all-subjects bundle) --------
+router.get('/store', authenticateToken, getToppersStore);
+router.post('/purchase-requests', authenticateToken, uploadScreenshot.single('screenshot'), createToppersPurchaseRequest);
+router.get('/purchase-requests/:id/screenshot', authenticateToken, getToppersPurchaseScreenshot);
+router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackToppersTelegramNotification);
+router.get('/admin/purchase-requests', authenticateToken, getAdminToppersPurchaseRequests);
+router.post('/admin/purchase-requests/:id/approve', authenticateToken, approveToppersPurchaseRequest);
+router.post('/admin/purchase-requests/:id/reject', authenticateToken, rejectToppersPurchaseRequest);
+router.get('/admin/pricing', authenticateToken, getToppersPricingAdmin);
+router.put('/admin/pricing/:plan', authenticateToken, upsertToppersPricing);
 
 // -------- Admin: AI ingestion + review/commit --------
 router.post('/admin/compendium/start', authenticateToken, uploadPdf.single('pdf'), startCompendiumJob);
@@ -91,6 +122,7 @@ router.patch('/admin/:id', authenticateToken, updateToppersCopy);
 router.put('/admin/:id/structure', authenticateToken, updateToppersCopyStructure);
 router.delete('/admin/:id', authenticateToken, deleteToppersCopy);
 router.post('/admin/:id/questions/:qid/analyze', authenticateToken, analyzeQuestion);
+router.patch('/admin/:id/questions/:qid/free-preview', authenticateToken, setQuestionFreePreview);
 
 // -------- Student / admin: read + stream --------
 router.get('/subjects', authenticateToken, listSubjects);
