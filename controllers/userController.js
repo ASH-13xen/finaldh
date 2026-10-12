@@ -6,6 +6,7 @@ import Course from '../models/Course.js';
 import DownloadRequest from '../models/DownloadRequest.js';
 import bwipjs from 'bwip-js';
 import { sanitizePersonName, sanitizeMobile, sanitizeTelegram } from '../utils/sanitize.js';
+import { ownedCourseIdsFor, coursesMatchingTags } from '../utils/courseAccess.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,7 @@ export const getUserProfile = async (req, res) => {
       mobileNumber: user.mobileNumber,
       telegramUsername: user.telegramUsername,
       interestedCourses: user.interestedCourses,
+      ownedCourseIds: await ownedCourseIdsFor(user),
       downloadLimits: user.downloadLimits || [],
       isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
     });
@@ -74,6 +76,7 @@ export const updateUserProfile = async (req, res) => {
       mobileNumber: user.mobileNumber,
       telegramUsername: user.telegramUsername,
       interestedCourses: user.interestedCourses,
+      ownedCourseIds: await ownedCourseIdsFor(user),
       downloadLimits: user.downloadLimits || []
     });
   } catch (error) {
@@ -374,6 +377,7 @@ export const completePurchaseProfile = async (req, res) => {
         mobileNumber: updatedUser.mobileNumber,
         telegramUsername: updatedUser.telegramUsername,
         interestedCourses: updatedUser.interestedCourses,
+        ownedCourseIds: await ownedCourseIdsFor(updatedUser),
         downloadLimits: updatedUser.downloadLimits || [],
         isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((updatedUser.email || '').toLowerCase())
       }
@@ -436,7 +440,9 @@ export const adminUpdateUserProfile = async (req, res) => {
       targetUser.interestedCourses = ids;
       // Course access is decided by purchasedCourses (see utils/courseAccess.js). This admin editor is
       // how access is granted/revoked by hand, so keep the two lists in step (in both directions).
-      const matched = await Course.find({ courseId: { $in: ids } }).select('_id');
+      // Matched case-insensitively, the same way the entries are compared everywhere else - an exact
+      // match here silently left "Essay" (vs the ESSAY course) shown to the student but not granted.
+      const matched = coursesMatchingTags(ids, await Course.find({}).select('_id courseId'));
       targetUser.purchasedCourses = matched.map((c) => c._id);
     }
     if (optionalSubject !== undefined) targetUser.optionalSubject = optionalSubject;

@@ -219,6 +219,22 @@ if (!URI) {
     assert.equal((await call('PUT', `/api/user/admin/users/${users.legacy._id}`, 'cheater', { interestedCourses: ['SOC-1'] })).status, 403);
   });
 
+  test('the profile lists as owned exactly what the download check allows', async () => {
+    assert.deepEqual((await call('GET', '/api/user/profile', 'buyer')).data.ownedCourseIds, ['SOC-1']);
+    await User.updateOne({ _id: users.legacy._id }, { interestedCourses: ['SOC-1'], purchasedCourses: [] }); // entry without a purchase
+    assert.deepEqual((await call('GET', '/api/user/profile', 'legacy')).data.ownedCourseIds, [], 'not shown as owned...');
+    assert.equal((await call('GET', `/api/courses/raw/${course._id}`, 'legacy')).status, 403, '...and not downloadable');
+    await User.updateOne({ _id: users.legacy._id }, { interestedCourses: [] });
+  });
+
+  test('admin user editor matches course ids case-insensitively', async () => {
+    await call('PUT', `/api/user/admin/users/${users.legacy._id}`, 'admin', { interestedCourses: ['soc-1'] });
+    assert.deepEqual((await User.findById(users.legacy._id)).purchasedCourses.map(String), [String(course._id)]);
+    assert.deepEqual((await call('GET', '/api/user/profile', 'legacy')).data.ownedCourseIds, ['SOC-1']);
+    await call('PUT', `/api/user/admin/users/${users.legacy._id}`, 'admin', { interestedCourses: [] });
+    assert.equal((await User.findById(users.legacy._id)).purchasedCourses.length, 0);
+  });
+
   // ---------- PDF editor ----------
   test('PDF editor: login required, and file names cannot escape the edits folder', async () => {
     assert.equal((await call('POST', '/api/pdf-editor/init', null, {})).status, 401);

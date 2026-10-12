@@ -8,6 +8,7 @@ import PyqProgress from '../models/PyqProgress.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
 import { findMatchingPyqsForTagCells } from '../utils/tagMatcher.js';
+import { userOwnsCourse } from '../utils/courseAccess.js';
 
 const isAdminEmail = (email) => {
   return [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2]
@@ -25,13 +26,11 @@ export const requireAdmin = async (req, res) => {
   return user;
 };
 
-// Admin, or (course has Progress enabled AND user has it in purchasedCourses/interestedCourses).
+// Admin, or (course has Progress enabled AND the user owns it - same rule as downloads, see utils/courseAccess.js).
 const hasCourseAccess = (user, course) => {
   if (isAdminEmail(user.email)) return true;
   if (!course.progressEnabled) return false;
-  const hasPurchased = user.purchasedCourses.some(id => id.toString() === course._id.toString());
-  const hasInterest = user.interestedCourses.some(cId => cId.toLowerCase() === course.courseId.toLowerCase());
-  return hasPurchased || hasInterest;
+  return userOwnsCourse(user, course);
 };
 
 const normalizeHeader = (key) => key.toLowerCase().trim().replace(/_/g, ' ').replace(/\s+/g, ' ');

@@ -1,6 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { ownedCourseIdsFor } from '../utils/courseAccess.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -74,6 +75,7 @@ export const verifyGoogleToken = async (req, res) => {
         mobileNumber: user.mobileNumber,
         telegramUsername: user.telegramUsername,
         interestedCourses: user.interestedCourses,
+        ownedCourseIds: await ownedCourseIdsFor(user),
         isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
       }
     });
@@ -113,6 +115,7 @@ export const mockLogin = async (req, res) => {
         mobileNumber: user.mobileNumber,
         telegramUsername: user.telegramUsername,
         interestedCourses: user.interestedCourses,
+        ownedCourseIds: await ownedCourseIdsFor(user),
         isAdmin: [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2].filter(Boolean).map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())
       }
     });
