@@ -1,4 +1,4 @@
-// Drafts the margin "enhancement layer" (why-this-works + value-add notes) for
+// Drafts the margin "enhancement layer" (green done-well + blue make-it-stronger notes) for
 // topper answer copies in bulk — the same output as the admin "✨ Enhance" button,
 // one answer per AI call. Drafts are NOT shown to students until an admin
 // reviews and publishes them (or pass --publish to skip that for clean ones).

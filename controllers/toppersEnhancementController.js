@@ -27,12 +27,15 @@ const publicShape = (enh) => ({
   _id: enh._id,
   notes: (enh.notes || []).map((n) => ({
     _id: n._id, page: n.page, kind: n.kind, yFrom: n.yFrom, yTo: n.yTo,
-    title: n.title, text: n.text, points: n.points || [],
+    title: n.title, text: n.text, use: n.use || '', points: n.points || [], diagram: n.diagram || '',
   })),
   takeaways: {
     techniques: enh.takeaways?.techniques || [],
     enrichment: enh.takeaways?.enrichment || [],
     keywords: enh.takeaways?.keywords || [],
+    presentation: enh.takeaways?.presentation || [],
+    altIntro: { text: enh.takeaways?.altIntro?.text || '', keywords: enh.takeaways?.altIntro?.keywords || [] },
+    altConclusion: { text: enh.takeaways?.altConclusion?.text || '', keywords: enh.takeaways?.altConclusion?.keywords || [] },
   },
   published: !!enh.published,
 });
