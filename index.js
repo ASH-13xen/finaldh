@@ -35,7 +35,7 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Range'],
-  exposedHeaders: ['Content-Disposition', 'Content-Length', 'x-download-mode', 'Accept-Ranges', 'Content-Range']
+  exposedHeaders: ['Content-Disposition', 'Content-Length', 'x-download-mode', 'Accept-Ranges', 'Content-Range', 'X-Export-Pages']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));

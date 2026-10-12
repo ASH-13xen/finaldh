@@ -29,6 +29,7 @@ import {
   listTopics,
   getToppersCopy,
   streamToppersCopyPdf,
+  exportQuestionPages,
 } from '../controllers/toppersCopyController.js';
 import {
   enhanceAnswer,
@@ -91,6 +92,7 @@ router.patch('/admin/:id', authenticateToken, updateToppersCopy);
 router.put('/admin/:id/structure', authenticateToken, updateToppersCopyStructure);
 router.delete('/admin/:id', authenticateToken, deleteToppersCopy);
 router.post('/admin/:id/questions/:qid/analyze', authenticateToken, analyzeQuestion);
+router.get('/admin/:id/questions/:qid/export-pages', authenticateToken, exportQuestionPages);
 
 // -------- Student / admin: read + stream --------
 router.get('/subjects', authenticateToken, listSubjects);
