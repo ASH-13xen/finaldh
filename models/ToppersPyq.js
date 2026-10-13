@@ -28,6 +28,10 @@ const pyqAnswerSchema = new mongoose.Schema({
   // without an explicit override.
   source: { type: String, enum: ['ai', 'pdf'], default: 'ai' },
   rawText: { type: String, default: '' },          // (pdf) verbatim answer text, paragraphs kept
+  // (pdf) true once the displayed fields below were rewritten in our own words
+  // from rawText (utils/pyqAnswerFormat.js rewordPyqAnswerText) rather than only
+  // reorganized. rawText itself always keeps the original.
+  reworded: { type: Boolean, default: false },
   pendingDiagramPages: { type: [Number], default: [] }, // (pdf) source pages with an embedded diagram/image not yet re-uploaded
   openingLine: { type: String, default: '' },
   sections: { type: [pyqAnswerSectionSchema], default: [] },
