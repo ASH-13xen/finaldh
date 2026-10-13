@@ -51,7 +51,7 @@ import {
 import { makeChunkPdfBase64 } from '../utils/pdfChunk.js';
 import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis.js';
 import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
-import { formatPyqAnswerText } from '../utils/pyqAnswerFormat.js';
+import { formatPyqAnswerText, rewordPyqAnswerText } from '../utils/pyqAnswerFormat.js';
 import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
 
 // ---------------------------------------------------------------------------
@@ -1101,9 +1101,13 @@ export const bulkDeleteToppersPyqs = async (req, res) => {
 // frontend addresses each image by its _id via the stream endpoint.
 const publicPyqAnswer = (pa, { admin = false } = {}) => {
   if (!pa || !pa.generatedAt) return null;
+  // The book's own wording is for admins only. A book answer that has not been
+  // through the format/reword pass yet has nothing else to show a student.
+  if (!admin && pa.source === 'pdf' && !pa.sections?.length) return null;
   return {
     source: pa.source || 'ai',
-    rawText: pa.rawText || '',
+    rawText: admin ? pa.rawText || '' : '',
+    reworded: !!pa.reworded,
     openingLine: pa.openingLine || '',
     sections: pa.sections || [],
     closingLine: pa.closingLine || '',
@@ -1155,6 +1159,9 @@ export const generateToppersPyqAnswer = async (req, res) => {
 // Called automatically (client-side loop) right after a JSON/PDF commit that
 // attached new answerText, and available as a manual "Reformat" button for
 // re-runs. Skips (409) if already formatted unless { force: true }.
+// With { reword: true } the text is instead rewritten in our own words, facts
+// unchanged (rewordPyqAnswerText) — that is what the automatic pass sends, so
+// students never read the book's sentences. rawText keeps the original either way.
 export const formatToppersPyqAnswerText = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -1166,11 +1173,15 @@ export const formatToppersPyqAnswerText = async (req, res) => {
     if (!doc.pyqAnswer?.rawText) {
       return res.status(400).json({ error: 'This answer has no source text to format.' });
     }
-    if (doc.pyqAnswer.sections?.length && !req.body?.force) {
-      return res.status(409).json({ error: 'Already formatted. Pass { force: true } to re-run.' });
+    const reword = !!req.body?.reword;
+    const alreadyDone = reword ? doc.pyqAnswer.reworded : doc.pyqAnswer.sections?.length;
+    if (alreadyDone && !req.body?.force) {
+      return res.status(409).json({ error: `Already ${reword ? 'reworded' : 'formatted'}. Pass { force: true } to re-run.` });
     }
 
-    const formatted = await formatPyqAnswerText(doc.pyqAnswer.rawText);
+    const formatted = reword
+      ? await rewordPyqAnswerText(doc.pyqAnswer.rawText, { questionText: doc.questionText })
+      : await formatPyqAnswerText(doc.pyqAnswer.rawText);
     // Atomic $set, not load-then-.save() — this can run minutes after the doc
     // was fetched (client-side format loops sequence many of these), and an
     // admin actively editing the same row concurrently would otherwise throw a
@@ -1183,12 +1194,16 @@ export const formatToppersPyqAnswerText = async (req, res) => {
           'pyqAnswer.sections': formatted.sections,
           'pyqAnswer.closingLine': formatted.closingLine,
           'pyqAnswer.quote': formatted.quote,
+          'pyqAnswer.reworded': reword,
         },
       },
       { new: true },
     );
 
-    res.json({ pyqAnswer: publicPyqAnswer(updated.pyqAnswer, { admin: true }) });
+    res.json({
+      pyqAnswer: publicPyqAnswer(updated.pyqAnswer, { admin: true }),
+      ...(reword ? { report: formatted.report } : {}),
+    });
   } catch (err) {
     if (err.code === 'NO_TEXT') return res.status(400).json({ error: err.message });
     if (isQuotaError(err)) return res.status(429).json({ error: 'AI rate limit — try again shortly.' });
