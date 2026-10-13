@@ -10,6 +10,7 @@
 //   node scripts/reword_pyq_answers.mjs --limit 3 --preview   # print the result, save nothing
 //   node scripts/reword_pyq_answers.mjs --force         # also redo ones already reworded
 //   node scripts/reword_pyq_answers.mjs --dry-run       # only count
+//   node scripts/reword_pyq_answers.mjs --concurrency 4 # several at once (default 1)
 
 import 'dotenv/config';
 import mongoose from 'mongoose';
@@ -25,6 +26,7 @@ const LIMIT = Number(getArg('--limit', 0)) || 0;
 const FORCE = args.includes('--force');
 const DRY_RUN = args.includes('--dry-run');
 const PREVIEW = args.includes('--preview');
+const CONCURRENCY = Math.max(1, Number(getArg('--concurrency', 1)) || 1);
 const DELAY_MS = Number(process.env.AI_INTER_CHUNK_DELAY_MS) || 4000;
 // A result that still shares this much of its wording with the book is retried once.
 const MAX_COPIED_SHARE = 0.1;
@@ -50,9 +52,12 @@ async function main() {
   console.log(`${rows.length} answer(s) to reword.`);
   if (DRY_RUN) { await mongoose.disconnect(); return; }
 
-  let done = 0, failed = 0;
+  let done = 0, failed = 0, stop = false;
   const flagged = [];
-  for (const doc of rows) {
+  const queue = [...rows];
+  const worker = async () => {
+    while (queue.length && !stop) {
+    const doc = queue.shift();
     try {
       let out = await rewordPyqAnswerText(doc.pyqAnswer.rawText, { questionText: doc.questionText });
       if (out.report.copiedShare > MAX_COPIED_SHARE) {
@@ -86,11 +91,13 @@ async function main() {
       console.error(`  failed (${doc._id}): ${err.message || err}`);
       if (isQuotaError(err)) {
         console.error('Quota/rate-limit hit — stopping. Re-run later to resume (reworded rows are skipped unless --force).');
-        break;
+        stop = true;
       }
     }
     await sleep(DELAY_MS);
-  }
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
   console.log(`Done. ${PREVIEW ? 'Previewed' : 'Reworded'} ${done}, failed ${failed}.`);
   if (flagged.length) console.log(`\nWorth a human look (${flagged.length}):\n${flagged.join('\n')}`);
