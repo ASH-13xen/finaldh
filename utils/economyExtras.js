@@ -1,5 +1,6 @@
 // economyExtras.js — AI drafts of the Economy Master File "value addition" per topic:
-// `facts` (relatable real-world hooks) + `research` (crisp beyond-the-book lines).
+// `facts` = "Conceptual depth" (green: the why/how behind the topic) + `research` = "Additional
+// facts & peripheral knowledge" (blue: crisp beyond-the-book lines).
 //
 // Always saved as extrasStatus 'draft' — an admin reviews and publishes. Used by the per-topic
 // admin button, the per-theme background job (Admin → Economy Data → Themes) and
@@ -13,11 +14,14 @@ const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 const EXTRAS_SYSTEM = `You write short study add-ons for Indian UPSC aspirants revising Economy.
 You are given one topic from a revision master file. Do NOT repeat or rephrase the notes — add to them.
 Return JSON only: {"facts": [string], "research": string}
-- facts: 2-3 relatable, real-world hooks that make the concept stick — a well-known Indian or global
-  episode, a number a student can picture, an everyday analogy. One sentence each, max 30 words.
-- research: 3-5 crisp lines (separate with \\n) of "beyond the book" value: the latest official data
-  or rule change you are confident about, the committee/report/act behind it, and one Mains angle.
-  Start each line with a short bold-free label like "Latest:", "Source:", "Mains angle:".
+- facts ("Conceptual depth"): 2-3 lines that deepen understanding of the concept — the why and how
+  behind it, cause and effect, how it links to a related concept; a well-known Indian or global
+  episode or an everyday analogy is fine when it makes the idea click. One sentence each, max 30 words.
+- research ("Additional facts & peripheral knowledge"): 3-5 crisp lines (separate with \\n) of
+  "beyond the book" facts: the latest official data or rule change you are confident about, the
+  committee/report/act behind it, and related peripheral facts an aspirant should know.
+  Start each line with a short bold-free label like "Latest:", "Source:", "Related:".
+  No "Mains angle" or answer-writing advice.
 - Accuracy first: use only widely documented facts (RBI / Budget / Economic Survey / well-known
   history). Never invent an event, allocation, date or number; if unsure, leave it out — fewer
   items is fine. No markdown.`;
@@ -34,7 +38,8 @@ export const draftTopicExtras = async (t) => {
     maxRetries: 3,
   });
   const facts = (Array.isArray(out?.facts) ? out.facts : []).map((f) => clip(String(f), 600)).filter(Boolean).slice(0, 5);
-  const research = clip(typeof out?.research === 'string' ? out.research : '', 4000);
+  const research = clip(typeof out?.research === 'string' ? out.research : '', 4000)
+    .split('\n').filter((l) => !/^\s*mains angle\s*:/i.test(l)).join('\n').trim();
   if (!facts.length && !research) throw Object.assign(new Error('The AI returned nothing usable — try again'), { status: 502 });
   t.facts = facts;
   t.research = research;
