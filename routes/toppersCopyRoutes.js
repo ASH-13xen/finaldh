@@ -19,6 +19,8 @@ import {
   updateToppersPyq,
   deleteToppersPyq,
   bulkDeleteToppersPyqs,
+  retagToppersPyqs,
+  retagToppersPyq,
   generateToppersPyqAnswer,
   formatToppersPyqAnswerText,
   updateToppersPyqAnswer,
@@ -71,6 +73,8 @@ router.get('/admin/jobs/:jobId', authenticateToken, getJobStatus);
 // -------- Admin: committed PYQ browse / edit / delete --------
 router.get('/admin/pyqs', authenticateToken, listToppersPyqs);
 router.post('/admin/pyqs/bulk-delete', authenticateToken, bulkDeleteToppersPyqs);
+router.post('/admin/pyqs/retag', authenticateToken, retagToppersPyqs);
+router.post('/admin/pyqs/:id/retag', authenticateToken, retagToppersPyq);
 router.patch('/admin/pyqs/:id', authenticateToken, updateToppersPyq);
 router.delete('/admin/pyqs/:id', authenticateToken, deleteToppersPyq);
 

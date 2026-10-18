@@ -54,6 +54,7 @@ import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis
 import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
 import { formatPyqAnswerText, rewordPyqAnswerText } from '../utils/pyqAnswerFormat.js';
 import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
+import { tagPyqs, queuePyqTagging, queueSubjectRetag } from '../utils/pyqTopicTagger.js';
 
 // ---------------------------------------------------------------------------
 // Tuning
@@ -109,11 +110,14 @@ const PYQ_STOPWORDS = new Set([
   'from', 'at', 'as', 'or', 'section', 'specific', 'general', 'studies', 'paper',
   'part', 'misc', 'miscellaneous', 'topic', 'unit', 'chapter', 'others', 'other',
 ]);
+// crude singular form so "Personalities" ~ "Personality", "Forms" ~ "Form"
+const stem = (w) => (w.endsWith('ies') && w.length > 4 ? `${w.slice(0, -3)}y` : w.endsWith('s') && !w.endsWith('ss') && w.length > 3 ? w.slice(0, -1) : w);
 const topicTokens = (s) => new Set(
   normalizeForDedup(s)
     .replace(/[^a-z0-9 ]/g, ' ')
     .split(/\s+/)
-    .filter((w) => w.length > 2 && !PYQ_STOPWORDS.has(w)),
+    .filter((w) => w.length > 2 && !PYQ_STOPWORDS.has(w))
+    .map(stem),
 );
 // fraction of the smaller token set that the two share (0..1)
 const tokenOverlap = (a, b) => {
@@ -140,7 +144,6 @@ const scorePyqForTopic = (pyq, { topicNorm, topicTok, sectionNorm, sectionTok })
   if (sectionTok?.size && tokenOverlap(sectionTok, topicTokens(pyq.section)) >= 0.5) return 1;
   return 0;
 };
-const PYQ_SECTION_FALLBACK_CAP = 12;
 
 // Short stable key for the ToppersPyq unique index (questionText itself can be
 // longer than Mongo's 1024-byte index-key limit).
@@ -551,6 +554,8 @@ export const commitCompendiumJob = async (req, res) => {
       message: `Saved ${saved.length} topic(s), ${totalQ} question(s), ${totalA} answer(s): ${saved.map((s) => `"${s.topic}"`).join(', ')}.`,
       saved,
     });
+    // New/changed topics — re-place this subject's PYQs (manual placements kept).
+    queueSubjectRetag(subject);
   } catch (err) {
     console.error('commitCompendiumJob error:', err);
     res.status(500).json({ error: err.message || 'Failed to commit' });
@@ -815,6 +820,7 @@ export const commitPyqJob = async (req, res) => {
     const toInsert = [];
     const conflicts = [];
     const formatPending = []; // doc ids that just got a fresh rawText and need the cheap reformat pass
+    const toTag = [];         // new / still-untagged PYQs for the AI topic tagger
     let mergedCount = 0;
 
     for (const { i, subject, year, questionText, r } of valid) {
@@ -854,6 +860,7 @@ export const commitPyqJob = async (req, res) => {
         if (Object.keys(patch).length) {
           await ToppersPyq.updateOne({ _id: existing._id }, { $set: patch });
           mergedCount += 1;
+          if (!existing.tcTopicSource) toTag.push(existing._id.toString());
           if (patch.pyqAnswer) formatPending.push(existing._id.toString());
         } else {
           skipped.push({ row: i + 1, reason: 'duplicate of an existing PYQ, nothing new to merge' });
@@ -895,9 +902,11 @@ export const commitPyqJob = async (req, res) => {
         const inserted = await ToppersPyq.insertMany(toInsert, { ordered: false });
         insertedCount = inserted.length;
         for (const doc of inserted) if (withAnswerKeys.has(doc.dedupeKey)) formatPending.push(doc._id.toString());
+        toTag.push(...inserted.map((d) => d._id.toString()));
       } catch (bulkErr) {
         insertedCount = bulkErr.result?.insertedCount ?? bulkErr.insertedDocs?.length ?? 0;
         for (const doc of bulkErr.insertedDocs || []) if (withAnswerKeys.has(doc.dedupeKey)) formatPending.push(doc._id.toString());
+        toTag.push(...(bulkErr.insertedDocs || []).map((d) => d._id.toString()));
         const dupes = (bulkErr.writeErrors || []).filter((e) => e.code === 11000).length;
         if (dupes) skipped.push({ row: '-', reason: `${dupes} duplicate(s) already in DB` });
       }
@@ -908,9 +917,12 @@ export const commitPyqJob = async (req, res) => {
       insertedCount,
       mergedCount,
       formatPending,
+      taggingQueued: toTag.length,
       skipped,
       conflicts,
     });
+    // Place them under the right Toppers Copy topics in the background.
+    queuePyqTagging(toTag);
   } catch (err) {
     console.error('commitPyqJob error:', err);
     res.status(500).json({ error: err.message || 'Failed to commit PYQs' });
@@ -969,9 +981,14 @@ export const startPyqJsonJob = async (req, res) => {
 
 // Shared by listToppersPyqs and bulkDeleteToppersPyqs so "select all matching
 // the current filter" deletes exactly what the admin sees on screen.
-const buildPyqFilter = ({ subject = '', year = '', q = '' } = {}) => {
+const buildPyqFilter = ({ subject = '', year = '', q = '', tcTopic = '' } = {}) => {
   const filter = {};
   if (subject) filter.subject = subject;
+  // Toppers Copy placement: 'untagged' | 'none' (deliberately in no topic) | 'manual' | <topic id>
+  if (tcTopic === 'untagged') filter.tcTopicSource = { $in: ['', null] };
+  else if (tcTopic === 'none') Object.assign(filter, { tcTopicSource: { $in: ['ai', 'manual'] }, tcTopic: null });
+  else if (tcTopic === 'manual') filter.tcTopicSource = 'manual';
+  else if (mongoose.Types.ObjectId.isValid(tcTopic)) filter.tcTopic = new mongoose.Types.ObjectId(tcTopic);
   if (year && Number.isFinite(Number(year))) filter.year = Number(year);
   if (String(q).trim()) {
     const rx = { $regex: escapeRegex(String(q).trim()), $options: 'i' };
@@ -990,10 +1007,13 @@ export const listToppersPyqs = async (req, res) => {
     const skip = Math.max(0, Number(req.query.skip) || 0);
     const filter = buildPyqFilter(req.query);
 
-    const [rawPyqs, total, subjects] = await Promise.all([
+    const [rawPyqs, total, subjects, tcTopics, untagged] = await Promise.all([
       ToppersPyq.find(filter).sort({ subject: 1, year: -1, createdAt: -1 }).skip(skip).limit(limit).lean(),
       ToppersPyq.countDocuments(filter),
       ToppersPyq.distinct('subject'),
+      // every Toppers Copy topic, for the per-PYQ "show under" dropdown
+      ToppersCopy.find({}).select('subject syllabusSection topic').sort({ subject: 1, syllabusSection: 1, order: 1, topic: 1 }).lean(),
+      ToppersPyq.countDocuments({ ...(req.query.subject ? { subject: req.query.subject } : {}), tcTopicSource: { $in: ['', null] } }),
     ]);
 
     // Replace the heavy pyqAnswer subdoc with a lightweight status + the answer
@@ -1004,7 +1024,11 @@ export const listToppersPyqs = async (req, res) => {
       pyqAnswerStatus: !pyqAnswer?.generatedAt ? 'none' : pyqAnswer.published ? 'published' : 'draft',
     }));
 
-    res.json({ pyqs, total, returned: pyqs.length, skip, limit, subjects: subjects.filter(Boolean).sort() });
+    res.json({
+      pyqs, total, returned: pyqs.length, skip, limit, subjects: subjects.filter(Boolean).sort(),
+      tcTopics: tcTopics.map((t) => ({ _id: t._id, subject: t.subject, label: [t.syllabusSection, t.topic].filter(Boolean).join(' › ') })),
+      untagged,
+    });
   } catch (err) {
     console.error('listToppersPyqs error:', err);
     res.status(500).json({ error: 'Server error listing PYQs' });
@@ -1019,6 +1043,8 @@ export const updateToppersPyq = async (req, res) => {
   try {
     const doc = await ToppersPyq.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
+    const before = ['subject', 'section', 'topic', 'microtheme', 'questionText'].map((k) => doc[k]).join('\u0001');
+    const oldSubject = doc.subject;
 
     if ('subject' in req.body) doc.subject = String(req.body.subject || '').trim();
     if ('section' in req.body) doc.section = String(req.body.section || '').trim();
@@ -1035,6 +1061,30 @@ export const updateToppersPyq = async (req, res) => {
       return res.status(400).json({ error: 'Subject, question text and a valid year are required.' });
     }
 
+    // Toppers Copy placement. tcTopicId: <topic id> | null ("in no topic") = admin's
+    // choice, which the AI then leaves alone; tcTopicAuto: true hands it back to the AI.
+    let retag = false;
+    if (req.body.tcTopicAuto === true) {
+      Object.assign(doc, { tcTopic: null, tcTopicSource: '', tcTopicReason: '', tcTaggedAt: null });
+      retag = true;
+    } else if ('tcTopicId' in req.body) {
+      const id = req.body.tcTopicId;
+      if (id) {
+        const t = mongoose.Types.ObjectId.isValid(id) && await ToppersCopy.findById(id).select('subject').lean();
+        if (!t) return res.status(400).json({ error: 'Toppers Copy topic not found' });
+        if (t.subject !== doc.subject) return res.status(400).json({ error: `That topic is in ${t.subject}, this PYQ is ${doc.subject}` });
+      }
+      Object.assign(doc, { tcTopic: id || null, tcTopicSource: 'manual', tcTopicReason: '', tcTaggedAt: new Date() });
+    }
+    const after = ['subject', 'section', 'topic', 'microtheme', 'questionText'].map((k) => doc[k]).join('\u0001');
+    if (after !== before) {
+      // A manual pick in another subject's topic no longer makes sense.
+      if (doc.subject !== oldSubject && doc.tcTopicSource === 'manual' && !('tcTopicId' in req.body)) {
+        Object.assign(doc, { tcTopic: null, tcTopicSource: '', tcTopicReason: '', tcTaggedAt: null });
+      }
+      if (doc.tcTopicSource !== 'manual') retag = true;
+    }
+
     doc.dedupeKey = pyqDedupeKey(doc.subject, doc.year, doc.questionText);
     try {
       await doc.save();
@@ -1044,10 +1094,54 @@ export const updateToppersPyq = async (req, res) => {
       }
       throw e;
     }
-    res.json({ pyq: doc });
+    res.json({ pyq: doc, taggingQueued: retag });
+    if (retag) queuePyqTagging([doc._id]);
   } catch (err) {
     console.error('updateToppersPyq error:', err);
     res.status(500).json({ error: err.message || 'Update failed' });
+  }
+};
+
+// POST /admin/pyqs/:id/retag — ask the AI again for this one PYQ, right now (clears a
+// manual placement). Returns the updated PYQ.
+export const retagToppersPyq = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const doc = await ToppersPyq.findByIdAndUpdate(
+      req.params.id,
+      { $set: { tcTopicSource: '' } },
+      { new: true, timestamps: false }
+    );
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    const r = await tagPyqs([doc._id]);
+    if (r.failed) return res.status(502).json({ error: 'The AI did not answer — try again in a moment.' });
+    res.json({ pyq: await ToppersPyq.findById(doc._id).lean() });
+  } catch (err) {
+    console.error('retagToppersPyq error:', err);
+    res.status(500).json({ error: err.message || 'Re-tag failed' });
+  }
+};
+
+// POST /admin/pyqs/retag  { subject?, onlyUntagged? } — (re)place a subject's PYQs (or
+// every subject's) in the background. Manual placements are kept.
+export const retagToppersPyqs = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const onlyUntagged = req.body?.onlyUntagged !== false;
+    const subjects = req.body?.subject ? [String(req.body.subject)] : (await ToppersPyq.distinct('subject')).filter(Boolean);
+    const count = await ToppersPyq.countDocuments({
+      subject: { $in: subjects },
+      tcTopicSource: onlyUntagged ? { $in: ['', null] } : { $ne: 'manual' },
+    });
+    subjects.forEach((s) => queueSubjectRetag(s, { onlyUntagged }));
+    res.status(202).json({ queued: count, message: `AI is placing ${count} PYQ(s) in the background — refresh in a minute or two.` });
+  } catch (err) {
+    console.error('retagToppersPyqs error:', err);
+    res.status(500).json({ error: err.message || 'Re-tag failed' });
   }
 };
 
@@ -1410,9 +1504,18 @@ export const updateToppersCopy = async (req, res) => {
     const patch = {};
     for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
 
+    const old = await ToppersCopy.findById(req.params.id).select('subject syllabusSection topic').lean();
     const doc = await ToppersCopy.findByIdAndUpdate(req.params.id, patch, { new: true });
     if (!doc) return res.status(404).json({ error: 'Not found' });
     res.json({ toppersCopy: doc });
+    if (old && ['subject', 'syllabusSection', 'topic'].some((k) => k in patch && patch[k] !== old[k])) {
+      if (old.subject !== doc.subject) {
+        // PYQs placed here belong to the old subject; let them be re-placed there.
+        await ToppersPyq.updateMany({ tcTopic: doc._id }, { $set: { tcTopic: null, tcTopicSource: '', tcTopicReason: '', tcTaggedAt: null } }, { timestamps: false });
+        queueSubjectRetag(old.subject);
+      }
+      queueSubjectRetag(doc.subject);
+    }
   } catch (err) {
     console.error('updateToppersCopy error:', err);
     res.status(500).json({ error: err.message || 'Update failed' });
@@ -1510,7 +1613,10 @@ export const deleteToppersCopy = async (req, res) => {
   try {
     const doc = await ToppersCopy.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
+    // PYQs that were shown under it (even hand-placed ones) go back to the tagger.
+    await ToppersPyq.updateMany({ tcTopic: doc._id }, { $set: { tcTopic: null, tcTopicSource: '', tcTopicReason: '', tcTaggedAt: null } }, { timestamps: false });
     res.json({ message: `Deleted "${doc.topic}".` });
+    queueSubjectRetag(doc.subject, { onlyUntagged: true });
   } catch (err) {
     console.error('deleteToppersCopy error:', err);
     res.status(500).json({ error: 'Delete failed' });
@@ -1647,19 +1753,17 @@ export const getToppersCopy = async (req, res) => {
       sectionNorm: normalizeForDedup(doc.syllabusSection),
       sectionTok: topicTokens(doc.syllabusSection),
     };
-    const subjectPyqs = await ToppersPyq.find({ subject: doc.subject })
-      .sort({ year: -1, _id: 1 })
-      .lean();
+    // 1. PYQs placed under this topic (by the AI tagger or an admin) — authoritative.
+    // 2. PYQs not tagged yet (just imported, or no AI key) that match the topic by name.
+    // The old same-section fallback is gone: it handed every topic in a section the
+    // same 12 PYQs, which is exactly what made the panel look wrong.
+    const [placed, untagged] = await Promise.all([
+      ToppersPyq.find({ subject: doc.subject, tcTopic: doc._id }).sort({ year: -1, _id: 1 }).lean(),
+      ToppersPyq.find({ subject: doc.subject, tcTopicSource: { $in: ['', null] } }).sort({ year: -1, _id: 1 }).lean(),
+    ]);
     const viewerIsAdmin = await isAdminReq(req);
-    const scored = subjectPyqs
-      .map((q) => ({ q, tier: scorePyqForTopic(q, matchCtx) }))
-      .filter((s) => s.tier > 0);
-    const bestTier = scored.reduce((m, s) => Math.max(m, s.tier), 0);
-    // Any topic-level match (tier 2-3) → show all of them. Otherwise fall back to
-    // the same-section pile (tier 1), capped. Nothing at all → empty.
-    const keepFrom = bestTier >= 2 ? 2 : bestTier;
-    let topicPyqs = scored.filter((s) => s.tier >= keepFrom).map((s) => s.q);
-    if (bestTier <= 1) topicPyqs = topicPyqs.slice(0, PYQ_SECTION_FALLBACK_CAP);
+    const nameMatched = untagged.filter((q) => scorePyqForTopic(q, matchCtx) >= 2);
+    const topicPyqs = [...placed, ...nameMatched].sort((a, b) => (b.year - a.year) || String(a._id).localeCompare(String(b._id)));
 
     const enhancements = await enhancementsByAnswer(doc._id, { admin: viewerIsAdmin });
     const questions = (doc.questions || [])
@@ -1706,6 +1810,7 @@ export const getToppersCopy = async (req, res) => {
           section: q.section,
           topic: q.topic,
           microtheme: q.microtheme,
+          ...(viewerIsAdmin ? { tcTopicSource: q.tcTopicSource || '', tcTopicReason: q.tcTopicReason || '' } : {}),
           // students see the answer only once published; admins see drafts too
           pyqAnswer: answer && (answer.published || viewerIsAdmin) ? answer : null,
           pyqAnswerStatus: !answer ? 'none' : answer.published ? 'published' : 'draft',

@@ -66,10 +66,24 @@ const toppersPyqSchema = new mongoose.Schema({
   dedupeKey: { type: String, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   pyqAnswer: { type: pyqAnswerSchema, default: () => ({}) },
+
+  // Which Toppers Copy topic this PYQ is shown under ("Related PYQs"). The PYQ book's
+  // own headings rarely match our topic names, so utils/pyqTopicTagger.js asks the AI
+  // to place it whenever a PYQ is imported or edited; an admin can override it in
+  // Manage PYQs. tcTopicSource:
+  //   ''       not tagged yet — the topic page falls back to name matching
+  //   'ai'     placed by the AI (re-run when the PYQ or the subject's topics change)
+  //   'manual' set by an admin — the AI never touches it again
+  // tcTopic null with source 'ai'/'manual' = deliberately in no topic.
+  tcTopic: { type: mongoose.Schema.Types.ObjectId, ref: 'ToppersCopy', default: null },
+  tcTopicSource: { type: String, enum: ['', 'ai', 'manual'], default: '' },
+  tcTopicReason: { type: String, default: '' },
+  tcTaggedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 toppersPyqSchema.index({ subject: 1, section: 1, year: -1 });
 toppersPyqSchema.index({ subject: 1, topic: 1, year: -1 });
 toppersPyqSchema.index({ dedupeKey: 1 }, { unique: true });
+toppersPyqSchema.index({ subject: 1, tcTopic: 1, year: -1 });
 
 export default mongoose.model('ToppersPyq', toppersPyqSchema);
