@@ -10,14 +10,20 @@ import mongoose from 'mongoose';
 //   tc_pyq      -> ref.pyq                                      (a Related PYQ)
 //   qb_question -> ref.quizQuestion                             (a Question Bank MCQ)
 //   em_topic    -> ref.economyTopic                             (an Economy Master File topic)
+//   own         -> nothing                                      (a note the student wrote from
+//                                                                scratch; context.title is its name)
 // `refKey` is the canonical string form of the ref, built server-side (studyController), so
 // bookmark uniqueness and client-side "is this starred?" lookups are one string compare.
 //
 // `context` is a snapshot taken at save time (question text, topper, pages…) so the list still
 // reads sensibly if the source is later edited or re-imported with new _ids.
+//
+// `notebook` files the item into one of the student's named Notebooks (null = unfiled).
+// Deleting a NOTE only sets `deletedAt` ("Recently deleted"); the TTL index purges it 30 days
+// later. Bookmarks are still removed outright — un-starring is the undo for those.
 
-export const REF_TYPES = ['tc_question', 'tc_answer', 'tc_pyq', 'qb_question', 'em_topic'];
-export const SECTIONS = ['toppers_copy', 'question_bank', 'economy_master'];
+export const REF_TYPES = ['tc_question', 'tc_answer', 'tc_pyq', 'qb_question', 'em_topic', 'own'];
+export const SECTIONS = ['toppers_copy', 'question_bank', 'economy_master', 'own'];
 
 const userNoteSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -48,6 +54,9 @@ const userNoteSchema = new mongoose.Schema({
   quoteFrom: { type: String, default: '' },    // where it was selected, e.g. "AI analysis"
   body: { type: String, default: '' },         // the student's own words (notes only)
 
+  notebook: { type: mongoose.Schema.Types.ObjectId, ref: 'Notebook', default: null },
+  deletedAt: { type: Date, default: null },
+
   revisedCount: { type: Number, default: 0 },
   lastRevisedAt: { type: Date, default: null },
 }, { timestamps: true });
@@ -58,5 +67,8 @@ userNoteSchema.index(
 );
 userNoteSchema.index({ user: 1, 'context.section': 1, updatedAt: -1 });
 userNoteSchema.index({ user: 1, refType: 1, 'context.subject': 1 });
+userNoteSchema.index({ user: 1, notebook: 1, updatedAt: -1 });
+export const BIN_DAYS = 30;
+userNoteSchema.index({ deletedAt: 1 }, { expireAfterSeconds: BIN_DAYS * 86400 });
 
 export default mongoose.model('UserNote', userNoteSchema);
