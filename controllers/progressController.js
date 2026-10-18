@@ -25,6 +25,12 @@ export const requireAdmin = async (req, res) => {
   return user;
 };
 
+// Same check as requireAdmin, as a boolean — never writes the response.
+export const isAdminRequest = async (req) => {
+  const user = await User.findById(req.userId).select('email').lean().catch(() => null);
+  return !!user && isAdminEmail(user.email);
+};
+
 // Admin, or (course has Progress enabled AND user has it in purchasedCourses/interestedCourses).
 const hasCourseAccess = (user, course) => {
   if (isAdminEmail(user.email)) return true;

@@ -37,6 +37,13 @@ import {
   updateEnhancement,
   deleteEnhancement,
 } from '../controllers/toppersEnhancementController.js';
+import {
+  listBestParts,
+  createBestPart,
+  updateBestPart,
+  deleteBestPart,
+  streamBestPartImage,
+} from '../controllers/toppersBestPartController.js';
 
 // Ingestion PDFs can be large scans — write them to a temp dir on disk, not memory.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,6 +92,10 @@ router.delete('/admin/pyqs/:id/answer/images/:imageId', authenticateToken, delet
 router.patch('/admin/enhancements/:eid', authenticateToken, updateEnhancement);
 router.delete('/admin/enhancements/:eid', authenticateToken, deleteEnhancement);
 router.get('/admin/:id/enhancements', authenticateToken, listEnhancements);
+router.patch('/admin/best-parts/:bid', authenticateToken, updateBestPart);
+router.delete('/admin/best-parts/:bid', authenticateToken, deleteBestPart);
+router.get('/admin/:id/best-parts', authenticateToken, listBestParts);
+router.post('/admin/:id/best-parts', authenticateToken, uploadImage.single('image'), createBestPart);
 router.post('/admin/:id/questions/:qid/answers/:aidx/enhance', authenticateToken, enhanceAnswer);
 
 // -------- Admin: direct CRUD + analysis --------
@@ -98,6 +109,7 @@ router.get('/admin/:id/questions/:qid/export-pages', authenticateToken, exportQu
 router.get('/subjects', authenticateToken, listSubjects);
 router.get('/topics', authenticateToken, listTopics);
 router.get('/pyqs/:id/answer/image/:imageId', authenticateToken, streamToppersPyqAnswerImage);
+router.get('/best-parts/:bid/image', authenticateToken, streamBestPartImage);
 router.get('/:id', authenticateToken, getToppersCopy);
 router.get('/:id/pdf', authenticateToken, streamToppersCopyPdf);
 
