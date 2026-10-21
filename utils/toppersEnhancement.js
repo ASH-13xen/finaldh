@@ -11,7 +11,7 @@
 // "mistake / wrong / missed". Two kinds of note:
 //   • works — what the topper did well (incl. diagrams, spacing) + how to reuse it
 //   • addon — how to make the point stronger + examples / cases / data + a diagram idea
-// plus a Takeaways card (presentation, alternate intro / conclusion with keywords). Each note is anchored to a vertical span of a page
+// plus a Takeaways card (techniques, alternate intro / conclusion with keywords). Each note is anchored to a vertical span of a page
 // (fractions of page height) so the viewer can draw a bracket + arrow to it.
 //
 // Does NOT persist — the caller upserts the ToppersEnhancement doc.
@@ -142,7 +142,6 @@ Return ONE JSON object, no markdown fences, exactly:
   ],
   "takeaways": {
     "techniques": ["3-6 techniques from THIS copy a student should copy, each <= 12 words"],
-    "presentation": ["2-4 lines on spacing, headings, underlining, diagrams and page use in THIS copy and how to replicate them"],
     "enrichment": ["3-6 reports / cases / data / quotes that enrich this answer further"],
     "altIntro": { "text": "an alternate introduction, 40-70 words, in exam-ready language", "keywords": ["3-6 keywords / jargon used in it"] },
     "altConclusion": { "text": "an alternate conclusion, 30-60 words, forward-looking, in exam-ready language", "keywords": ["3-6 keywords / jargon used in it"] },
