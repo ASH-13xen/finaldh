@@ -239,7 +239,12 @@ export const listItems = async (req, res) => {
   try {
     const bin = req.query.bin === '1';
     const scope = { user: new mongoose.Types.ObjectId(req.userId), deletedAt: bin ? { $ne: null } : null };
-    if (isId(req.query.notebook)) scope.notebook = new mongoose.Types.ObjectId(req.query.notebook);
+    if (isId(req.query.notebook)) {
+      // A notebook's view also shows what's filed in its sub-topics.
+      const id = new mongoose.Types.ObjectId(req.query.notebook);
+      const subs = await Notebook.find({ user: scope.user, parent: id }).distinct('_id');
+      scope.notebook = subs.length ? { $in: [id, ...subs] } : id;
+    }
     const filter = { ...scope };
     if (['bookmark', 'note'].includes(req.query.kind)) filter.kind = req.query.kind;
     if (SECTIONS.includes(req.query.section)) filter['context.section'] = req.query.section;
@@ -408,14 +413,19 @@ export const emptyBin = async (req, res) => {
 
 const cleanName = (v) => clip(v, NOTEBOOK_NAME_MAX).replace(/\s+/g, ' ');
 
-// Case-insensitive "is this name taken?" (excluding the notebook being renamed).
-const nameTaken = (userId, name, exceptId = null) => Notebook.exists({
+// Case-insensitive "is this name taken?" among its siblings — other top-level notebooks, or
+// the other sub-topics of the same notebook (excluding the notebook being renamed).
+const nameTaken = (userId, name, parent = null, exceptId = null) => Notebook.exists({
   user: userId,
+  parent: parent || null,
   name: new RegExp(`^${escapeRegex(name)}$`, 'i'),
   ...(exceptId ? { _id: { $ne: exceptId } } : {}),
 });
+const takenMsg = (parent) => (parent ? 'This notebook already has a sub-topic with that name' : 'You already have a notebook with that name');
 
-// GET /api/study/notebooks -> { notebooks: [{ _id, name, count }], counts: { all, starred, bin }, binDays }
+// GET /api/study/notebooks -> { notebooks: [{ _id, name, parent, count }], counts: { all, starred, bin }, binDays }
+// `count` is what's filed directly in that notebook / sub-topic; the client adds a notebook's
+// sub-topics to its total.
 export const listNotebooks = async (req, res) => {
   try {
     const user = new mongoose.Types.ObjectId(req.userId);
@@ -430,7 +440,7 @@ export const listNotebooks = async (req, res) => {
     ]);
     const countOf = new Map(perNotebook.map((r) => [String(r._id), r.n]));
     res.json({
-      notebooks: notebooks.map((nb) => ({ _id: nb._id, name: nb.name, count: countOf.get(String(nb._id)) || 0 })),
+      notebooks: notebooks.map((nb) => ({ _id: nb._id, name: nb.name, parent: nb.parent || null, count: countOf.get(String(nb._id)) || 0 })),
       counts: { all: perNotebook.reduce((a, r) => a + r.n, 0), starred, bin },
       binDays: BIN_DAYS,
     });
@@ -439,17 +449,21 @@ export const listNotebooks = async (req, res) => {
   }
 };
 
-// POST /api/study/notebooks  { name }
+// POST /api/study/notebooks  { name, parentId? }  — with parentId it's a sub-topic of that notebook.
 export const createNotebook = async (req, res) => {
   try {
     const name = cleanName(req.body?.name);
-    if (!name) return res.status(400).json({ error: 'Give the notebook a name' });
-    if ((await Notebook.countDocuments({ user: req.userId })) >= NOTEBOOKS_MAX) {
-      return res.status(400).json({ error: `You can have up to ${NOTEBOOKS_MAX} notebooks` });
+    const parentId = req.body?.parentId || null;
+    if (!name) return res.status(400).json({ error: parentId ? 'Give the sub-topic a name' : 'Give the notebook a name' });
+    if (parentId && !(isId(parentId) && await Notebook.exists({ _id: parentId, user: req.userId, parent: null }))) {
+      return res.status(404).json({ error: 'Notebook not found' });
     }
-    if (await nameTaken(req.userId, name)) return res.status(409).json({ error: 'You already have a notebook with that name' });
-    const nb = await Notebook.create({ user: req.userId, name });
-    res.status(201).json({ notebook: { _id: nb._id, name: nb.name, count: 0 } });
+    if ((await Notebook.countDocuments({ user: req.userId })) >= NOTEBOOKS_MAX) {
+      return res.status(400).json({ error: `You can have up to ${NOTEBOOKS_MAX} notebooks and sub-topics` });
+    }
+    if (await nameTaken(req.userId, name, parentId)) return res.status(409).json({ error: takenMsg(parentId) });
+    const nb = await Notebook.create({ user: req.userId, name, parent: parentId });
+    res.status(201).json({ notebook: { _id: nb._id, name: nb.name, parent: nb.parent || null, count: 0 } });
   } catch (err) {
     sendError(res, err, 'Failed to create notebook');
   }
@@ -460,23 +474,32 @@ export const renameNotebook = async (req, res) => {
   try {
     if (!isId(req.params.id)) return res.status(404).json({ error: 'Notebook not found' });
     const name = cleanName(req.body?.name);
-    if (!name) return res.status(400).json({ error: 'Give the notebook a name' });
-    if (await nameTaken(req.userId, name, req.params.id)) return res.status(409).json({ error: 'You already have a notebook with that name' });
+    if (!name) return res.status(400).json({ error: 'Give it a name' });
+    const cur = await Notebook.findOne({ _id: req.params.id, user: req.userId }, { parent: 1 }).lean();
+    if (!cur) return res.status(404).json({ error: 'Notebook not found' });
+    if (await nameTaken(req.userId, name, cur.parent, req.params.id)) return res.status(409).json({ error: takenMsg(cur.parent) });
     const nb = await Notebook.findOneAndUpdate({ _id: req.params.id, user: req.userId }, { $set: { name } }, { returnDocument: 'after' });
     if (!nb) return res.status(404).json({ error: 'Notebook not found' });
-    res.json({ notebook: { _id: nb._id, name: nb.name } });
+    res.json({ notebook: { _id: nb._id, name: nb.name, parent: nb.parent || null } });
   } catch (err) {
     sendError(res, err, 'Failed to rename notebook');
   }
 };
 
-// DELETE /api/study/notebooks/:id — the notebook goes; its items stay, unfiled.
+// DELETE /api/study/notebooks/:id — the notebook goes along with its sub-topics; their items
+// stay, unfiled. Deleting a sub-topic moves its items up into the parent notebook.
 export const deleteNotebook = async (req, res) => {
   try {
     if (!isId(req.params.id)) return res.status(404).json({ error: 'Notebook not found' });
     const gone = await Notebook.findOneAndDelete({ _id: req.params.id, user: req.userId });
     if (!gone) return res.status(404).json({ error: 'Notebook not found' });
-    await UserNote.updateMany({ user: req.userId, notebook: gone._id }, { $set: { notebook: null } }, { timestamps: false });
+    if (gone.parent) {
+      await UserNote.updateMany({ user: req.userId, notebook: gone._id }, { $set: { notebook: gone.parent } }, { timestamps: false });
+    } else {
+      const subs = await Notebook.find({ user: req.userId, parent: gone._id }).distinct('_id');
+      await Notebook.deleteMany({ user: req.userId, parent: gone._id });
+      await UserNote.updateMany({ user: req.userId, notebook: { $in: [gone._id, ...subs] } }, { $set: { notebook: null } }, { timestamps: false });
+    }
     res.json({ ok: true });
   } catch (err) {
     sendError(res, err, 'Failed to delete notebook');
