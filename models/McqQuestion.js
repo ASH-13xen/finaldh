@@ -11,6 +11,17 @@ const optionSchema = new mongoose.Schema({
   text: { type: String, required: true }
 }, { _id: false });
 
+// Audit trail for answer-key changes (made by an admin directly or by accepting a student's report).
+const answerChangeSchema = new mongoose.Schema({
+  changedAt: { type: Date, default: Date.now },
+  changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  fromOption: { type: String, enum: ['A', 'B', 'C', 'D'] },
+  toOption: { type: String, enum: ['A', 'B', 'C', 'D'] },
+  explanationChanged: { type: Boolean, default: false },
+  report: { type: mongoose.Schema.Types.ObjectId, ref: 'McqReport' },
+  note: { type: String, default: '' }
+}, { _id: false });
+
 const mcqQuestionSchema = new mongoose.Schema({
   test: { type: mongoose.Schema.Types.ObjectId, ref: 'McqTest', required: true },
   order: { type: Number, required: true },
@@ -23,7 +34,12 @@ const mcqQuestionSchema = new mongoose.Schema({
   tags: { type: [tagSchema], default: [] },
   rawTags: { type: [String], default: [] },
   examSource: { type: String, default: '' }, // real exam/year this question is attributed to, e.g. "UPSC IES 2023"
-  questionType: { type: String, enum: ['conceptual', 'factual'], default: 'conceptual' }
+  questionType: { type: String, enum: ['conceptual', 'factual'], default: 'conceptual' },
+
+  // false = retired: no longer used in new attempts, but kept because past attempts, flags and reports
+  // still point at it. (Hard-deleting a question that has attempts would orphan all of them.)
+  isActive: { type: Boolean, default: true },
+  answerHistory: { type: [answerChangeSchema], default: [] }
 }, { timestamps: true });
 
 mcqQuestionSchema.index({ test: 1, order: 1 });

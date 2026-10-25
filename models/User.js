@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { peopleConn } from '../config/peopleDb.js';
 
 const userSchema = new mongoose.Schema({
   googleId: { type: String, required: true, unique: true },
@@ -23,4 +24,4 @@ const userSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
-export default mongoose.model('User', userSchema);
+export default peopleConn.model('User', userSchema);
