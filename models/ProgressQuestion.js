@@ -6,7 +6,7 @@ const progressQuestionSchema = new mongoose.Schema({
   fileIndex: { type: Number, required: true, default: 0 },
   questionText: { type: String, required: true, trim: true },
   tag: { type: String, default: '', trim: true }, // raw literal, may contain semicolon-separated values
-  pageNumber: { type: Number, required: true }, // plain reference, never used to render anything
+  pageNumber: { type: Number, default: null }, // plain reference, never used to render anything; optional for content-index style checklists with no page numbers
   order: { type: Number, required: true }
 }, { timestamps: true });
 
