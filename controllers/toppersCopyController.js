@@ -34,7 +34,7 @@
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import { PDFDocument } from 'pdf-lib';
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '../config/r2.js';
 import ToppersCopy from '../models/ToppersCopy.js';
 import ToppersPyq from '../models/ToppersPyq.js';
@@ -46,6 +46,11 @@ import {
   getActiveModelLabel,
   isQuotaError,
 } from '../utils/aiProvider.js';
+import { makeChunkPdfBase64 } from '../utils/pdfChunk.js';
+import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis.js';
+import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
+import { formatPyqAnswerText } from '../utils/pyqAnswerFormat.js';
+import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
 
 // ---------------------------------------------------------------------------
 // Tuning
@@ -63,16 +68,8 @@ const PYQ_MAX_YEAR = new Date().getFullYear();
 // Small helpers
 // ---------------------------------------------------------------------------
 
-// Build a base64 PDF containing only pages [startIdx0, endIdx0] (0-based, inclusive).
-const makeChunkPdfBase64 = async (srcDoc, startIdx0, endIdx0) => {
-  const chunk = await PDFDocument.create();
-  const indices = [];
-  for (let p = startIdx0; p <= endIdx0; p++) indices.push(p);
-  const pages = await chunk.copyPages(srcDoc, indices);
-  pages.forEach((pg) => chunk.addPage(pg));
-  const bytes = await chunk.save();
-  return Buffer.from(bytes).toString('base64');
-};
+// makeChunkPdfBase64 (pages [startIdx0, endIdx0] of an already-loaded pdf-lib
+// doc -> base64) now lives in utils/pdfChunk.js — shared with the AI analysis.
 
 const uploadPdfToR2 = async (localPath, key) => {
   const body = await fs.readFile(localPath);
@@ -92,6 +89,55 @@ const safeUnlink = (p) => (p ? fs.unlink(p).catch(() => {}) : Promise.resolve())
 const escapeRegex = (s) => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const normalizeForDedup = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+// Quote/punctuation-insensitive question match for duplicate detection — the
+// exact-hash dedupeKey below misses e.g. "'" vs "’" or an extra space before
+// "?", which is exactly what let a hand-extracted JSON ingest create duplicate
+// ToppersPyq rows for questions already committed via the PDF pipeline.
+const fuzzyQuestionNorm = (s) => normalizeForDedup(s).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+// --- PYQ ↔ ToppersCopy topic matching --------------------------------------
+// Headings in the two PDFs are worded differently ("Indian Foreign Policy" vs
+// "India's Foreign Policy"), so we compare significant-word SETS, not raw
+// substrings (the old code matched any topic that was a substring of another —
+// far too loose, which is why unrelated PYQs showed up under a topic).
+const PYQ_STOPWORDS = new Set([
+  'and', 'the', 'of', 'in', 'on', 'to', 'a', 'an', 'for', 'with', 'its', 'by',
+  'from', 'at', 'as', 'or', 'section', 'specific', 'general', 'studies', 'paper',
+  'part', 'misc', 'miscellaneous', 'topic', 'unit', 'chapter', 'others', 'other',
+]);
+const topicTokens = (s) => new Set(
+  normalizeForDedup(s)
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !PYQ_STOPWORDS.has(w)),
+);
+// fraction of the smaller token set that the two share (0..1)
+const tokenOverlap = (a, b) => {
+  if (!a.size || !b.size) return 0;
+  let shared = 0;
+  for (const w of a) if (b.has(w)) shared += 1;
+  return shared / Math.min(a.size, b.size);
+};
+
+// Score one PYQ against the open topic. Higher tier = more precise.
+//   3 exact topic  ·  2 strong topic/microtheme word overlap  ·  1 same-ish section  ·  0 no match
+const scorePyqForTopic = (pyq, { topicNorm, topicTok, sectionNorm, sectionTok }) => {
+  const pTopicNorm = normalizeForDedup(pyq.topic);
+  if (topicNorm && pTopicNorm && pTopicNorm === topicNorm) return 3;
+  if (topicTok.size) {
+    if (tokenOverlap(topicTok, topicTokens(pyq.topic)) >= 0.6) return 2;
+    if (pyq.microtheme && tokenOverlap(topicTok, topicTokens(pyq.microtheme)) >= 0.6) return 2;
+  }
+  if (sectionNorm && normalizeForDedup(pyq.section) === sectionNorm) return 1;
+  // Section labels come from different ingests with different granularity — a
+  // ToppersCopy "History" compendium and a PYQ book's own "Modern History" /
+  // "World History" section are the same syllabus area but never hash equal.
+  // A shared significant word (not just an exact match) still counts as tier 1.
+  if (sectionTok?.size && tokenOverlap(sectionTok, topicTokens(pyq.section)) >= 0.5) return 1;
+  return 0;
+};
+const PYQ_SECTION_FALLBACK_CAP = 12;
 
 // Short stable key for the ToppersPyq unique index (questionText itself can be
 // longer than Mongo's 1024-byte index-key limit).
@@ -528,6 +574,12 @@ export const startPyqJob = async (req, res) => {
   }
 
   try {
+    // Optional overrides for a single-subject book that never prints "GS-1" on
+    // any page (e.g. a "GS 1 Model Answers" compilation). When set they seed the
+    // running heading and win unless a page clearly says otherwise.
+    const defaultSubject = String(req.body.defaultSubject || '').trim();
+    const defaultSection = String(req.body.defaultSection || '').trim();
+
     const job = await ToppersCopyJob.create({
       kind: 'pyq',
       createdBy: admin._id,
@@ -535,6 +587,8 @@ export const startPyqJob = async (req, res) => {
       aiModelLabel: getActiveModelLabel(),
       originalFileName: file.originalname,
       sourceFilePath: file.path,
+      subject: defaultSubject,
+      syllabusSection: defaultSection,
     });
 
     processPyqJob(job._id.toString()).catch((err) =>
@@ -574,7 +628,9 @@ export const processPyqJob = async (jobId) => {
     // an earlier chunk. We thread the "heading in effect" through every chunk and
     // fill blanks as questions stream in, so a topic set once sticks to every
     // question below it until the next heading replaces it.
-    const carry = { subject: '', section: '', topic: '' };
+    const carry = { subject: job.subject || '', section: job.syllabusSection || '', topic: '' };
+    // A forced subject stays put even if a chunk misreads the heading.
+    const forcedSubject = job.subject || '';
 
     for (let start = 1; start <= totalPages; start += PYQ_CHUNK_SIZE) {
       const end = Math.min(start + PYQ_CHUNK_SIZE - 1, totalPages);
@@ -590,7 +646,7 @@ You are reading pages ${effStart} to ${end} of a compiled UPSC Mains "Previous Y
 
 IMPORTANT — headings run DOWN the page. A subject / section / topic heading applies to EVERY question printed below it until the next heading of the same level appears. The heading is usually NOT repeated above each question, and it is often on an earlier page. For questions that appear before the first heading in this chunk, use the headings already in effect (given below).
 
-Headings in effect at the start of this chunk (carried from earlier pages):
+${forcedSubject ? `This entire book is subject "${forcedSubject}". Use "${forcedSubject}" as the "subject" for EVERY question unless a page unmistakably names a different one.\n` : ''}Headings in effect at the start of this chunk (carried from earlier pages):
 - subject: ${carry.subject ? `"${carry.subject}"` : '(unknown — read it from the page)'}
 - section: ${carry.section ? `"${carry.section}"` : '(unknown — read it from the page)'}
 - topic: ${carry.topic ? `"${carry.topic}"` : '(unknown — read it from the page)'}
@@ -600,7 +656,7 @@ Extract EVERY distinct question in this chunk, individually, IN THE ORDER THEY A
 2. "section": the broad section heading in effect for this question (e.g. "Society", "Polity", "Post Independence").
 3. "topic": the topic heading in effect for this question (e.g. "Effects of Globalisation on Indian Society", "Federalism", "Modern Indian History"). This is the heading between the section and the individual question. Carry it forward — do not leave it blank just because it is not reprinted next to the question.
 4. "microtheme": the fine tag for the question if one is shown, else "".
-5. "questionText": the full question text, with any leading numbering removed.
+5. "questionText": the question copied VERBATIM and IN FULL — every sentence, and any embedded quotation in full, ending at its final punctuation. Only strip a leading serial number / bullet and the trailing "(marks)". Never paraphrase, summarise, or cut it short.
 6. "year": the 4-digit exam year printed for the question. If none is identifiable, OMIT that question entirely — do not guess.
 7. "marks": the marks as an integer if shown (e.g. 10, 15), else null. (Treat "12.5" as 12 — round down.)
 
@@ -612,13 +668,16 @@ Return [] if this chunk has no questions.
 `.trim();
 
       try {
-        const parsed = await runJsonExtraction({ prompt, pdfBase64 });
+        // Generous output cap — a 40-page chunk can hold many questions; the
+        // default Gemini cap can truncate the JSON array (and the last question
+        // with it).
+        const parsed = await runJsonExtraction({ prompt, pdfBase64, maxOutputTokens: 32000 });
         const list = Array.isArray(parsed) ? parsed : [];
         for (const q of list) {
           // Resolve this question's headings against what's carried, then advance
           // the carry. A new subject clears the section+topic below it; a new
           // section clears the topic below it.
-          const rawSubject = String(q.subject || '').trim();
+          const rawSubject = forcedSubject || String(q.subject || '').trim();
           const rawSection = String(q.section || '').trim();
           const rawTopic = String(q.topic || '').trim();
           if (rawSubject && normalizeForDedup(rawSubject) !== normalizeForDedup(carry.subject)) {
@@ -706,7 +765,12 @@ Return [] if this chunk has no questions.
 
 // POST /admin/pyq/:jobId/commit
 // Body: { sourceLabel?, pyqs?: [ ...reviewed rows... ] }
-// Additive insert into ToppersPyq; duplicates (same subject+year+text) are skipped.
+// Additive insert into ToppersPyq. A row that fuzzy-matches an existing question
+// (quote/spacing-insensitive — see fuzzyQuestionNorm) is MERGED onto it instead
+// of creating a duplicate: blank section/topic/marks get filled in, and a
+// carried answerText (from a JSON-source ingest) is attached unless the
+// existing answer is already published, in which case it's left untouched and
+// reported back as a conflict for manual review.
 export const commitPyqJob = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -715,21 +779,86 @@ export const commitPyqJob = async (req, res) => {
     const job = await ToppersCopyJob.findById(req.params.jobId);
     if (!job || job.kind !== 'pyq') return res.status(404).json({ error: 'Job not found' });
 
-    const { sourceLabel = '', pyqs } = req.body;
+    const { sourceLabel = '', pyqs, publish = false } = req.body;
     const rows = Array.isArray(pyqs) ? pyqs : job.extractedPyqs;
+    // Rows with no subject inherit the job's forced subject (or an explicit
+    // override sent with the commit) rather than being silently dropped.
+    const fallbackSubject = String(req.body.defaultSubject || job.subject || '').trim();
 
-    const docs = [];
+    const valid = [];
     const skipped = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const questionText = String(r.questionText || '').trim();
       const year = Number(r.year);
-      const subject = String(r.subject || '').trim();
+      const subject = String(r.subject || '').trim() || fallbackSubject;
       if (!questionText || !subject || !Number.isFinite(year) || year < PYQ_MIN_YEAR || year > PYQ_MAX_YEAR) {
         skipped.push({ row: i + 1, reason: 'missing subject / question / valid year' });
         continue;
       }
-      docs.push({
+      valid.push({ i, subject, year, questionText, r });
+    }
+
+    // Pre-fetch every existing PYQ for the subjects in this batch once, instead
+    // of one query per row, and match fuzzily in memory.
+    const subjectsInBatch = [...new Set(valid.map((v) => v.subject))];
+    const existingDocs = subjectsInBatch.length
+      ? await ToppersPyq.find({ subject: { $in: subjectsInBatch } }).lean()
+      : [];
+    const existingByKey = new Map(
+      existingDocs.map((d) => [`${d.subject}::${d.year}::${fuzzyQuestionNorm(d.questionText)}`, d])
+    );
+
+    const toInsert = [];
+    const conflicts = [];
+    const formatPending = []; // doc ids that just got a fresh rawText and need the cheap reformat pass
+    let mergedCount = 0;
+
+    for (const { i, subject, year, questionText, r } of valid) {
+      const key = `${subject}::${year}::${fuzzyQuestionNorm(questionText)}`;
+      const existing = existingByKey.get(key);
+      const incomingAnswerText = String(r.answerText || '').trim();
+
+      if (existing) {
+        const patch = {};
+        if (!existing.section && r.section) patch.section = String(r.section).trim();
+        if (!existing.topic && r.topic) patch.topic = String(r.topic).trim();
+        if (!existing.microtheme && r.microtheme) patch.microtheme = String(r.microtheme).trim();
+        if (existing.marks == null && Number.isFinite(Number(r.marks))) patch.marks = Number(r.marks);
+
+        if (incomingAnswerText) {
+          if (!existing.pyqAnswer?.generatedAt || !existing.pyqAnswer.published) {
+            patch.pyqAnswer = {
+              source: 'pdf',
+              rawText: incomingAnswerText,
+              pendingDiagramPages: Array.isArray(r.diagramPages) ? r.diagramPages : [],
+              images: existing.pyqAnswer?.images || [],
+              diagram: existing.pyqAnswer?.diagram || {},
+              aiModel: '',
+              generatedAt: new Date(),
+              editedAt: null,
+              published: !!publish,
+            };
+          } else {
+            conflicts.push({
+              id: existing._id.toString(),
+              questionText: existing.questionText,
+              reason: 'Existing answer is published — the new answer from this ingest was not applied. Review manually in Manage PYQs.',
+            });
+          }
+        }
+
+        if (Object.keys(patch).length) {
+          await ToppersPyq.updateOne({ _id: existing._id }, { $set: patch });
+          mergedCount += 1;
+          if (patch.pyqAnswer) formatPending.push(existing._id.toString());
+        } else {
+          skipped.push({ row: i + 1, reason: 'duplicate of an existing PYQ, nothing new to merge' });
+        }
+        continue;
+      }
+
+      toInsert.push({
         subject,
         section: String(r.section || '').trim(),
         topic: String(r.topic || '').trim(),
@@ -740,27 +869,94 @@ export const commitPyqJob = async (req, res) => {
         sourceLabel,
         dedupeKey: pyqDedupeKey(subject, year, questionText),
         createdBy: admin._id,
+        ...(incomingAnswerText ? {
+          pyqAnswer: {
+            source: 'pdf',
+            rawText: incomingAnswerText,
+            pendingDiagramPages: Array.isArray(r.diagramPages) ? r.diagramPages : [],
+            aiModel: '',
+            generatedAt: new Date(),
+            editedAt: null,
+            published: !!publish,
+          },
+        } : {}),
       });
     }
 
-    // insertMany with ordered:false so unique-index collisions (dupes) are skipped,
-    // not fatal. The thrown BulkWriteError still carries the successful count.
+    // insertMany with ordered:false so a rare remaining exact-hash collision
+    // (two rows in this same batch normalizing identically) is skipped, not fatal.
+    const withAnswerKeys = new Set(toInsert.filter((d) => d.pyqAnswer).map((d) => d.dedupeKey));
     let insertedCount = 0;
-    if (docs.length) {
+    if (toInsert.length) {
       try {
-        const inserted = await ToppersPyq.insertMany(docs, { ordered: false });
+        const inserted = await ToppersPyq.insertMany(toInsert, { ordered: false });
         insertedCount = inserted.length;
+        for (const doc of inserted) if (withAnswerKeys.has(doc.dedupeKey)) formatPending.push(doc._id.toString());
       } catch (bulkErr) {
         insertedCount = bulkErr.result?.insertedCount ?? bulkErr.insertedDocs?.length ?? 0;
+        for (const doc of bulkErr.insertedDocs || []) if (withAnswerKeys.has(doc.dedupeKey)) formatPending.push(doc._id.toString());
         const dupes = (bulkErr.writeErrors || []).filter((e) => e.code === 11000).length;
         if (dupes) skipped.push({ row: '-', reason: `${dupes} duplicate(s) already in DB` });
       }
     }
 
-    res.json({ message: `Inserted ${insertedCount} PYQ(s).`, insertedCount, skipped });
+    res.json({
+      message: `Inserted ${insertedCount}, merged ${mergedCount} PYQ(s).${conflicts.length ? ` ${conflicts.length} conflict(s) need manual review.` : ''}`,
+      insertedCount,
+      mergedCount,
+      formatPending,
+      skipped,
+      conflicts,
+    });
   } catch (err) {
     console.error('commitPyqJob error:', err);
     res.status(500).json({ error: err.message || 'Failed to commit PYQs' });
+  }
+};
+
+// POST /admin/pyq/start-json
+// Body (multipart): json=<file>, defaultSubject?, sourceLabel?
+// Synchronous counterpart to startPyqJob for a source book that already prints
+// a model answer per question (see utils/pyqJsonImport.js for the input shape
+// and cleanup). No AI call — completes immediately, but still lands as a
+// normal 'pyq' job so it flows through the SAME review table and commit
+// endpoint as a PDF ingest.
+export const startPyqJsonJob = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'A JSON file is required' });
+
+  try {
+    const defaultSubject = String(req.body.defaultSubject || '').trim();
+    const raw = JSON.parse(await fs.readFile(file.path, 'utf8'));
+    const { rows, diagramReport, mergedFragments } = cleanPyqJsonRows(raw, { defaultSubject });
+
+    const job = await ToppersCopyJob.create({
+      kind: 'pyq',
+      createdBy: admin._id,
+      status: 'done',
+      aiModelLabel: 'none (JSON import)',
+      originalFileName: file.originalname,
+      subject: defaultSubject,
+      totalPages: 0,
+      totalChunks: 0,
+      chunksCompleted: 0,
+      extractedPyqs: rows,
+    });
+
+    await safeUnlink(file.path);
+    res.status(202).json({
+      jobId: job._id,
+      status: 'done',
+      mergedFragments,
+      diagramReport,
+    });
+  } catch (err) {
+    await safeUnlink(file.path);
+    console.error('startPyqJsonJob error:', err);
+    res.status(400).json({ error: err.message || 'Failed to parse the JSON file' });
   }
 };
 
@@ -768,29 +964,42 @@ export const commitPyqJob = async (req, res) => {
 // ADMIN — committed PYQ browse / edit / delete (ToppersPyq collection)
 // ===========================================================================
 
+// Shared by listToppersPyqs and bulkDeleteToppersPyqs so "select all matching
+// the current filter" deletes exactly what the admin sees on screen.
+const buildPyqFilter = ({ subject = '', year = '', q = '' } = {}) => {
+  const filter = {};
+  if (subject) filter.subject = subject;
+  if (year && Number.isFinite(Number(year))) filter.year = Number(year);
+  if (String(q).trim()) {
+    const rx = { $regex: escapeRegex(String(q).trim()), $options: 'i' };
+    filter.$or = [{ questionText: rx }, { topic: rx }, { section: rx }, { microtheme: rx }, { sourceLabel: rx }];
+  }
+  return filter;
+};
+
 // GET /admin/pyqs?subject=&year=&q=&limit=&skip=
 export const listToppersPyqs = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
 
   try {
-    const { subject = '', year = '', q = '' } = req.query;
-    const limit = Math.min(300, Math.max(1, Number(req.query.limit) || 100));
+    const limit = Math.min(2000, Math.max(1, Number(req.query.limit) || 100));
     const skip = Math.max(0, Number(req.query.skip) || 0);
+    const filter = buildPyqFilter(req.query);
 
-    const filter = {};
-    if (subject) filter.subject = subject;
-    if (year && Number.isFinite(Number(year))) filter.year = Number(year);
-    if (q.trim()) {
-      const rx = { $regex: escapeRegex(q.trim()), $options: 'i' };
-      filter.$or = [{ questionText: rx }, { topic: rx }, { section: rx }, { microtheme: rx }, { sourceLabel: rx }];
-    }
-
-    const [pyqs, total, subjects] = await Promise.all([
+    const [rawPyqs, total, subjects] = await Promise.all([
       ToppersPyq.find(filter).sort({ subject: 1, year: -1, createdAt: -1 }).skip(skip).limit(limit).lean(),
       ToppersPyq.countDocuments(filter),
       ToppersPyq.distinct('subject'),
     ]);
+
+    // Replace the heavy pyqAnswer subdoc with a lightweight status + the answer
+    // itself (image R2 keys stripped) so the admin table can show/edit it.
+    const pyqs = rawPyqs.map(({ pyqAnswer, ...rest }) => ({
+      ...rest,
+      pyqAnswer: publicPyqAnswer(pyqAnswer, { admin: true }),
+      pyqAnswerStatus: !pyqAnswer?.generatedAt ? 'none' : pyqAnswer.published ? 'published' : 'draft',
+    }));
 
     res.json({ pyqs, total, returned: pyqs.length, skip, limit, subjects: subjects.filter(Boolean).sort() });
   } catch (err) {
@@ -851,6 +1060,284 @@ export const deleteToppersPyq = async (req, res) => {
   } catch (err) {
     console.error('deleteToppersPyq error:', err);
     res.status(500).json({ error: 'Delete failed' });
+  }
+};
+
+// POST /admin/pyqs/bulk-delete
+// Body EITHER { ids: [...] } for an explicit selection, OR { filter: {subject,
+// year, q}, allMatching: true } to delete every row matching the current
+// Manage-PYQs filter (not just the loaded page) — the "select all" the admin
+// screen couldn't do before. Exactly one of the two must be given.
+export const bulkDeleteToppersPyqs = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const { ids, filter, allMatching } = req.body || {};
+    let query;
+    if (Array.isArray(ids) && ids.length) {
+      query = { _id: { $in: ids } };
+    } else if (allMatching) {
+      query = buildPyqFilter(filter || {});
+    } else {
+      return res.status(400).json({ error: 'Provide either ids: [...] or { filter, allMatching: true }' });
+    }
+
+    const { deletedCount } = await ToppersPyq.deleteMany(query);
+    res.json({ message: `Deleted ${deletedCount} PYQ(s).`, deletedCount });
+  } catch (err) {
+    console.error('bulkDeleteToppersPyqs error:', err);
+    res.status(500).json({ error: 'Bulk delete failed' });
+  }
+};
+
+// ===========================================================================
+// ADMIN — per-PYQ house-style model answer (AI-generated, then edited/published)
+// ===========================================================================
+
+// Strip R2 keys out of the images array before sending it to a client; the
+// frontend addresses each image by its _id via the stream endpoint.
+const publicPyqAnswer = (pa, { admin = false } = {}) => {
+  if (!pa || !pa.generatedAt) return null;
+  return {
+    source: pa.source || 'ai',
+    rawText: pa.rawText || '',
+    openingLine: pa.openingLine || '',
+    sections: pa.sections || [],
+    closingLine: pa.closingLine || '',
+    quote: pa.quote || '',
+    diagram: pa.diagram || null,
+    images: (pa.images || []).map((im) => ({ id: String(im._id), caption: im.caption || '' })),
+    aiModel: pa.aiModel || '',
+    generatedAt: pa.generatedAt,
+    editedAt: pa.editedAt || null,
+    published: !!pa.published,
+    // admin-only worklist item, not shown to students
+    ...(admin ? { pendingDiagramPages: pa.pendingDiagramPages || [] } : {}),
+  };
+};
+
+// POST /admin/pyqs/:id/answer  — generate (or regenerate) the model answer.
+// Keeps any images already attached; resets `published` to false.
+export const generateToppersPyqAnswer = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    assertAiConfigured();
+    const doc = await ToppersPyq.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (doc.pyqAnswer?.source === 'pdf' && !req.body?.force) {
+      return res.status(409).json({
+        error: 'This answer was lifted verbatim from the source book, not AI-written. Generating one would replace it with an AI guess. Pass { force: true } to confirm.',
+      });
+    }
+
+    const keepImages = doc.pyqAnswer?.images || [];
+    const generated = await generatePyqAnswer(doc);
+    doc.pyqAnswer = { ...generated, source: 'ai', images: keepImages, published: false, editedAt: null };
+    await doc.save();
+
+    res.json({ pyqAnswer: publicPyqAnswer(doc.pyqAnswer, { admin: true }), full: doc.pyqAnswer });
+  } catch (err) {
+    if (err.code === 'NO_QUESTION') return res.status(400).json({ error: err.message });
+    if (isQuotaError(err)) return res.status(429).json({ error: 'AI rate limit — try again shortly.' });
+    console.error('generateToppersPyqAnswer error:', err);
+    res.status(500).json({ error: err.message || 'Generation failed' });
+  }
+};
+
+// POST /admin/pyqs/:id/answer/format  — reshape an existing verbatim book
+// answer's rawText into { openingLine, sections, closingLine, quote } for
+// display, WITHOUT changing the underlying text (utils/pyqAnswerFormat.js).
+// Called automatically (client-side loop) right after a JSON/PDF commit that
+// attached new answerText, and available as a manual "Reformat" button for
+// re-runs. Skips (409) if already formatted unless { force: true }.
+export const formatToppersPyqAnswerText = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    assertAiConfigured();
+    const doc = await ToppersPyq.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!doc.pyqAnswer?.rawText) {
+      return res.status(400).json({ error: 'This answer has no source text to format.' });
+    }
+    if (doc.pyqAnswer.sections?.length && !req.body?.force) {
+      return res.status(409).json({ error: 'Already formatted. Pass { force: true } to re-run.' });
+    }
+
+    const formatted = await formatPyqAnswerText(doc.pyqAnswer.rawText);
+    // Atomic $set, not load-then-.save() — this can run minutes after the doc
+    // was fetched (client-side format loops sequence many of these), and an
+    // admin actively editing the same row concurrently would otherwise throw a
+    // VersionError on save.
+    const updated = await ToppersPyq.findByIdAndUpdate(
+      doc._id,
+      {
+        $set: {
+          'pyqAnswer.openingLine': formatted.openingLine,
+          'pyqAnswer.sections': formatted.sections,
+          'pyqAnswer.closingLine': formatted.closingLine,
+          'pyqAnswer.quote': formatted.quote,
+        },
+      },
+      { new: true },
+    );
+
+    res.json({ pyqAnswer: publicPyqAnswer(updated.pyqAnswer, { admin: true }) });
+  } catch (err) {
+    if (err.code === 'NO_TEXT') return res.status(400).json({ error: err.message });
+    if (isQuotaError(err)) return res.status(429).json({ error: 'AI rate limit — try again shortly.' });
+    console.error('formatToppersPyqAnswerText error:', err);
+    res.status(500).json({ error: err.message || 'Formatting failed' });
+  }
+};
+
+// PATCH /admin/pyqs/:id/answer  — save admin edits. Body may carry any of:
+// openingLine, sections, closingLine, quote, diagram, imageCaptions {id:caption},
+// published.
+export const updateToppersPyqAnswer = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const doc = await ToppersPyq.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!doc.pyqAnswer?.generatedAt) {
+      return res.status(400).json({ error: 'Generate the answer first, then edit it.' });
+    }
+    const pa = doc.pyqAnswer;
+    const b = req.body || {};
+
+    if (typeof b.rawText === 'string') pa.rawText = b.rawText.trim();
+    if (Number.isFinite(Number(b.resolveDiagramPage))) {
+      const page = Number(b.resolveDiagramPage);
+      pa.pendingDiagramPages = (pa.pendingDiagramPages || []).filter((p) => p !== page);
+    }
+    if (typeof b.openingLine === 'string') pa.openingLine = b.openingLine.trim();
+    if (typeof b.closingLine === 'string') pa.closingLine = b.closingLine.trim();
+    if (typeof b.quote === 'string') pa.quote = b.quote.trim();
+    if (Array.isArray(b.sections)) {
+      pa.sections = b.sections
+        .map((s) => ({
+          heading: String(s.heading || '').trim(),
+          points: (Array.isArray(s.points) ? s.points : [])
+            .map((p) => ({ claim: String(p.claim || '').trim(), example: String(p.example || '').trim() }))
+            .filter((p) => p.claim),
+        }))
+        .filter((s) => s.heading && s.points.length);
+    }
+    if (b.diagram && typeof b.diagram === 'object') pa.diagram = shapeDiagram(b.diagram);
+    if (b.clearDiagram) pa.diagram = shapeDiagram({});
+    if (b.imageCaptions && typeof b.imageCaptions === 'object') {
+      pa.images.forEach((im) => {
+        const c = b.imageCaptions[String(im._id)];
+        if (typeof c === 'string') im.caption = c.trim();
+      });
+    }
+    if (typeof b.published === 'boolean') pa.published = b.published;
+    pa.editedAt = new Date();
+
+    await doc.save();
+    res.json({ pyqAnswer: publicPyqAnswer(doc.pyqAnswer, { admin: true }), full: doc.pyqAnswer });
+  } catch (err) {
+    console.error('updateToppersPyqAnswer error:', err);
+    res.status(500).json({ error: err.message || 'Update failed' });
+  }
+};
+
+// POST /admin/pyqs/:id/answer/images   (multipart: image)
+export const uploadToppersPyqAnswerImage = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'An image file is required' });
+
+  try {
+    const doc = await ToppersPyq.findById(req.params.id);
+    if (!doc) { await safeUnlink(file.path); return res.status(404).json({ error: 'Not found' }); }
+    if (!doc.pyqAnswer?.generatedAt) {
+      await safeUnlink(file.path);
+      return res.status(400).json({ error: 'Generate the answer first, then add images.' });
+    }
+    if ((doc.pyqAnswer.images || []).length >= 6) {
+      await safeUnlink(file.path);
+      return res.status(400).json({ error: 'Up to 6 images per answer.' });
+    }
+
+    const ext = (file.originalname.match(/\.(png|jpe?g|webp|gif)$/i) || ['', 'png'])[1].toLowerCase();
+    const key = `pyq-answer-images/${doc._id}/${crypto.randomUUID()}.${ext}`;
+    const body = await fs.readFile(file.path);
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: body,
+      ContentType: file.mimetype || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+    }));
+    await safeUnlink(file.path);
+
+    doc.pyqAnswer.images.push({ key: `r2://${key}`, caption: String(req.body.caption || '').trim() });
+    await doc.save();
+
+    res.json({ pyqAnswer: publicPyqAnswer(doc.pyqAnswer, { admin: true }) });
+  } catch (err) {
+    await safeUnlink(file.path);
+    console.error('uploadToppersPyqAnswerImage error:', err);
+    res.status(500).json({ error: err.message || 'Upload failed' });
+  }
+};
+
+// DELETE /admin/pyqs/:id/answer/images/:imageId
+export const deleteToppersPyqAnswerImage = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const doc = await ToppersPyq.findById(req.params.id);
+    if (!doc?.pyqAnswer) return res.status(404).json({ error: 'Not found' });
+    const img = doc.pyqAnswer.images.id(req.params.imageId);
+    if (!img) return res.status(404).json({ error: 'Image not found' });
+
+    if (img.key?.startsWith('r2://')) {
+      await r2Client.send(new DeleteObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: img.key.replace('r2://', ''),
+      })).catch((e) => console.warn('pyq image r2 delete failed:', e.message));
+    }
+    img.deleteOne();
+    await doc.save();
+    res.json({ pyqAnswer: publicPyqAnswer(doc.pyqAnswer, { admin: true }) });
+  } catch (err) {
+    console.error('deleteToppersPyqAnswerImage error:', err);
+    res.status(500).json({ error: err.message || 'Delete failed' });
+  }
+};
+
+// GET /pyqs/:id/answer/image/:imageId  — stream one image from R2 (inline).
+// Admins can see drafts; everyone else only if the answer is published.
+export const streamToppersPyqAnswerImage = async (req, res) => {
+  try {
+    const doc = await ToppersPyq.findById(req.params.id).select('pyqAnswer').lean();
+    const img = (doc?.pyqAnswer?.images || []).find((im) => String(im._id) === req.params.imageId);
+    if (!img?.key?.startsWith('r2://')) return res.status(404).json({ error: 'Not found' });
+    if (!doc.pyqAnswer.published && !(await isAdminReq(req))) {
+      return res.status(403).json({ error: 'Not available' });
+    }
+    const r2Response = await r2Client.send(new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: img.key.replace('r2://', ''),
+    }));
+    if (r2Response.ContentType) res.setHeader('Content-Type', r2Response.ContentType);
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    if (r2Response.ContentLength != null) res.setHeader('Content-Length', r2Response.ContentLength);
+    r2Response.Body.pipe(res);
+  } catch (err) {
+    console.error('streamToppersPyqAnswerImage error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -930,51 +1417,9 @@ export const deleteToppersCopy = async (req, res) => {
   }
 };
 
-const asStr = (v) => String(v ?? '').trim();
-const asArr = (v) => (Array.isArray(v) ? v : []);
-const asStrArr = (v) => asArr(v).map(asStr).filter(Boolean);
-const asNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
-
-// Coerce the model's JSON into the aiAnalysis subdoc shape, tolerating missing /
-// malformed fields.
-const shapeAnalysis = (parsed) => ({
-  modelSkeleton: asStr(parsed.modelSkeleton),
-  intros: asArr(parsed.intros).map((x) => ({
-    text: asStr(x.text),
-    type: asStr(x.type),
-    topper: asStr(x.topper),
-    curatorNote: asStr(x.curatorNote),
-    wordCount: asNum(x.wordCount),
-  })).filter((x) => x.text),
-  bodyThemes: asArr(parsed.bodyThemes).map((t) => ({
-    title: asStr(t.title),
-    gloss: asStr(t.gloss),
-    points: asArr(t.points).map((p) => ({
-      text: asStr(p.text),
-      example: asStr(p.example),
-      toppers: asStrArr(p.toppers),
-    })).filter((p) => p.text),
-  })).filter((t) => t.title && t.points.length),
-  conclusions: asArr(parsed.conclusions).map((x) => ({
-    text: asStr(x.text),
-    type: asStr(x.type),
-    topper: asStr(x.topper),
-    wordCount: asNum(x.wordCount),
-  })).filter((x) => x.text),
-  keywords: asStrArr(parsed.keywords),
-  techniques: asStrArr(parsed.techniques),
-  diagrams: asArr(parsed.diagrams).map((d) => ({
-    topper: asStr(d.topper),
-    description: asStr(d.description),
-    mermaid: asStr(d.mermaid),
-  })).filter((d) => d.description || d.mermaid),
-  aiModel: getActiveModelLabel(),
-  generatedAt: new Date(),
-});
-
 // POST /admin/:id/questions/:qid/analyze  — (re)generate the AI analysis for ONE
-// question: slice that question's answer pages out of the compendium PDF and ask
-// the active provider for an annotation-style teardown of the 2-3 curated copies.
+// question. The heavy lifting (PDF slice + prompt + shape) lives in
+// utils/toppersAnalysis.js, shared with scripts/generate_toppers_analysis.mjs.
 export const analyzeQuestion = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -988,93 +1433,19 @@ export const analyzeQuestion = async (req, res) => {
   try {
     const doc = await ToppersCopy.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
-    if (!doc.pdfKey?.startsWith('r2://')) {
-      return res.status(400).json({ error: 'This topic has no source PDF to analyze' });
-    }
 
     const question = doc.questions.id(req.params.qid);
     if (!question) return res.status(404).json({ error: 'Question not found' });
-    if (!question.answers?.length) {
-      return res.status(400).json({ error: 'This question has no answer page ranges to analyze' });
-    }
 
-    // Pull the compendium PDF from R2, then slice out just this question's span.
-    const r2Key = doc.pdfKey.replace('r2://', '');
-    const obj = await r2Client.send(
-      new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: r2Key })
-    );
-    const pdfBuf = Buffer.from(await obj.Body.transformToByteArray());
-    const srcDoc = await PDFDocument.load(pdfBuf);
-    const pageCount = srcDoc.getPageCount();
-
-    const spanStart = Math.max(1, Math.min(...question.answers.map((a) => a.startPage)));
-    const spanEnd = Math.min(pageCount, Math.max(...question.answers.map((a) => a.endPage)));
-    const pdfBase64 = await makeChunkPdfBase64(srcDoc, spanStart - 1, spanEnd - 1);
-
-    // Answer page ranges re-based to the sliced PDF (page 1 == spanStart).
-    const answerLines = question.answers
-      .map((a) => {
-        const s = a.startPage - spanStart + 1;
-        const e = a.endPage - spanStart + 1;
-        const who = `${a.name}${a.rank ? ` (AIR ${a.rank}${a.year ? `, ${a.year}` : ''})` : ''}${a.marks ? `, ${a.marks} marks` : ''}`;
-        const note = a.curatorNote ? `\n   Curator note: ${a.curatorNote}` : '';
-        return `- ${who} — pages ${s}-${e}.${note}`;
-      })
-      .join('\n');
-
-    const prompt = `
-You are a senior UPSC Mains mentor doing a close teardown of a SMALL SET of hand-picked topper answers (usually 2-3) to ONE question. These copies were curated for quality — your job is to ANNOTATE what makes them good and pull out transferable technique, NOT to find majority consensus or vote.
-
-QUESTION
-Subject: ${doc.subject}
-Topic: ${doc.topic}
-Question: ${question.questionText || '(read it from the first page of the PDF)'}
-${question.marks ? `Marks: ${question.marks}` : ''}
-
-ANSWERS IN THE ATTACHED PDF (page numbers are within THIS PDF, which starts at page 1):
-${answerLines}
-
-Read every page. Work only from what is actually written in these copies — do not add facts, examples or data that no topper wrote. If handwriting is unclear on a name or figure, transcribe your best reading; never invent one.
-
-Produce a study breakdown for an aspirant about to write THIS question.
-
-Return ONE JSON object, no markdown fences, exactly this shape:
-
-{
-  "modelSkeleton": "approx 150 words. The ideal answer's shape for this question: what the intro should do, how to split the body (name the 3-5 headings), what the conclusion should land. Written as guidance, not a full answer.",
-  "intros": [
-    { "text": "the topper's actual opening, lightly cleaned to readable prose", "type": "definition | context | data | quote | anecdote", "topper": "Kunal Rastogi, AIR 16", "curatorNote": "copy the curator note for this topper, else \\"\\"", "wordCount": 34 }
-  ],
-  "bodyThemes": [
-    { "title": "Territorial extent and administration", "gloss": "one line: what this theme covers and why it earns marks",
-      "points": [ { "text": "the point, with the load-bearing phrase kept prominent", "example": "the specific edict / place / person / data the topper cited, else \\"\\"", "toppers": ["Kunal Rastogi"] } ] }
-  ],
-  "conclusions": [
-    { "text": "the topper's actual closing, lightly cleaned", "type": "summary | wayforward | balanced | quote", "topper": "Harshita Goyal, AIR 2", "wordCount": 22 }
-  ],
-  "keywords": ["8-15 high-value terms, names, reports, edicts, data points the toppers actually used"],
-  "techniques": ["4-7 transferable 'how to write' lessons a student can apply to OTHER questions too"],
-  "diagrams": [
-    { "topper": "Kunal Rastogi", "description": "plain-text description of the diagram this topper drew and what it communicates", "mermaid": "valid Mermaid (flowchart/mindmap/graph) IF the diagram maps cleanly to one, else \\"\\"" }
-  ]
-}
-
-Rules:
-- 2-3 copies only: annotate each, don't average them.
-- intros[] and conclusions[] = one entry PER topper (their real opening/closing).
-- Every bodyThemes point must name which topper(s) made it in "toppers".
-- Cluster ALL the body points across the copies into 3-6 themes.
-- No content that isn't in the copies. Approximate word counts are fine.
-`.trim();
-
-    const parsed = await runJsonExtraction({ prompt, pdfBase64, maxOutputTokens: 8000 });
-
-    question.aiAnalysis = shapeAnalysis(parsed || {});
+    question.aiAnalysis = await generateQuestionAnalysis(doc, question);
     doc.markModified('questions');
     await doc.save();
 
     res.json({ message: 'Analysis generated.', aiAnalysis: question.aiAnalysis });
   } catch (err) {
+    if (err.code === 'NO_PDF' || err.code === 'NO_ANSWERS') {
+      return res.status(400).json({ error: err.message });
+    }
     console.error('analyzeQuestion error:', err);
     res.status(500).json({ error: err.message || 'Analysis failed' });
   }
@@ -1165,18 +1536,30 @@ export const getToppersCopy = async (req, res) => {
       return res.status(403).json({ error: 'Not available' });
     }
 
-    // PYQs for this topic: match on section, fall back to subject-wide.
-    const norm = normalizeForDedup;
-    const subjectPyqs = await ToppersPyq.find({ subject: doc.subject }).sort({ year: -1 }).lean();
-    const docTopic = norm(doc.topic);
-    const topicPyqs = subjectPyqs.filter((q) => {
-      const qt = norm(q.topic);
-      return (
-        (docTopic && qt && (qt === docTopic || qt.includes(docTopic) || docTopic.includes(qt))) ||
-        (doc.syllabusSection && norm(q.section) === norm(doc.syllabusSection)) ||
-        (docTopic && q.microtheme && docTopic.includes(norm(q.microtheme)))
-      );
-    });
+    // PYQs for this topic. Score every subject PYQ, then keep only the most
+    // precise tier that matched: an exact/near topic match wins outright; if
+    // nothing matches the topic we fall back to a capped list of same-section
+    // PYQs; if not even the section matches we show none (rather than dumping
+    // the whole subject, which is what made the panel look random before).
+    const matchCtx = {
+      topicNorm: normalizeForDedup(doc.topic),
+      topicTok: topicTokens(doc.topic),
+      sectionNorm: normalizeForDedup(doc.syllabusSection),
+      sectionTok: topicTokens(doc.syllabusSection),
+    };
+    const subjectPyqs = await ToppersPyq.find({ subject: doc.subject })
+      .sort({ year: -1, _id: 1 })
+      .lean();
+    const viewerIsAdmin = await isAdminReq(req);
+    const scored = subjectPyqs
+      .map((q) => ({ q, tier: scorePyqForTopic(q, matchCtx) }))
+      .filter((s) => s.tier > 0);
+    const bestTier = scored.reduce((m, s) => Math.max(m, s.tier), 0);
+    // Any topic-level match (tier 2-3) → show all of them. Otherwise fall back to
+    // the same-section pile (tier 1), capped. Nothing at all → empty.
+    const keepFrom = bestTier >= 2 ? 2 : bestTier;
+    let topicPyqs = scored.filter((s) => s.tier >= keepFrom).map((s) => s.q);
+    if (bestTier <= 1) topicPyqs = topicPyqs.slice(0, PYQ_SECTION_FALLBACK_CAP);
 
     const questions = (doc.questions || [])
       .slice()
@@ -1209,14 +1592,21 @@ export const getToppersCopy = async (req, res) => {
         published: doc.published,
         questions,
       },
-      relatedPyqs: (topicPyqs.length ? topicPyqs : []).map((q) => ({
-        questionText: q.questionText,
-        year: q.year,
-        marks: q.marks,
-        section: q.section,
-        topic: q.topic,
-        microtheme: q.microtheme,
-      })),
+      relatedPyqs: (topicPyqs.length ? topicPyqs : []).map((q) => {
+        const answer = publicPyqAnswer(q.pyqAnswer, { admin: viewerIsAdmin });
+        return {
+          _id: q._id,
+          questionText: q.questionText,
+          year: q.year,
+          marks: q.marks,
+          section: q.section,
+          topic: q.topic,
+          microtheme: q.microtheme,
+          // students see the answer only once published; admins see drafts too
+          pyqAnswer: answer && (answer.published || viewerIsAdmin) ? answer : null,
+          pyqAnswerStatus: !answer ? 'none' : answer.published ? 'published' : 'draft',
+        };
+      }),
     });
   } catch (err) {
     console.error('getToppersCopy error:', err);

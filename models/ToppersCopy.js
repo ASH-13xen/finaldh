@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import answerDiagramSchema from './answerDiagramSchema.js';
 
 // One document == one syllabus topic that has a bundled toppers-copy compendium.
 // The scanned answer copies live in a single PDF on Cloudflare R2 (pdfKey,
@@ -24,9 +25,61 @@ const answerSchema = new mongoose.Schema({
   endPage: { type: Number, required: true },
 }, { _id: false });
 
-// --- annotation-style analysis sub-schemas ---
-// definition | context | data | quote | anecdote (intros); summary | wayforward |
-// balanced | quote (conclusions)
+// --- AI analysis sub-schemas (current shape, 2026-08-31) --------------------
+// The analysis has three blocks:
+//   1. modelAnswer — a fresh, ~250-word ideal answer the AI writes (it MAY use
+//      data / reports / news beyond the copies), structured intro / 2-part body /
+//      way-forward / conclusion, plus one replicable diagram.
+//   2. answerImprovements — concrete fixes for what the toppers actually wrote
+//      (grounded strictly in the copies).
+//   3. learnings — transferable takeaways a student can carry to other questions.
+
+const modelAnswerPointSchema = new mongoose.Schema({
+  text: { type: String, default: '' },              // claim fused with its evidence
+  tag: { type: String, default: '' },               // report | data | case-study | scheme | judgment | example | thinker
+  unconventionalBecause: { type: String, default: '' },
+}, { _id: false });
+
+const modelAnswerPartSchema = new mongoose.Schema({
+  part: { type: String, default: '' },              // short label for this half of the body
+  points: { type: [modelAnswerPointSchema], default: [] },
+}, { _id: false });
+
+const modelAnswerSchema = new mongoose.Schema({
+  introduction: {
+    text: { type: String, default: '' },
+    wordCount: { type: Number, default: null },
+    keywords: { type: [String], default: [] },
+  },
+  body: { type: [modelAnswerPartSchema], default: [] },   // exactly 2 parts
+  wayForward: {
+    text: { type: String, default: '' },
+    wordCount: { type: Number, default: null },
+    sources: { type: [String], default: [] },        // committee / report names cited
+  },
+  conclusion: {
+    text: { type: String, default: '' },
+    wordCount: { type: Number, default: null },
+    quote: { type: String, default: '' },
+  },
+  totalWordCount: { type: Number, default: null },
+}, { _id: false });
+
+
+const answerImprovementSchema = new mongoose.Schema({
+  area: { type: String, default: '' },               // intro | structure | content | evidence | diagram | conclusion | presentation
+  observation: { type: String, default: '' },
+  fix: { type: String, default: '' },
+  priority: { type: String, default: '' },            // high | medium | low
+}, { _id: false });
+
+const learningSchema = new mongoose.Schema({
+  lesson: { type: String, default: '' },
+  seenIn: { type: String, default: '' },
+  applyElsewhere: { type: String, default: '' },
+}, { _id: false });
+
+// --- legacy sub-schemas (pre-2026-08-31) — still rendered if present, no longer written ---
 const excerptSchema = new mongoose.Schema({
   text: { type: String, default: '' },
   type: { type: String, default: '' },
@@ -47,25 +100,27 @@ const bodyThemeSchema = new mongoose.Schema({
   points: { type: [themePointSchema], default: [] },
 }, { _id: false });
 
-const diagramSchema = new mongoose.Schema({
+const legacyDiagramSchema = new mongoose.Schema({
   topper: { type: String, default: '' },
   description: { type: String, default: '' },
   mermaid: { type: String, default: '' },
 }, { _id: false });
 
-// Breakdown of the 2-3 hand-picked answers to one question. Keeps the legacy flat
-// fields readable so older analyses still render while re-running.
 const aiAnalysisSchema = new mongoose.Schema({
-  modelSkeleton: { type: String, default: '' },     // ~150-word ideal answer outline
+  // current shape
+  modelAnswer: { type: modelAnswerSchema, default: () => ({}) },
+  diagram: { type: answerDiagramSchema, default: () => ({}) },
+  answerImprovements: { type: [answerImprovementSchema], default: [] },
+  learnings: { type: [learningSchema], default: [] },
+  keywords: { type: [String], default: [] },
+
+  // legacy (pre-2026-08-31) — rendered by a fallback while an analysis is re-run
+  modelSkeleton: { type: String, default: '' },
   intros: { type: [excerptSchema], default: [] },
   bodyThemes: { type: [bodyThemeSchema], default: [] },
   conclusions: { type: [excerptSchema], default: [] },
-  keywords: { type: [String], default: [] },
-  techniques: { type: [String], default: [] },      // transferable "how to write" lessons
-  diagrams: { type: [diagramSchema], default: [] },
-
-  // legacy (pre-2026-08-28) — still rendered if present, no longer written
-  modelAnswer: { type: String, default: '' },
+  techniques: { type: [String], default: [] },
+  diagrams: { type: [legacyDiagramSchema], default: [] },
   commonStructure: { type: String, default: '' },
   whatToppersDidWell: { type: [String], default: [] },
   valueAddition: { type: [String], default: [] },

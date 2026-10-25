@@ -48,7 +48,12 @@ const extractedPyqSchema = new mongoose.Schema({
   microtheme: { type: String, default: '' },
   questionText: { type: String, required: true },
   year: { type: Number, required: true },
-  marks: { type: Number, default: null }
+  marks: { type: Number, default: null },
+  // Set only by a JSON-source ingest (a source book that already prints a model
+  // answer) — carried through review so commit can attach it as
+  // ToppersPyq.pyqAnswer.source='pdf' instead of leaving the question answerless.
+  answerText: { type: String, default: '' },
+  diagramPages: { type: [Number], default: [] },
 }, { _id: false });
 
 const toppersCopyJobSchema = new mongoose.Schema({

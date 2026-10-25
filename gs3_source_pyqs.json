@@ -1,0 +1,1115 @@
+{
+  "Economy": [
+    {
+      "questionText": "\"Economic growth in the recent past has been led by increase in labour productivity.\"Explain this statement. Suggest the growth pattern that will lead to creation of more jobs without compromising labour productivity.",
+      "section": "Automation;Unemployment",
+      "year": 2022
+    },
+    {
+      "questionText": "Justify the need for FDI for the developments of the Indian economy. Why there is gap between MOUs signed and actual FDIs? Suggest remedial steps to be taken for increasing actual FDIs in India.",
+      "section": "Balance of Payments",
+      "year": 2016
+    },
+    {
+      "questionText": "Craze for gold in Indians have led to a surge in import of gold in recent years and put pressure on balance of payments and external value of rupee. In view of this, examine the merits of Gold Monetization Scheme.",
+      "section": "Balance of Payments",
+      "year": 2015
+    },
+    {
+      "questionText": "Foreign Direct Investment (FDI) in the defence sector is now set to be liberalized: What in fluence this is expected to have on Indian defence and economy in the short and long run?",
+      "section": "Balance of Payments",
+      "year": 2014
+    },
+    {
+      "questionText": "Though India allowed Foreign Direct Investment (FDI) in what is called multi-brand retail through the joint venture route in September 2012, the FDI, even after a year, has not picked up. Discuss the reasons.",
+      "section": "Balance of Payments",
+      "year": 2013
+    },
+    {
+      "questionText": "Discuss the impact of FDI entry into multi-trade retail sector on supply chain management in commodity trade pattern of the economy.",
+      "section": "Balance of Payments",
+      "year": 2013
+    },
+    {
+      "questionText": "Distinguish between Capital Budget and Revenue Budget. Explain the components of both these Budgets.",
+      "section": "Capital Budget;Revenue Budget",
+      "year": 2021
+    },
+    {
+      "questionText": "What are 'Smart Cities'? examine their relevance for urban development in India. Will it increase rural-urban differences? Give arguments for 'Smart Villages' in the light of PURA and RURBAN Mission.",
+      "section": "Chapter 10: Infrastructure, Transport & Capital Markets",
+      "year": 2016
+    },
+    {
+      "questionText": "National Urban Transport Policy emphasises on 'moving people' instead of 'moving vehicles. Discuss critically the success of the various strategies of the Government in this regard.",
+      "section": "Chapter 10: Infrastructure, Transport & Capital Markets",
+      "year": 2014
+    },
+    {
+      "questionText": "India needs to strengthen measures to promote the pink revolution in food industry for ensuring better nutrition and health. Critically elucidate the statement.",
+      "section": "Chapter 11: Agriculture & Land",
+      "year": 2013
+    },
+    {
+      "questionText": "Do you agree that the Indian economy has recently experienced V-shapes recovery? Give reasons in support of your answer.",
+      "section": "Chapter 1: National Income & GDP",
+      "year": 2021
+    },
+    {
+      "questionText": "How are the principles followed by the NITI Aayog different from those followed by the erstwhile Planning Commission in India?",
+      "section": "Chapter 1: National Income & GDP",
+      "year": 2018
+    },
+    {
+      "questionText": "Among several factors for India's potential growth, savings rate is the most effective one. Do you agree? What are the other factors available for growth potential?",
+      "section": "Chapter 1: National Income & GDP",
+      "year": 2017
+    },
+    {
+      "questionText": "Explain how the Fiscal Health Index (FHI) can be used as a tool for assessing the fiscal performance of states in India. In what way would it encourage the states to adopt prudent and sustainable fiscal policies?",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2025
+    },
+    {
+      "questionText": "Explain the rationale behind the Goods and Services Tax (Compensation to States) Act of 2017. How has COVID-19 impacted the GST compensation fund and created new federal tensions?",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2020
+    },
+    {
+      "questionText": "Enumerate the indirect taxes which have been subsumed in the goods and services tax (GST) in India. Also, comment on the revenue implications of the GST introduced in India since July 2017.",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2019
+    },
+    {
+      "questionText": "Comment on the important changes introduced in respect of the Long term Capital Gains Tax (LCGT) and Dividend Distribution Tax (DDT) in the Union Budget for 2018-2019.",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2018
+    },
+    {
+      "questionText": "One of the intended objectives of Union Budget 2017-18 is to 'transform, energize and clean India'.Analyse the measures proposed in the Budget 2017-18 to achieve the objective.",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2017
+    },
+    {
+      "questionText": "Discuss the rationale for introducing the Goods and Services Tax (GST) in India. Bring out critically the reasons for the delay in roll out for its regime.",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2013
+    },
+    {
+      "questionText": "What is the meaning of the term 'tax expenditure'? Taking housing sector as an example, discuss how it influences the budgetary policies of the government.",
+      "section": "Chapter 4: Fiscal Policy & Public Expenditure",
+      "year": 2013
+    },
+    {
+      "questionText": "How globalization has led to the reduction of employment in the formal sector of the Indian economy? Is increased in formalization detrimental to the development of the country?",
+      "section": "Chapter 7: Employment & Labour",
+      "year": 2016
+    },
+    {
+      "questionText": "With a consideration towards the strategy of inclusive growth, the new Companies Bill, 2013 has indirectly made CSR a mandatory obligation. Discuss the challenges expected in its implementation in right earnest. Also discuss other provisions in the Bill and their implications",
+      "section": "Chapter 8: Human Capital, Poverty & Inclusive Growth",
+      "year": 2013
+    },
+    {
+      "questionText": "Account for the failure of manufacturing sector in achieving the goal of labour-intensive exports rather than capital-intensive exports. Suggest measures for more labour-intensive rather than capital-intensive exports.",
+      "section": "Chapter 9: Industry & Manufacturing",
+      "year": 2017
+    },
+    {
+      "questionText": "\"Industrial growth rate has lagged behind in the overall growth of Gross-Domestic-Product (GDP)in the post-reform period\" Give reasons. How far the recent changes is Industrial Policy are capable of increasing the industrial growth rate?",
+      "section": "Chapter 9: Industry & Manufacturing",
+      "year": 2017
+    },
+    {
+      "questionText": "There is a clear acknowledgement that Special Economic Zones (SEZs) are a tool of industrial development, manufacturing and exports. Recognising this potential, the whole instrumentality of SEZs require augmentation. Discuss the issue plaguing the success of SEZs with respect to taxation, governing laws and administration.",
+      "section": "Chapter 9: Industry & Manufacturing",
+      "year": 2015
+    },
+    {
+      "questionText": "\"Success of make in India program depends on the success of Skill India programme and radical labour reforms.\" Discuss with logical arguments.",
+      "section": "Chapter 9: Industry & Manufacturing",
+      "year": 2015
+    },
+    {
+      "questionText": "What is the status of digitalization in the Indian economy? Examine the problems faced in this regard and suggest improvements.",
+      "section": "DPI",
+      "year": 2023
+    },
+    {
+      "questionText": "Examine the impact of liberalization on companies owned by Indians. Are they competing with the MNCs satisfactorily? Discuss.",
+      "section": "Economic Reforms 1991;NEP",
+      "year": 2013
+    },
+    {
+      "questionText": "How would the recent phenomena of protectionism and currency manipulations in world trade affect macroeconomic stability of India?",
+      "section": "Exchange Rate;Rupee",
+      "year": 2018
+    },
+    {
+      "questionText": "International civil aviation laws provide all countries complete and exclusive sovereignty over the airspace above the territory. What do you understand by airspace? What are the implications of these laws on the space above this airspace? Discuss the challenges which this poses and suggests ways to contain the threat.",
+      "section": "FDTL;Aviation",
+      "year": 2014
+    },
+    {
+      "questionText": "\"While we flaunt India's demographic dividend, we ignore the dropping rates of employability.\"What are we missing while doing so? Where will the jobs that India desperately needs come from? Explain",
+      "section": "FLFPR;Demographic Dividend",
+      "year": 2014
+    },
+    {
+      "questionText": "Is inclusive growth possible under market economy? State the significance of financial inclusion in achieving economic growth in India.",
+      "section": "Financial Inclusion",
+      "year": 2022
+    },
+    {
+      "questionText": "Pradhan Mantri Jan-Dhan Yojana (PMJDY) is necessary for bringing unbanked to the institutional fiancé fold. Do you agree with this for financial inclusion of the poorer section of the Indian society? Give arguments to justify your opinion.",
+      "section": "Financial Inclusion",
+      "year": 2016
+    },
+    {
+      "questionText": "What were the reasons for the introduction of Fiscal Responsibility and Budget Management (FRBM) Act, 2003? Discuss critically its salient features and their effectiveness",
+      "section": "Fiscal Deficit",
+      "year": 2013
+    },
+    {
+      "questionText": "What are the causes of persistent high food inflation in India? Comment on the effectiveness of the monetary policy of the RBI to control this type of inflation.",
+      "section": "Food Inflation;Inflation",
+      "year": 2024
+    },
+    {
+      "questionText": "Examine the scope of the food processing industries in India. Elaborate the measures taken by the government in the food processing industries for generating employment opportunities.",
+      "section": "Food Processing",
+      "year": 2025
+    },
+    {
+      "questionText": "Elaborate the scope and significance of the food processing industry in India",
+      "section": "Food Processing",
+      "year": 2022
+    },
+    {
+      "questionText": "What are the challenges and opportunities of food processing sector in the country? How can income of the farmers be substantially increased by encouraging food processing?",
+      "section": "Food Processing",
+      "year": 2020
+    },
+    {
+      "questionText": "Elaborate on the policy taken by the government of India to meet the challenges of the food processing sector.",
+      "section": "Food Processing",
+      "year": 2019
+    },
+    {
+      "questionText": "What are the reasons for poor acceptance of cost-effective small processing unit? How the food processing unit will be helpful to uplift the socio-economic status of poor farmers?",
+      "section": "Food Processing",
+      "year": 2017
+    },
+    {
+      "questionText": "What are the impediments in marketing and supply chain management in developing the food processing industry in India? Can e-commerce help in overcoming this bottleneck?",
+      "section": "Food Processing",
+      "year": 2015
+    },
+    {
+      "questionText": "Explain the difference between computing methodology of India's Gross Domestic Product(GDP) before the year 2015 and after the year 2015.",
+      "section": "GDP",
+      "year": 2021
+    },
+    {
+      "questionText": "Do you agree with the view that steady GDP growth and low inflation have left the Indian economy in good shape? Give reasons in support of your arguments.",
+      "section": "GDP",
+      "year": 2019
+    },
+    {
+      "questionText": "Women empowerment in India needs gender budgeting. What are requirements and status of gender budgeting in the Indian context?",
+      "section": "Gender Budgeting",
+      "year": 2016
+    },
+    {
+      "questionText": "\"Access to affordable, reliable, sustainable and modern energy is the sine qua non to achieve Sustainable Development Goals (SDGs)\". Comment on the progress made in India in this regard.",
+      "section": "Household Energy Access",
+      "year": 2018
+    },
+    {
+      "questionText": "The increase in life expectancy in the country has led to newer health challenges in the community. What are those challenges and what steps need to be taken to meet them?",
+      "section": "Human Capital",
+      "year": 2022
+    },
+    {
+      "questionText": "Distinguish between the Human Development Index (HDI) and Inequality-adjusted Human Development Index (IHDI) with special reference to India. Why is the IHDI considered a better indicator of inclusive growth?",
+      "section": "Human Development;Human Capital",
+      "year": 2025
+    },
+    {
+      "questionText": "Explain intra-generational and inter-generational issues of equity from the perspective of inclusive growth and sustainable development.",
+      "section": "Inclusive Growth",
+      "year": 2020
+    },
+    {
+      "questionText": "It is argued that the strategy of inclusive growth is intended to meet the objectives of inclusiveness and sustainability together. Comment on this statement.",
+      "section": "Inclusive Growth",
+      "year": 2019
+    },
+    {
+      "questionText": "What are the salient features of 'inclusive growth'? Has India been experiencing such a growth process? Analyze and suggest measures for inclusive growth.",
+      "section": "Inclusive Growth",
+      "year": 2017
+    },
+    {
+      "questionText": "Comment on the challenges for inclusive growth which include careless and useless manpower in the Indian context. Suggest measures to be taken for facing these challenges",
+      "section": "Inclusive Growth",
+      "year": 2016
+    },
+    {
+      "questionText": "Capitalism has guided the world economy to unprecedented prosperity. However, it often encourages shortsightedness and contributes to wide disparities between the rich and the poor. In this light, would it be correct to believe and adopt capitalism driving inclusive growth in India? Discuss.",
+      "section": "Inclusive Growth",
+      "year": 2014
+    },
+    {
+      "questionText": "Distinguish between 'care economy' and 'monetized economy'. How can care economy be brought into monetized economy through women empowerment?",
+      "section": "Informal Sector;National Income",
+      "year": 2023
+    },
+    {
+      "questionText": "\"Investment in infrastructure is essential for more rapid and inclusive economic growth.\"Discuss in the light of India's experience",
+      "section": "Infrastructure",
+      "year": 2021
+    },
+    {
+      "questionText": "Discuss the merits and demerits of the four 'Labour Codes' in the context of labour market reforms in India. What has been the progress so far in this regard?",
+      "section": "Labour Codes",
+      "year": 2024
+    },
+    {
+      "questionText": "Faster economic growth requires increased share of the manufacturing sector in GDP, particularly of MSMEs. Comment on the present policies of the Government in this regard.",
+      "section": "MSME",
+      "year": 2023
+    },
+    {
+      "questionText": "Most of the unemployment in India is structural in nature. Examine the methodology adopted to compute unemployment in the country and suggest improvements.",
+      "section": "PLFS;Unemployment",
+      "year": 2023
+    },
+    {
+      "questionText": "The nature of economic growth in India in recent times is often described as a jobless growth. Do you agree with this view? Give arguments in favour of your answer.",
+      "section": "PLFS;Unemployment",
+      "year": 2015
+    },
+    {
+      "questionText": "Discuss the rationale of the Production Linked Incentive (PLI) scheme. What are its achievements? In what way can the functioning and outcomes of the scheme be improved?",
+      "section": "PLI Scheme",
+      "year": 2025
+    },
+    {
+      "questionText": "Why is Public Private Partnership (PPP) required in infrastructural projects? Examine the role of PPP model in the redevelopment of Railway Stations in India.",
+      "section": "PPP",
+      "year": 2022
+    },
+    {
+      "questionText": "Explain the meaning of investment in an economy in terms of capital formation. Discuss the factors to be considered while designing a concession agreement between a public entity and a private entity.",
+      "section": "PPP",
+      "year": 2020
+    },
+    {
+      "questionText": "Examine the developments of Airports in India through Joint Ventures under Public-Private Partnership (PPP) model. What are the challenges faced by the authorities in this regard.",
+      "section": "PPP",
+      "year": 2017
+    },
+    {
+      "questionText": "Explain how Private Public Partnership arrangements, in long gestation infrastructure projects, can transfer unsustainable liabilities to the future. What arrangements need to be put in place to ensure that successive generations' capacities are not compromised?",
+      "section": "PPP",
+      "year": 2014
+    },
+    {
+      "questionText": "Adoption of PPP model for infrastructure development of the country has not been free of criticism. Critically discuss the pros and cons of the model.",
+      "section": "PPP",
+      "year": 2013
+    },
+    {
+      "questionText": "Define potential GDP and explain its determinants. What are the factors that have been inhibiting India from realizing its potential GDP?",
+      "section": "Potential GDP",
+      "year": 2020
+    },
+    {
+      "questionText": "Examine the pattern and trend of public expenditure on social services in the post-reforms period in India. To what extent this has been in consonance with achieving the objective of inclusive growth?",
+      "section": "Public Expenditure",
+      "year": 2024
+    },
+    {
+      "questionText": "The public expenditure management is a challenge to the Government of India in context of budget making during the post liberalization period. Clarify it.",
+      "section": "Public Expenditure",
+      "year": 2019
+    },
+    {
+      "questionText": "Do you think India will meet 50 percent of its energy needs from renewable energy by 2030? Justify your answer. How will the shift of subsidies from fossil fuels to renewables help achieve the above objective? Explain.",
+      "section": "Renewable Energy",
+      "year": 2022
+    },
+    {
+      "questionText": "Describe the benefits of deriving electric energy from sunlight in contrast to the conventional energy generation. What are the initiatives offered by our Government for this purpose?",
+      "section": "Renewable Energy",
+      "year": 2020
+    },
+    {
+      "questionText": "Give an account of the current status and the targets to be achieved pertaining to renewable energy sources in the country. Discuss in brief the importance of National Programme on Light Emitting diodes (LEDs).",
+      "section": "Renewable Energy",
+      "year": 2016
+    },
+    {
+      "questionText": "To what factors can be the recent dramatic fall in equipment cost and tariff of solar energy be attributed? What implications does the trend have for thermal power producers and related industry?",
+      "section": "Renewable Energy",
+      "year": 2015
+    },
+    {
+      "questionText": "Write a note on India's green energy corridor to alleviate the problem of conventional energy.",
+      "section": "Renewable Energy",
+      "year": 2013
+    },
+    {
+      "questionText": "What do you understand by run of the river hydroelectricity project? How is it different from any other hydroelectricity project?",
+      "section": "Renewable Energy",
+      "year": 2013
+    },
+    {
+      "questionText": "India aims to become a semiconductor manufacturing hub. What are the challenges faced by the semiconductor industry in India? Mention the salient features of the India Semiconductor Mission.",
+      "section": "Semiconductor",
+      "year": 2025
+    },
+    {
+      "questionText": "Normally countries shift from agriculture to industry and then later to services, but India shifted directly from agriculture to services. What are the reasons for the huge growth-services vis-a-vis industry in the country? Can India become a developed country without a strong industrial base?",
+      "section": "Services Sector;Industrial Sector",
+      "year": 2014
+    },
+    {
+      "questionText": "What are the challenges before the Indian economy when the world is moving away from free trade and multilateralism to protectionism and bilateralism? How can these challenges be met?",
+      "section": "Trade Agreements",
+      "year": 2025
+    },
+    {
+      "questionText": "What is the need for expanding the regional air connectivity in India? In this context, discuss the government's UDAN Scheme and its achievements.",
+      "section": "UDAN",
+      "year": 2024
+    }
+  ],
+  "SciTech": [
+    {
+      "questionText": "Introduce the concept of Artificial Intelligence (AI). How does AI help clinical diagnosis? Do you perceive any threat to privacy of the individual in the use of AI in healthcare?",
+      "section": "AI",
+      "year": 2023
+    },
+    {
+      "questionText": "How was India benefited from the contributions of Sir M.Visvesvaraya and Dr. M. S. Swaminathan in the fields of water engineering and agricultural science respectively?",
+      "section": "Achievements of Indians in S & T",
+      "year": 2019
+    },
+    {
+      "questionText": "Discuss the work of 'Bose-Einstein Statistics' done by Prof. Satyendra Nath Bose and show how it revolutionized the field of Physics.",
+      "section": "Achievements of Indians in S & T",
+      "year": 2018
+    },
+    {
+      "questionText": "How can India achieve energy independence through clean technology by 2047? How can biotechnology play a crucial role in this endeavour?",
+      "section": "Biotechnology",
+      "year": 2025
+    },
+    {
+      "questionText": "Discuss several ways in which microorganisms can help in meeting the current fuel shortage.",
+      "section": "Biotechnology",
+      "year": 2023
+    },
+    {
+      "questionText": "What are the research and developmental achievements in applied biotechnology? How will these achievements help to uplift the poorer sections of society?",
+      "section": "Biotechnology",
+      "year": 2021
+    },
+    {
+      "questionText": "How can biotechnology improve the living standards of farmers?",
+      "section": "Biotechnology",
+      "year": 2019
+    },
+    {
+      "questionText": "Why is there so much activity in the field of biotechnology in our country? How has this activity benefitted the field of biopharma?",
+      "section": "Biotechnology",
+      "year": 2018
+    },
+    {
+      "questionText": "What are the areas of prohibitive labour that can be sustainably managed by robots? Discuss the initiatives that can propel research in premier research institutes for substantive and gainful innovation.",
+      "section": "Chapter 10: Science & Technology Policy & Institutions",
+      "year": 2015
+    },
+    {
+      "questionText": "Scientific research in Indian universities is declining, because a career in science is not as attractive as our business operations, engineering or administration, and the universities are becoming consumer oriented. Critically comment.",
+      "section": "Chapter 10: Science & Technology Policy & Institutions",
+      "year": 2014
+    },
+    {
+      "questionText": "What are asteroids? How real is the threat of them causing extinction of life? What strategies have been developed to prevent such a catastrophe?",
+      "section": "Chapter 1: Space Technology",
+      "year": 2024
+    },
+    {
+      "questionText": "Launched on 25th December, 2021, James Webb Space Telescope has been much in the news since then. What are its unique features which make it superior to its predecessor Space Telescopes? What are the key goals of this mission? What potential benefits does it hold for the human race?",
+      "section": "Chapter 1: Space Technology",
+      "year": 2022
+    },
+    {
+      "questionText": "What is an FRP composite material? How are they manufactured? Discuss their applications in aviation and automobile industry",
+      "section": "Chapter 3: Defence Technology",
+      "year": 2013
+    },
+    {
+      "questionText": "Each year a large amount of plant material, cellulose, is deposited on the surface of Planet Earth. What are the natural processes this cellulose undergoes before yielding carbon dioxide, water and other end products?",
+      "section": "Chapter 4: Biotechnology",
+      "year": 2022
+    },
+    {
+      "questionText": "How is science interwoven deeply with our lives? What are the striking changes in agriculture triggered off by the science-based technologies?",
+      "section": "Chapter 4: Biotechnology",
+      "year": 2020
+    },
+    {
+      "questionText": "What is the technology being employed for electronic toll collection on highways? What are its advantages and limitations? What are the proposed changes that will make this process seamless? Would this transition carry any potential hazards?",
+      "section": "Chapter 6: Emerging IT & Digital Technologies",
+      "year": 2024
+    },
+    {
+      "questionText": "The Nobel Prize in Physics of 2014 was jointly awarded to Akasaki, Amano and Nakamura for the invention of Blue LEDs in 1990s. How has this invention impacted the everyday life of human beings?",
+      "section": "Chapter 6: Emerging IT & Digital Technologies",
+      "year": 2021
+    },
+    {
+      "questionText": "Discuss the advantage and security implications of cloud hosting of server vis-a-vis inhouse machine-based hosting for government businesses.",
+      "section": "Chapter 6: Emerging IT & Digital Technologies",
+      "year": 2015
+    },
+    {
+      "questionText": "How does the 3D printing technology work? List out the advantages and disadvantages of the technology.",
+      "section": "Chapter 6: Emerging IT & Digital Technologies",
+      "year": 2013
+    },
+    {
+      "questionText": "What is digital signature? What does its authentication mean? Giver various salient built in features of a digital signature.",
+      "section": "Chapter 6: Emerging IT & Digital Technologies",
+      "year": 2013
+    },
+    {
+      "questionText": "What do you understand by Umpire decision review in cricket? Discuss its various components. Explain how silicon tape on the edge of a bat may fool the system?",
+      "section": "Chapter 6: Emerging IT & Digital Technologies",
+      "year": 2013
+    },
+    {
+      "questionText": "Bring out the circumstances in 2005 which forced amendment to section 3(d) in the Indian Patent Law, 1970. Discuss how it has been utilized by Supreme court in its judgment rejecting Novartis patent application for \"Glivec\". Discuss briefly the pros and cons of the decision.",
+      "section": "Chapter 9: Intellectual Property Rights",
+      "year": 2013
+    },
+    {
+      "questionText": "How is S-400 air defence system technically superior to any other system presently available in the world?",
+      "section": "Defence",
+      "year": 2021
+    },
+    {
+      "questionText": "What is the present world scenario of intellectual property rights with respect to life materials? Although, India is second in the world to file patents, still only a few have been commercialized. Explain the reasons behind this less commercialization.",
+      "section": "IPR",
+      "year": 2024
+    },
+    {
+      "questionText": "How is the government of India protecting traditional knowledge of medicine from patenting by pharmaceutical companies?",
+      "section": "IPR",
+      "year": 2019
+    },
+    {
+      "questionText": "India's Traditional Knowledge Digital Library (TKDL) which has a database containing formatted information on more than 2 million medicinal formulations is proving a powerful weapon in the country's fight against erroneous patents. Discuss the pros and cons making this database publicly available under open-source licensing",
+      "section": "IPR",
+      "year": 2015
+    },
+    {
+      "questionText": "In a globalised world, intellectual property rights assume significance and are a source of litigation. Broadly distinguish between the terms – copyrights, patents and trade secrets.",
+      "section": "IPR",
+      "year": 2014
+    },
+    {
+      "questionText": "Stem cell therapy is gaining popularity in India to treat a wide variety of medical conditions including Leukaemia, Thalassemia, damaged cornea and several burns. Describe briefly what stem cell therapy is and what advantages it has over other treatments?",
+      "section": "Medical and Health Technologies",
+      "year": 2017
+    },
+    {
+      "questionText": "Can overuse and the availability of antibiotics without doctor's prescription, the contributors to the emergence of drug-resistant diseases in India? What are the available mechanisms for monitoring and control? Critically discuss the various issues involved.",
+      "section": "Medical and Health Technologies",
+      "year": 2014
+    },
+    {
+      "questionText": "What do you understand by fixed dose drug combinations (FDCs)? Discuss their merits and demerits.",
+      "section": "Medical and Health Technologies",
+      "year": 2013
+    },
+    {
+      "questionText": "What do you understand by nanotechnology and how is it helping in health sector?",
+      "section": "Nanotechnology",
+      "year": 2020
+    },
+    {
+      "questionText": "Why is nanotechnology one of the key technologies of the 21st century? Describe the salient features of Indian Government's Mission on Nanoscience and Technology and the scope of its application in the development process of the country.",
+      "section": "Nanotechnology",
+      "year": 2016
+    },
+    {
+      "questionText": "The fusion energy programme in India has steadily evolved over the past few decades. Mention India's contributions to the international fusion energy project International Thermonuclear Experimental Reactor (ITER). What will be the implications of the success of this project for the future of global energy?",
+      "section": "Nuclear Energy",
+      "year": 2025
+    },
+    {
+      "questionText": "With growing energy needs should India keep on expanding its nuclear energy programme? Discuss the facts and fears associated with nuclear energy.",
+      "section": "Nuclear Energy",
+      "year": 2018
+    },
+    {
+      "questionText": "Give an account of the growth and development of nuclear science and technology in India. What is the advantage of fast breeder reactor programme in India?",
+      "section": "Nuclear Energy",
+      "year": 2017
+    },
+    {
+      "questionText": "What is the main task of India's third moon mission which could not be achieved in its earlier mission? List the countries that have achieved this task. Introduce the subsystems in the spacecraft launched and explain the role of the Virtual Launch Control Centre at the Vikram Sarabhai Space Centre which contributed to the successful launch from Srihari Kota.",
+      "section": "Space Programs x IND",
+      "year": 2023
+    },
+    {
+      "questionText": "What is India's plan to have its own space station and how will it benefit our space programme?",
+      "section": "Space Programs x IND",
+      "year": 2019
+    },
+    {
+      "questionText": "India has achieved remarkable successes in unmanned space missions including the Chandrayaan and Mars Orbitter Mission, but has not ventured into manned space mission, both in terms of technology and logistics? Explain critically.",
+      "section": "Space Programs x IND",
+      "year": 2017
+    },
+    {
+      "questionText": "Discuss India's achievements in the field of Space Science and Technology. How the application of this technology has helped India in its socio-economic development?",
+      "section": "Space Programs x IND",
+      "year": 2016
+    },
+    {
+      "questionText": "What do you understand by 'Standard Positioning Systems' and 'Protection Positioning Systems' in the GPS era? Discuss the advantages India perceives from its ambitious IRNSS programme employing just seven satellites.",
+      "section": "Space Programs x IND",
+      "year": 2015
+    },
+    {
+      "questionText": "The world is facing an acute shortage of clean and safe freshwater. What are the alternative technologies which can solve this crisis? Briefly discuss any three such technologies citing their key merits and demerits.",
+      "section": "Tech in Crisis Management",
+      "year": 2024
+    },
+    {
+      "questionText": "COVID-19 pandemic has caused unprecedented devastation worldwide. However, technological advancements are being availed readily to win over the crisis. Give an account of how technology was sought to aid management to the pandemic.",
+      "section": "Tech in Crisis Management",
+      "year": 2020
+    },
+    {
+      "questionText": "What is the basic principle behind vaccine development? How do vaccines work? What approaches were adopted by the Indian vaccine manufacturers to produce COVID-19 vaccines?",
+      "section": "Vaccines",
+      "year": 2022
+    }
+  ],
+  "Environment": [
+    {
+      "questionText": "What is Carbon Capture, Utilization and Storage (CCUS)? What is the potential role of CCUS in tackling climate change?",
+      "section": "Air Pollution",
+      "year": 2025
+    },
+    {
+      "questionText": "Discuss in detail the photochemical smog emphasizing its formation, effects and mitigation. Explain the 1999 Gothenburg Protocol.",
+      "section": "Air Pollution",
+      "year": 2022
+    },
+    {
+      "questionText": "Describe the key points of the revised Global Air Quality Guidelines (AQGs) recently released by the World Health Organisation (WHO). How are these different from its last update in 2005? What changes in India's National Clean Air Programme are required to achieve these revised standards?",
+      "section": "Air Pollution",
+      "year": 2021
+    },
+    {
+      "questionText": "What are the key features of the National Clean Air Programme (NCAP) initiated by the Government of India?",
+      "section": "Air Pollution",
+      "year": 2020
+    },
+    {
+      "questionText": "How does biodiversity vary in India? How is the Biological Diversity Act, 2002 helpful in conservation of flora and fauna?",
+      "section": "Biodiversity",
+      "year": 2018
+    },
+    {
+      "questionText": "Write a review on India's climate commitments under the Paris Agreement and mention how these have been further strengthened in COP26. In this direction, how has the first Nationally Determined Contribution (NDC) intended by India been updated in 2022?",
+      "section": "COP;UNFCCC",
+      "year": 2025
+    },
+    {
+      "questionText": "The Intergovernmental Panel on Climate Change (IPCC) has predicted a global sea level rise of about one metre by AD 2100. What would be its impact in India and the other countries in the Indian Ocean region?",
+      "section": "COP;UNFCCC",
+      "year": 2023
+    },
+    {
+      "questionText": "Discuss global warming and mention its effects on the global climate. Explain the control measures to bring down the level of greenhouse gases which cause global warming, in the light of the Kyoto Protocol, 1997.",
+      "section": "COP;UNFCCC",
+      "year": 2022
+    },
+    {
+      "questionText": "Explain the purpose of the Green Grid Initiative launched at the World Leaders Summit of the COP26 UN Climate Change Conference in Glasgow in November 2021. When was this idea first floated in the International Solar Alliance (ISA)?",
+      "section": "COP;UNFCCC",
+      "year": 2021
+    },
+    {
+      "questionText": "Describe the major outcomes of the 26th session of the Conference of the Parties (COP) to the United Nations Framework Convention on Climate Change (UNFCCC). What are the commitments made by India in this conference?",
+      "section": "COP;UNFCCC",
+      "year": 2021
+    },
+    {
+      "questionText": "Should the pursuit of carbon credit and clean development mechanism set up under UNFCCC be maintained even through there has been a massive slide in the value of carbon credit? Discuss with respect to India's energy needs for economic growth.",
+      "section": "COP;UNFCCC",
+      "year": 2014
+    },
+    {
+      "questionText": "Define the concept of carrying capacity of an ecosystem as relevant to an environment. Explain how understanding this concept is vital while planning for sustainable development of a region.",
+      "section": "Carrying Capacity",
+      "year": 2019
+    },
+    {
+      "questionText": "Dam failures are always catastrophic, especially on the downstream side, resulting in a colossal loss of life and property. Analyze the various causes of dam failures. Give two examples of large dam failures.",
+      "section": "Chapter 1: Disaster Management: Concepts, Cycle & Institutional Framework",
+      "year": 2023
+    },
+    {
+      "questionText": "Explain the mechanism and occurrence of cloudburst in the context of the Indian subcontinent. Discuss two recent examples.",
+      "section": "Chapter 3: Hydro-Meteorological Disasters",
+      "year": 2022
+    },
+    {
+      "questionText": "On December 2004, tsumani brought havoc on 14 countries including India. Discuss the factors responsible for occurrence of Tsunami and its effects on life and economy. In the light of guidelines of NDMA describe the mechanisms for preparedness to reduce the risk during such events",
+      "section": "Chapter 3: Hydro-Meteorological Disasters",
+      "year": 2017
+    },
+    {
+      "questionText": "With reference to National Disaster Management Authority (NDMA) guidelines, discuss the measures to be adopted to mitigate the impact of the recent incidents of cloudbursts in many places of Uttarakhand.",
+      "section": "Chapter 3: Hydro-Meteorological Disasters",
+      "year": 2016
+    },
+    {
+      "questionText": "'Climate Change' is a global problem. How India will be affected by climate change? How Himalayan and coastal states of India will be affected by climate change?",
+      "section": "Chapter 4: Climate Change & International Frameworks",
+      "year": 2017
+    },
+    {
+      "questionText": "Industrial pollution of river water is a significant environmental issue in India. Discuss the various mitigation measures to deal with this problem and also the government's initiatives in this regard.",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2024
+    },
+    {
+      "questionText": "Explain the causes and effects of coastal erosion in India. What are the available coastal management techniques for combating the hazard?",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2022
+    },
+    {
+      "questionText": "Coastal sand mining, whether legal or illegal, poses one of the biggest threats to our environment. Analyse the impact of sand mining along the Indian coasts, citing specific examples.",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2019
+    },
+    {
+      "questionText": "What are the impediments in disposing the huge quantities of discarded solid wastes which are continuously being generated? How do we remove safely the toxic wastes that have been accumulating in our habitable environment?",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2018
+    },
+    {
+      "questionText": "Not many years ago, river linking was a concept but it is becoming reality in the country. Discuss the advantages of river linking and its possible impact on the environment.",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2017
+    },
+    {
+      "questionText": "Discuss the Namami Gange and National mission for clean Ganga (NMCG) programmes and causes of mixed results from the previous schemes. What quantum leaps can help preserve the river Ganga better than incremental inputs?",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2015
+    },
+    {
+      "questionText": "Enumerate the National Water Policy of India. Taking river Ganges as an example, discuss the strategies which may be adopted for river water pollution control and management. What are the legal provisions for management and handling of hazardous wastes in India?",
+      "section": "Chapter 5: Pollution & Environmental Management",
+      "year": 2013
+    },
+    {
+      "questionText": "Mineral resources are fundamental to the country economy and these are exploited by mining. Why is mining considered an environmental hazard? Explain the remedial measures required to reduce the environmental hazard due to mining.",
+      "section": "Chapter 7: Land Resources: Degradation & Desertification",
+      "year": 2025
+    },
+    {
+      "questionText": "What are the consequences of illegal mining? Discuss the ministry of environment and forests' concept of \"GO AND NO GO\" zones for coal mining.",
+      "section": "Chapter 7: Land Resources: Degradation & Desertification",
+      "year": 2013
+    },
+    {
+      "questionText": "The adoption of electric vehicles is rapidly growing worldwide. How do electric vehicles contribute to reducing carbon emissions and what are the key benefits they offer compared to traditional combustion engine vehicles?",
+      "section": "Chapter 9: Sustainable Development & Renewable Energy",
+      "year": 2023
+    },
+    {
+      "questionText": "Discuss the recent measures initiated in disaster management by the Government of India departing from the earlier reactive approach.",
+      "section": "Disaster Management Cycle",
+      "year": 2020
+    },
+    {
+      "questionText": "What is disaster resilience? How is it determined? Describe various elements of a resilience framework. Also mention the global targets of the Sendai Framework for Disaster Risk Reduction (2015-2030).",
+      "section": "Disaster Resilience;Sendai Framework",
+      "year": 2024
+    },
+    {
+      "questionText": "Describe various measures taken in India for Disaster Risk Reduction (DRR) before and after signing 'Sendai Framework for DRR (2015-2030)'. How is this framework different from 'Hyogo Framework for Action, 2005?",
+      "section": "Disaster Resilience;Sendai Framework",
+      "year": 2018
+    },
+    {
+      "questionText": "Drought has been recognised as a disaster in view of its party expense, temporal duration, slow onset and lasting effect on various vulnerable sections. With a focus on the September 2010 guidelines from the National disaster management authority, discuss the mechanism for preparedness to deal with the El Nino and La Nina fallouts in India.",
+      "section": "Drought",
+      "year": 2014
+    },
+    {
+      "questionText": "What role do environmental NGOs and activists play in influencing Environmental Impact Assessment (EIA) outcomes for major projects in India? Cite four examples with all important details.",
+      "section": "EIA",
+      "year": 2024
+    },
+    {
+      "questionText": "How does the draft Environment Impact Assessment (EIA) Notification, 2020 differ from the existing EIA Notification, 2006?",
+      "section": "EIA",
+      "year": 2020
+    },
+    {
+      "questionText": "Rehabilitation of human settlements is one of the important environmental impacts which always attracts controversy while planning major projects. Discuss the measures suggested for mitigation of this impact while proposing major developmental projects.",
+      "section": "EIA",
+      "year": 2016
+    },
+    {
+      "questionText": "Environmental Impact Assessment studies are increasingly undertaken before project is cleared by the government. Discuss the environmental impacts of coal-fired thermal plants located at Pitheads.",
+      "section": "EIA",
+      "year": 2014
+    },
+    {
+      "questionText": "Seawater intrusion in the coastal aquifers is a major concern in India. What are the causes of seawater intrusion and the remedial measures to combat this hazard?",
+      "section": "Groundwater Pollution",
+      "year": 2025
+    },
+    {
+      "questionText": "Examine the factors responsible for depleting groundwater in India. What are the steps taken by the government to mitigate such depletion of groundwater?",
+      "section": "Groundwater Pollution",
+      "year": 2025
+    },
+    {
+      "questionText": "Describe the various causes and the effects of landslides. Mention the important components of the National Landslide Risk Management Strategy.",
+      "section": "Landslides",
+      "year": 2021
+    },
+    {
+      "questionText": "Disaster preparedness is the first step in any disaster management process. Explain how hazard zonation mapping will help in disaster mitigation in the case of landslides.",
+      "section": "Landslides",
+      "year": 2019
+    },
+    {
+      "questionText": "What is oil pollution? What are its impacts on the marine ecosystem? In what way is oil pollution particularly harmful for a country like India?",
+      "section": "Oil Pollution",
+      "year": 2023
+    },
+    {
+      "questionText": "Flooding in urban areas is an emerging climate-induced disaster. Discuss the causes of this disaster. Mention the features of two such major floods in the last two decades in India. Describe the policies and frameworks in India that aim at tackling such floods.",
+      "section": "Urban Floods",
+      "year": 2024
+    },
+    {
+      "questionText": "The frequency of urban floods due to high intensity rainfall is increasing over the years. Discussing the reasons for urban floods. highlight the mechanisms for preparedness to reduce the risk during such events.",
+      "section": "Urban Floods",
+      "year": 2016
+    },
+    {
+      "questionText": "Discuss about the vulnerability of India to earthquake-related hazards. Give examples including the salient features of major disasters caused by earthquakes in different parts of India during the last three decades",
+      "section": "Vulnerability to Disasters",
+      "year": 2021
+    },
+    {
+      "questionText": "Vulnerability is an essential element for defining disaster impacts and its threat to people. How and in what ways can vulnerability to disasters be characterized? Discuss different types of vulnerability with reference to disasters.",
+      "section": "Vulnerability to Disasters",
+      "year": 2019
+    },
+    {
+      "questionText": "The frequency of earthquakes appears to have increased in the Indian subcontinent. However, India's preparedness for mitigating their impact has significant gaps. Discuss various aspects.",
+      "section": "Vulnerability to Disasters",
+      "year": 2015
+    },
+    {
+      "questionText": "How important are vulnerability and risk assessment for pre-disaster management. As an administrator, what are key areas that you would focus in a disaster management",
+      "section": "Vulnerability to Disasters",
+      "year": 2013
+    },
+    {
+      "questionText": "Comment on the National Wetland Conservation Programme initiated by the Government of India and name a few India's wetlands of international importance included in the Ramsar Sites.",
+      "section": "Wetlands",
+      "year": 2023
+    },
+    {
+      "questionText": "What is wetland? Explain the Ramsar concept of 'wise use' in the context of wetland conservation. Cite two examples of Ramsar sites from India.",
+      "section": "Wetlands",
+      "year": 2018
+    }
+  ],
+  "Security": [
+    {
+      "questionText": "India has a long and troubled border with China and Pakistan fraught with contentious issues. Examine the conflicting issues and security challenges along the border. Also give out the development being undertaken in these areas under the Border Area Development Programme (BADP) and Border Infrastructure and Management (BIM) Scheme.",
+      "section": "Border Area Management",
+      "year": 2024
+    },
+    {
+      "questionText": "The use of unmanned aerial vehicles (UAVs) by our adversaries across the borders to ferry arms / ammunitions, drugs, etc., is a serious threat to internal security. Comment on the measures being taken to tackle this threat.",
+      "section": "Border Area Management",
+      "year": 2023
+    },
+    {
+      "questionText": "For effective border area management, discuss the steps required to be taken to deny local support to militants and also suggest ways to manage favourable perception among locals",
+      "section": "Border Area Management",
+      "year": 2020
+    },
+    {
+      "questionText": "Cross-border movement of insurgents is only one of the several security challenges facing the policing of the border in North-East India. Examine the various challenges currently emanating across the India-Myanmar border. Also, discuss the steps to counter the challenges.",
+      "section": "Border Area Management",
+      "year": 2019
+    },
+    {
+      "questionText": "Border management is a complex task due to difficult terrain and hostile relations with some countries. Elucidate the challenges and strategies for effective border management.",
+      "section": "Border Area Management",
+      "year": 2016
+    },
+    {
+      "questionText": "How far are India's internal security challenges linked with border management, particularly in view of the long porous borders with most countries of South Asia and Myanmar?",
+      "section": "Border Area Management",
+      "year": 2013
+    },
+    {
+      "questionText": "Mob violence is emerging as a serious law and order problem in India. By giving suitable examples, analyze the causes and consequences of such violence.",
+      "section": "Chapter 3: Organised Crime–Terrorism Nexus and Terror Financing",
+      "year": 2017
+    },
+    {
+      "questionText": "Describe the context and salient features of the Digital Personal Data Protection Act, 2023",
+      "section": "Chapter 5: Cyber Security and Emerging Digital Threats",
+      "year": 2024
+    },
+    {
+      "questionText": "Data security has assumed significant importance in the digitized world due to rising cyber crimes. The Justice B. N. Srikrishna Committee Report addresses issues related to data security. What, in your view, are the strengths and weaknesses of the Report relating to protection of personal data in cyber space?",
+      "section": "Chapter 5: Cyber Security and Emerging Digital Threats",
+      "year": 2018
+    },
+    {
+      "questionText": "What are the different elements of cyber security? Keeping in view the challenges in cyber security, examine the extent to which India has successfully developed a comprehensive National Cyber Security Strategy.",
+      "section": "Cyber Security",
+      "year": 2022
+    },
+    {
+      "questionText": "Keeping in view India's internal security, analyse the impact of cross-border cyber attacks. Also, discuss defensive measures against these sophisticated attacks.",
+      "section": "Cyber Security",
+      "year": 2021
+    },
+    {
+      "questionText": "Discuss different types of cyber crimes and measures required to be taken to fight the menace",
+      "section": "Cyber Security",
+      "year": 2020
+    },
+    {
+      "questionText": "What is the CyberDome Project? Explain how it can be useful in controlling internet crimes in India",
+      "section": "Cyber Security",
+      "year": 2019
+    },
+    {
+      "questionText": "Discuss the potential threats of Cyber attack and the security framework to prevent it.",
+      "section": "Cyber Security",
+      "year": 2017
+    },
+    {
+      "questionText": "Considering the threats cyberspace poses for the country, India needs a \"Digital Armed Force\" to prevent crimes. Critically evaluate the National Cyber Security Policy, 2013 outlining the challenges perceived in its effective implementation.",
+      "section": "Cyber Security",
+      "year": 2015
+    },
+    {
+      "questionText": "Cyber warfare is considered by some defense analysts to be a larger threat than even Al Qaeda or terrorism. What do you understand by Cyber warfare? Outline the cyber threats which India is vulnerable to and bring out the state of the country's preparedness to deal with the same.",
+      "section": "Cyber Security",
+      "year": 2013
+    },
+    {
+      "questionText": "Social media and encrypting messaging services pose a serious security challenge. What measures have been adopted at various levels to address the security implications of social media? Also suggest any other remedies to address the problem.",
+      "section": "Digital Media and Security Threats",
+      "year": 2024
+    },
+    {
+      "questionText": "Religious indoctrination via digital media has resulted in Indian youth joining the ISIS. What is ISIS and its mission? How can ISIS be dangerous for the internal security of our country?",
+      "section": "Digital Media and Security Threats",
+      "year": 2015
+    },
+    {
+      "questionText": "What are social networking site and what security implications do these sites present?",
+      "section": "Digital Media and Security Threats",
+      "year": 2013
+    },
+    {
+      "questionText": "Analyse the multidimensıonal challenges posed by external state and non-state actors, to the internal security of India. Also, discuss measures required to be taken to combat these threats",
+      "section": "External State and Non-State Actors",
+      "year": 2021
+    },
+    {
+      "questionText": "The China-Pakistan Economic Corridor (CPEC) is viewed as a cardinal subset of China's larger 'One Belt One Road' initiative. Give a brief description of CPEC and enumerate the reasons why India has distanced itself from the same.",
+      "section": "External State and Non-State Actors",
+      "year": 2018
+    },
+    {
+      "questionText": "Use of Internet and social media by non-state actors for subversive activities is a major concern. How have these have misused in the recent past? Suggest effective guidelines to curb the above threat.",
+      "section": "External State and Non-State Actors",
+      "year": 2016
+    },
+    {
+      "questionText": "The diverse nature of India as a multireligious and multi-ethnic society is not immune to the impact of radicalism which has been in her neighbourhood. Discuss along with the strategies to be adopted to counter this environment.",
+      "section": "External State and Non-State Actors",
+      "year": 2014
+    },
+    {
+      "questionText": "China and Pakistan have entered into an agreement for development of an economic corridor. What thread does it dispose for India's security? Critically examine.",
+      "section": "External State and Non-State Actors",
+      "year": 2014
+    },
+    {
+      "questionText": "How illegal transborder migration does pose a threat to India's security? Discuss the strategies to curb this, bring out the factors which give impetus to such migration.",
+      "section": "Illegal Migration",
+      "year": 2014
+    },
+    {
+      "questionText": "The Government of India recently stated that Left Wing Extremism (LWE) will be eliminated by 2026. What do you understand by LWE and how are the people affected by it? What measures have been taken by the government to eliminate LWE?",
+      "section": "LWE",
+      "year": 2025
+    },
+    {
+      "questionText": "Naxalism is a social, economic and developmental issue manifesting as a violent internal security threat. In this context, discuss the emerging issues and suggest a multilayered strategy to tackle the menace of Naxalism.",
+      "section": "LWE",
+      "year": 2022
+    },
+    {
+      "questionText": "What are the sound determinants of left-wing extremism in Eastern part of India? What strategy should Government of India, civil administration and security forces adopt to counter the threat in the affected areas?",
+      "section": "LWE",
+      "year": 2020
+    },
+    {
+      "questionText": "Left Wing Extremism (LWE) is showing a downward trend, but still affects many parts of the country. Briefly explain the Government of India's approach to counter the challenges posed by LWE.",
+      "section": "LWE",
+      "year": 2018
+    },
+    {
+      "questionText": "The persisting drives of the government for development of large industries in backward areas have resulted in isolating the tribal population and the farmers who face multiple displacements with Malkangiri and Naxalbari foci, discuss the corrective strategies needed to win the left wing extremism (LWE) doctrine affected citizens back into the mainstream of social and economic growth.",
+      "section": "LWE",
+      "year": 2015
+    },
+    {
+      "questionText": "Article 244 of Indian Constitution relates to Administration of Scheduled areas and tribal areas. Analyze the impact of non-implementation of the provisions of Fifth Schedule on the growth of Left Wing Extremism",
+      "section": "LWE",
+      "year": 2013
+    },
+    {
+      "questionText": "Why is maritime security vital to protect India's sea trade? Discuss maritime and coastal security challenges and the way forward.",
+      "section": "Maritime Security Challenges",
+      "year": 2025
+    },
+    {
+      "questionText": "What are the maritime security challenges in India? Discuss the organisational, technical and procedural initiatives taken to improve the maritime security.",
+      "section": "Maritime Security Challenges",
+      "year": 2022
+    },
+    {
+      "questionText": "In 2012, the longitudinal marking of the high-risk areas for piracy was moved from 65° East to 78° east in the Arabian Sea by International Maritime organisation. What impact does this have on India's maritime security concerns?",
+      "section": "Maritime Security Challenges",
+      "year": 2014
+    },
+    {
+      "questionText": "Discuss how emerging technologies and globalisation contribute to money laundering. Elaborate measures to tackle the problem of money laundering both at national and international levels.",
+      "section": "Money Laundering",
+      "year": 2021
+    },
+    {
+      "questionText": "Money laundering poses a serious threat to country's economic sovereignty. What is its significance for India and what steps are required to be taken to control this menace?",
+      "section": "Money Laundering",
+      "year": 2013
+    },
+    {
+      "questionText": "Explain how narco-terrorism has emerged as a serious threat across the country. Suggest suitable measures to counter narco-terrorism.",
+      "section": "Narco-Terrorism",
+      "year": 2024
+    },
+    {
+      "questionText": "India's proximity to two of the world's biggest illicit opium-growing states has enhanced her internal security concerns. Explain the linkages between drug trafficking and other illicit activities such as gunrunning, money laundering and human trafficking. What counter-measures should be taken to prevent the same?",
+      "section": "Narco-Terrorism",
+      "year": 2018
+    },
+    {
+      "questionText": "What are the major challenges to internal security and peace process in the North-Eastern States? Map the various peace accords and agreements initiated by the government in the past decade.",
+      "section": "North East Insurgency",
+      "year": 2025
+    },
+    {
+      "questionText": "The north-eastern region of India has been infested with insurgency for a very long time. Analyze the major reasons for the survival of armed insurgency in this region.",
+      "section": "North East Insurgency",
+      "year": 2017
+    },
+    {
+      "questionText": "Terrorism is a global scourge. How has it manifested in India? Elaborate with contemporary examples. What are the counter measures adopted by the State? Explain.",
+      "section": "Organized Crime and Terrorism",
+      "year": 2025
+    },
+    {
+      "questionText": "Winning of 'Hearts and Minds' in terrorism-affected areas is an essential step in restoring the trust of the population. Discuss the measures adopted by the Government in this respect as part of the conflict resolution in Jammu and Kashmir.",
+      "section": "Organized Crime and Terrorism",
+      "year": 2023
+    },
+    {
+      "questionText": "Discuss the types of organised crimes. Describe the linkages between terrorists and organised crime that exist at the national and transnational levels.",
+      "section": "Organized Crime and Terrorism",
+      "year": 2022
+    },
+    {
+      "questionText": "Analyse the complexity and intensity of terrorism, its causes, linkages and obnoxious nexus. Also, suggest measures required to be taken to eradicate the menace of terrorism",
+      "section": "Organized Crime and Terrorism",
+      "year": 2021
+    },
+    {
+      "questionText": "The banning of 'Jamaat-e – islaami' in Jammu and Kashmir brought into focus the role of over-ground workers (OGWs) in assisting terrorist organizations. Examine the role played by OGWs in assisting terrorist organizations in insurgency affected areas. Discuss measures to neutralize the influence of OGWs.",
+      "section": "Organized Crime and Terrorism",
+      "year": 2019
+    },
+    {
+      "questionText": "The terms 'Hot Pursuit' and 'Surgical Strikes' are often used in connection with armed action against terrorist attacks. Discuss the strategic impact of such actions.",
+      "section": "Organized Crime and Terrorism",
+      "year": 2016
+    },
+    {
+      "questionText": "Terrorism is emerging as a competitive industry over the last few decades. Analyse the above statement.",
+      "section": "Organized Crime and Terrorism",
+      "year": 2016
+    },
+    {
+      "questionText": "What are the internal security challenges being faced by India? Give out the role of Central Intelligence and Investigative Agencies tasked to counter such threats.",
+      "section": "Security Forces",
+      "year": 2023
+    },
+    {
+      "questionText": "Analyze internal security threats and transborder crimes along Myanmar, Bangladesh and Pakistan borders including Line of Control (LoC). Also discuss the role played by various security forces in this regard",
+      "section": "Security Forces",
+      "year": 2020
+    },
+    {
+      "questionText": "Indian government has recently strengthened the anti-terrorism laws by amending the unlawful activities (Prevention) Act (UAPA), 1967 and the NIA Act. Analyze the changes in the context of prevailing security environment while discussing the scope and reasons for opposing the UAPA by human rights organizations.",
+      "section": "Security Forces",
+      "year": 2019
+    },
+    {
+      "questionText": "Human rights activists constantly highlight the view that the Armed Forces (Special Powers) Act, 1958 (AFSPA) is a draconian act leading to cases of human rights abuses by the security forces. What sections of AFSPA are opposed by the activists? Critically evaluate the requirement with reference to the view held by the Apex Court.",
+      "section": "Security Forces",
+      "year": 2015
+    },
+    {
+      "questionText": "Give out the major sources of terror funding in India and the efforts being made to curtail these sources. In the light of this, also discuss the aim and objective of the 'No Money for Terror (NMFT)' Conference recently held at New Delhi in November 2022.",
+      "section": "Terror Financing",
+      "year": 2023
+    },
+    {
+      "questionText": "The scourge of terrorism is a grave challenge to national security. What solutions do you suggest to curb this growing menace? What are the major sources of terrorist funding?",
+      "section": "Terror Financing",
+      "year": 2017
+    }
+  ]
+}
