@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import User from '../models/User.js';
+import { openPeopleDb, closePeopleDb } from '../config/peopleDb.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,6 +83,7 @@ async function importData() {
 
   console.log("Connecting to MongoDB...");
   await mongoose.connect(uri);
+  await openPeopleDb(); // users live in the people cluster
   console.log("Connected to MongoDB.");
 
   try {
@@ -191,6 +193,7 @@ async function importData() {
     console.error("Error during database import operation:", err);
   } finally {
     await mongoose.connection.close();
+    await closePeopleDb();
     console.log("Database connection closed.");
   }
 }
