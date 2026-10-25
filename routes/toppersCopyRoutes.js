@@ -8,6 +8,7 @@ import {
   startCompendiumJob,
   commitCompendiumJob,
   startPyqJob,
+  startPyqJsonJob,
   commitPyqJob,
   getJobStatus,
   updateToppersCopy,
@@ -16,6 +17,13 @@ import {
   listToppersPyqs,
   updateToppersPyq,
   deleteToppersPyq,
+  bulkDeleteToppersPyqs,
+  generateToppersPyqAnswer,
+  formatToppersPyqAnswerText,
+  updateToppersPyqAnswer,
+  uploadToppersPyqAnswerImage,
+  deleteToppersPyqAnswerImage,
+  streamToppersPyqAnswerImage,
   listSubjects,
   listTopics,
   getToppersCopy,
@@ -35,6 +43,12 @@ const storage = multer.diskStorage({
   },
 });
 const uploadPdf = multer({ storage, limits: { fileSize: 300 * 1024 * 1024 } }); // 300MB
+const uploadImage = multer({
+  storage,
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
+  fileFilter: (req, file, cb) =>
+    cb(/^image\/(png|jpe?g|webp|gif)$/i.test(file.mimetype) ? null : new Error('Only PNG/JPG/WebP/GIF images'), true),
+});
 
 const router = express.Router();
 
@@ -42,13 +56,22 @@ const router = express.Router();
 router.post('/admin/compendium/start', authenticateToken, uploadPdf.single('pdf'), startCompendiumJob);
 router.post('/admin/compendium/:jobId/commit', authenticateToken, commitCompendiumJob);
 router.post('/admin/pyq/start', authenticateToken, uploadPdf.single('pdf'), startPyqJob);
+router.post('/admin/pyq/start-json', authenticateToken, uploadPdf.single('json'), startPyqJsonJob);
 router.post('/admin/pyq/:jobId/commit', authenticateToken, commitPyqJob);
 router.get('/admin/jobs/:jobId', authenticateToken, getJobStatus);
 
 // -------- Admin: committed PYQ browse / edit / delete --------
 router.get('/admin/pyqs', authenticateToken, listToppersPyqs);
+router.post('/admin/pyqs/bulk-delete', authenticateToken, bulkDeleteToppersPyqs);
 router.patch('/admin/pyqs/:id', authenticateToken, updateToppersPyq);
 router.delete('/admin/pyqs/:id', authenticateToken, deleteToppersPyq);
+
+// -------- Admin: per-PYQ house-style model answer --------
+router.post('/admin/pyqs/:id/answer', authenticateToken, generateToppersPyqAnswer);
+router.post('/admin/pyqs/:id/answer/format', authenticateToken, formatToppersPyqAnswerText);
+router.patch('/admin/pyqs/:id/answer', authenticateToken, updateToppersPyqAnswer);
+router.post('/admin/pyqs/:id/answer/images', authenticateToken, uploadImage.single('image'), uploadToppersPyqAnswerImage);
+router.delete('/admin/pyqs/:id/answer/images/:imageId', authenticateToken, deleteToppersPyqAnswerImage);
 
 // -------- Admin: direct CRUD + analysis --------
 router.patch('/admin/:id', authenticateToken, updateToppersCopy);
@@ -58,6 +81,7 @@ router.post('/admin/:id/questions/:qid/analyze', authenticateToken, analyzeQuest
 // -------- Student / admin: read + stream --------
 router.get('/subjects', authenticateToken, listSubjects);
 router.get('/topics', authenticateToken, listTopics);
+router.get('/pyqs/:id/answer/image/:imageId', authenticateToken, streamToppersPyqAnswerImage);
 router.get('/:id', authenticateToken, getToppersCopy);
 router.get('/:id/pdf', authenticateToken, streamToppersCopyPdf);
 
