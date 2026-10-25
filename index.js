@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import { connectDB } from './config/db.js';
+import { startMcqSweeper } from './utils/mcqAttempts.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import questionRoutes from './routes/questionRoutes.js';
@@ -46,6 +47,9 @@ app.use((req, res, next) => {
 // Initialize Database Connection
 connectDB();
 
+// Auto-submits timed MCQ attempts nobody came back to (see utils/mcqAttempts.js)
+startMcqSweeper();
+
 // Middleware to set no-cache headers for index.html
 app.use((req, res, next) => {
   if (req.path === '/' || req.path === '/index.html') {
@@ -59,8 +63,14 @@ app.use((req, res, next) => {
 // Serve static frontend files from Vite build directory
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Serve uploaded course PDF files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Only legacy payment-screenshot images are still served from disk. Everything else under uploads/
+// (temp course uploads, PDF-editor copies of raw course PDFs) used to be public to anyone who knew or
+// guessed a URL; those now go through authenticated API routes only.
+app.use('/uploads/screenshots', express.static(path.join(__dirname, 'uploads', 'screenshots')));
+
+// We sit behind a reverse proxy in production; trusting one hop makes req.ip the real client address
+// (used for the download audit log) without letting clients spoof arbitrary X-Forwarded-For chains.
+app.set('trust proxy', 1);
 
 // Mount Layered Routes
 app.use('/api/auth', authRoutes);
