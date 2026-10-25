@@ -43,6 +43,7 @@ import ToppersCopyJob from '../models/ToppersCopyJob.js';
 import { requireAdmin } from './progressController.js';
 import { enhancementsByAnswer } from './toppersEnhancementController.js';
 import { bestPartsByQuestion } from './toppersBestPartController.js';
+import { valueAdditionsFor, deleteValueAdditionsOf } from './toppersValueAdditionController.js';
 import { loadTopicPdf } from '../utils/toppersEnhancement.js';
 import {
   runJsonExtraction,
@@ -1512,6 +1513,7 @@ export const deleteToppersCopy = async (req, res) => {
     const doc = await ToppersCopy.findByIdAndDelete(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Not found' });
     res.json({ message: `Deleted "${doc.topic}".` });
+    deleteValueAdditionsOf(doc._id).catch((e) => console.warn('value addition cleanup failed:', e.message));
   } catch (err) {
     console.error('deleteToppersCopy error:', err);
     res.status(500).json({ error: 'Delete failed' });
@@ -1664,6 +1666,7 @@ export const getToppersCopy = async (req, res) => {
 
     const enhancements = await enhancementsByAnswer(doc._id, { admin: viewerIsAdmin });
     const bestParts = await bestPartsByQuestion(doc);
+    const valueAdditions = await valueAdditionsFor(doc._id, { admin: viewerIsAdmin });
     const questions = (doc.questions || [])
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -1714,6 +1717,7 @@ export const getToppersCopy = async (req, res) => {
           pyqAnswerStatus: !answer ? 'none' : answer.published ? 'published' : 'draft',
         };
       }),
+      valueAdditions,
     });
   } catch (err) {
     console.error('getToppersCopy error:', err);
