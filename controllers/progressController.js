@@ -8,6 +8,7 @@ import PyqProgress from '../models/PyqProgress.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
 import { findMatchingPyqsForTagCells } from '../utils/tagMatcher.js';
+import { userOwnsCourse } from '../utils/courseAccess.js';
 
 const isAdminEmail = (email) => {
   return [process.env.ADMIN_EMAIL, process.env.ADMIN_EMAIL1, process.env.ADMIN_EMAIL2]
@@ -31,13 +32,11 @@ export const isAdminRequest = async (req) => {
   return !!user && isAdminEmail(user.email);
 };
 
-// Admin, or (course has Progress enabled AND user has it in purchasedCourses/interestedCourses).
+// Admin, or (course has Progress enabled AND the user owns it - same rule as downloads, see utils/courseAccess.js).
 const hasCourseAccess = (user, course) => {
   if (isAdminEmail(user.email)) return true;
   if (!course.progressEnabled) return false;
-  const hasPurchased = user.purchasedCourses.some(id => id.toString() === course._id.toString());
-  const hasInterest = user.interestedCourses.some(cId => cId.toLowerCase() === course.courseId.toLowerCase());
-  return hasPurchased || hasInterest;
+  return userOwnsCourse(user, course);
 };
 
 const normalizeHeader = (key) => key.toLowerCase().trim().replace(/_/g, ' ').replace(/\s+/g, ' ');
@@ -115,10 +114,15 @@ export const upsertTopicsAndQuestions = async (course, fileIndex, rows) => {
       skippedRows.push({ row: rowNum, reason: 'Missing question text' });
       continue;
     }
-    const pageNum = Number(row.pageNumber);
-    if (!row.pageNumber || isNaN(pageNum) || pageNum <= 0) {
-      skippedRows.push({ row: rowNum, reason: 'Missing or invalid page number' });
-      continue;
+    // pageNumber is optional (content-index style checklists have no page numbers to show);
+    // when provided it must be a valid positive number.
+    let pageNum = null;
+    if (row.pageNumber !== undefined && row.pageNumber !== null && row.pageNumber !== '') {
+      pageNum = Number(row.pageNumber);
+      if (isNaN(pageNum) || pageNum <= 0) {
+        skippedRows.push({ row: rowNum, reason: 'Invalid page number' });
+        continue;
+      }
     }
 
     const nameKey = topicName.toLowerCase();
