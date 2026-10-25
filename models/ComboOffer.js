@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { peopleConn } from '../config/peopleDb.js';
 
 const comboOfferSchema = new mongoose.Schema({
   label: { type: String, required: true },
@@ -9,4 +10,4 @@ const comboOfferSchema = new mongoose.Schema({
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 
-export default mongoose.model('ComboOffer', comboOfferSchema);
+export default peopleConn.model('ComboOffer', comboOfferSchema);
