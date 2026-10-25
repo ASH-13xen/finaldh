@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// AI-draft the Economy Master File extras ("Real-world link" facts + "Beyond the book" research)
+// AI-draft the Economy Master File extras ("Conceptual depth" facts + "Additional facts & peripheral knowledge" research)
 // for every topic in a theme that has none yet.
 //
 //   node scripts/generate_economy_extras.mjs --theme monetary-policy [--limit 5] [--redraft] [--concurrency 3] [--dry-run]
