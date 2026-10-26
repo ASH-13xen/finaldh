@@ -16,14 +16,16 @@ const quizResponseSchema = new mongoose.Schema({
 //   topic  -> every question tagged `topic`, in seq order
 //   random -> a random sample of `questionIds.length` questions
 //   all    -> every question in the subject in seq order
+//   bookmarks -> the student's bookmarked questions (UserNote), newest bookmark first
+//   mistakes  -> questions whose latest checked answer was wrong, most recent first
 // The student checks each answer as they go, in every mode.
 // At most one non-completed topic/all attempt per (user, subject, mode, topic) — startAttempt
-// resumes it; random attempts never resume.
+// resumes it; random/bookmarks/mistakes attempts are one-shot and never resume.
 const quizAttemptSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   subject: { type: String, required: true },
 
-  mode: { type: String, enum: ['topic', 'random', 'all'], required: true },
+  mode: { type: String, enum: ['topic', 'random', 'all', 'bookmarks', 'mistakes'], required: true },
   topic: { type: String, default: null },                 // set only when mode === 'topic'
 
   // The ordered question set for this attempt, snapshotted at creation.

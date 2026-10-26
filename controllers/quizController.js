@@ -5,6 +5,7 @@
 //   topic  -> every question for one topic, in order
 //   random -> a random sample (size 10/25/50/100)
 //   all    -> the whole pool in order, resumable
+//   bookmarks / mistakes -> the student's own revision sets (see reviewSetIds), one-shot
 // In every mode the student picks an option and hits "Check" to reveal the answer + why.
 //
 // Separate from the MCQ Test feature (mcqController.js). Secrets (correctKey / whyCorrect) are
@@ -14,8 +15,11 @@ import mongoose from 'mongoose';
 import QuizQuestion from '../models/QuizQuestion.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import QuizReport from '../models/QuizReport.js';
+import UserNote from '../models/UserNote.js';
 
 const RANDOM_SIZES = [10, 25, 50, 100];
+const REVIEW_MODES = ['bookmarks', 'mistakes'];
+const REVIEW_SET_MAX = 200;
 const DEFAULT_SUBJECT = 'Geography';
 const MISC_TOPIC = 'Miscellaneous';
 const PAGE_MAX = 50;
@@ -87,13 +91,56 @@ export const listTopics = async (req, res) => {
   }
 };
 
+// Question ids for a student's revision set, newest first, only questions that still exist.
+//   bookmarks -> ☆'d in the runner / My Notes (UserNote kind=bookmark, refType=qb_question)
+//   mistakes  -> the LATEST recorded answer to the question was wrong — getting it right in a
+//                later attempt drops it off the list on its own.
+const reviewSetIds = async (userId, subject, mode) => {
+  let ids;
+  if (mode === 'bookmarks') {
+    const rows = await UserNote.find({ user: userId, kind: 'bookmark', refType: 'qb_question', 'context.subject': subject })
+      .sort({ createdAt: -1 })
+      .select('ref.quizQuestion')
+      .lean();
+    ids = rows.map((r) => r.ref?.quizQuestion).filter(Boolean);
+  } else {
+    const rows = await QuizAttempt.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId), subject } },
+      { $unwind: '$responses' },
+      { $match: { 'responses.selectedKey': { $ne: null }, 'responses.answeredAt': { $ne: null } } },
+      { $sort: { 'responses.answeredAt': -1 } },
+      { $group: { _id: '$responses.question', isCorrect: { $first: '$responses.isCorrect' }, at: { $first: '$responses.answeredAt' } } },
+      { $match: { isCorrect: false } },
+      { $sort: { at: -1 } }
+    ]);
+    ids = rows.map((r) => r._id);
+  }
+  if (!ids.length) return [];
+  const alive = new Set(
+    (await QuizQuestion.find({ _id: { $in: ids }, subject }).select('_id').lean()).map((d) => String(d._id))
+  );
+  return ids.filter((id) => alive.has(String(id))).slice(0, REVIEW_SET_MAX);
+};
+
+// GET /api/quiz/review-sets?subject=Geography -> { bookmarks, mistakes } (question counts)
+export const reviewSetCounts = async (req, res) => {
+  try {
+    const subject = req.query.subject || DEFAULT_SUBJECT;
+    const [bookmarks, mistakes] = await Promise.all(REVIEW_MODES.map((m) => reviewSetIds(req.userId, subject, m)));
+    res.json({ subject, bookmarks: bookmarks.length, mistakes: mistakes.length, max: REVIEW_SET_MAX });
+  } catch (err) {
+    console.error('quiz reviewSetCounts error:', err);
+    res.status(500).json({ error: 'Failed to load revision sets' });
+  }
+};
+
 // POST /api/quiz/attempts  { subject, mode, topic?, size? }
 export const startAttempt = async (req, res) => {
   try {
     const subject = req.body?.subject || DEFAULT_SUBJECT;
     const mode = req.body?.mode;
-    if (!['topic', 'random', 'all'].includes(mode)) {
-      return res.status(400).json({ error: 'mode must be topic, random or all' });
+    if (!['topic', 'random', 'all', ...REVIEW_MODES].includes(mode)) {
+      return res.status(400).json({ error: 'mode must be topic, random, all, bookmarks or mistakes' });
     }
 
     let topic = null;
@@ -129,6 +176,17 @@ export const startAttempt = async (req, res) => {
       const qs = await QuizQuestion.find({ subject }).sort({ seq: 1 }).select('_id');
       if (qs.length === 0) return res.status(404).json({ error: 'No questions for this subject' });
       questionIds = qs.map((q) => q._id);
+    } else if (REVIEW_MODES.includes(mode)) {
+      // A revision set is rebuilt fresh each time (the set itself changes as the student
+      // bookmarks / fixes mistakes), so retire any earlier in-progress run of it.
+      await QuizAttempt.updateMany(
+        { user: req.userId, subject, mode, status: 'in-progress' },
+        { status: 'completed', completedAt: new Date() }
+      );
+      questionIds = await reviewSetIds(req.userId, subject, mode);
+      if (questionIds.length === 0) {
+        return res.status(404).json({ error: mode === 'bookmarks' ? 'You have no bookmarked questions yet' : 'No mistakes to revise — nice work' });
+      }
     } else {
       // random = a one-shot test. Never resume; retire any earlier in-progress random test so
       // "Start test" always gives a fresh set of the requested size.
@@ -465,6 +523,8 @@ export const listAttempts = async (req, res) => {
         label:
           a.mode === 'topic' ? `Topic · ${a.topic}`
           : a.mode === 'random' ? `Random test (${a.totalQuestions})`
+          : a.mode === 'bookmarks' ? `Bookmarked (${a.totalQuestions})`
+          : a.mode === 'mistakes' ? `My mistakes (${a.totalQuestions})`
           : 'All questions',
         status: a.status,
         score: a.score,

@@ -8,7 +8,8 @@ import {
   completeAttempt,
   getAttempt,
   listAttempts,
-  reportQuestion
+  reportQuestion,
+  reviewSetCounts
 } from '../controllers/quizController.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 router.get('/topics', listTopics);
+router.get('/review-sets', reviewSetCounts);
 
 router.get('/attempts', listAttempts);
 router.post('/attempts', startAttempt);
