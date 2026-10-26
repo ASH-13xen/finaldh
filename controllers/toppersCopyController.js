@@ -42,6 +42,7 @@ import ToppersPyq from '../models/ToppersPyq.js';
 import ToppersCopyJob from '../models/ToppersCopyJob.js';
 import { requireAdmin } from './progressController.js';
 import { enhancementsByAnswer } from './toppersEnhancementController.js';
+import { loadTopicPdf } from '../utils/toppersEnhancement.js';
 import {
   runJsonExtraction,
   assertAiConfigured,
@@ -1732,5 +1733,54 @@ export const streamToppersCopyPdf = async (req, res) => {
   } catch (err) {
     console.error('streamToppersCopyPdf error:', err);
     res.status(500).json({ error: 'Server error streaming PDF' });
+  }
+};
+
+// GET /admin/:id/questions/:qid/export-pages[?answer=<idx>]
+// Admin PDF export (built in the browser): returns a small PDF holding only the
+// pages of this question's answer copies, so the client never pulls the whole
+// compendium. X-Export-Pages lists the absolute page number of each returned page.
+export const exportQuestionPages = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const doc = await ToppersCopy.findById(req.params.id).select('pdfKey questions').lean();
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!doc.pdfKey?.startsWith('r2://')) return res.status(400).json({ error: 'This topic has no source PDF' });
+
+    const question = (doc.questions || []).find((q) => String(q._id) === req.params.qid);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+
+    let answers = question.answers || [];
+    if (req.query.answer != null && req.query.answer !== '') {
+      const one = answers[Number(req.query.answer)];
+      if (!one) return res.status(404).json({ error: 'Answer not found' });
+      answers = [one];
+    }
+
+    const srcDoc = await loadTopicPdf(doc);
+    const total = srcDoc.getPageCount();
+    const wanted = new Set();
+    for (const a of answers) {
+      const lo = Math.max(1, a.startPage || 0);
+      const hi = Math.min(total, a.endPage || 0);
+      for (let p = lo; p <= hi; p++) wanted.add(p);
+    }
+    const pages = [...wanted].sort((a, b) => a - b);
+    if (!pages.length) return res.status(400).json({ error: 'This question has no answer pages' });
+
+    const out = await PDFDocument.create();
+    const copied = await out.copyPages(srcDoc, pages.map((p) => p - 1));
+    copied.forEach((pg) => out.addPage(pg));
+    const bytes = await out.save();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('X-Export-Pages', pages.join(','));
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(Buffer.from(bytes));
+  } catch (err) {
+    console.error('exportQuestionPages error:', err);
+    res.status(500).json({ error: 'Server error preparing the pages' });
   }
 };
