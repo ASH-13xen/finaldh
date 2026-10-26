@@ -8,6 +8,12 @@ import {
   updateNote,
   deleteItem,
   markRevised,
+  restoreItem,
+  emptyBin,
+  listNotebooks,
+  createNotebook,
+  renameNotebook,
+  deleteNotebook,
   getSeen,
   setSeen,
   importSeen,
@@ -21,6 +27,13 @@ router.get('/items', listItems);
 router.patch('/items/:id', updateNote);
 router.delete('/items/:id', deleteItem);
 router.post('/items/:id/revised', markRevised);
+router.post('/items/:id/restore', restoreItem);
+router.delete('/bin', emptyBin);
+
+router.get('/notebooks', listNotebooks);
+router.post('/notebooks', createNotebook);
+router.patch('/notebooks/:id', renameNotebook);
+router.delete('/notebooks/:id', deleteNotebook);
 
 router.get('/bookmarks', listBookmarkKeys);
 router.post('/bookmarks/toggle', toggleBookmark);

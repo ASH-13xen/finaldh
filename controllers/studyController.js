@@ -1,13 +1,15 @@
 // studyController.js — a student's personal study layer on top of Toppers Copy and the
-// Question Bank: bookmarks, notes (selected quote + own comment), revision tracking, and the
-// server-side "seen" ticks for Toppers Copy questions.
+// Question Bank: bookmarks, notes (selected quote + own comment, or written from scratch),
+// named notebooks, a 30-day "Recently deleted" bin, revision tracking, and the server-side
+// "seen" ticks for Toppers Copy questions.
 //
 // The client only ever sends a ref (ids); everything shown later (question text, topper,
 // pages, subject/topic) is looked up here and snapshotted into `context`, so a student can't
 // save a note against content that doesn't exist or smuggle in a fake title.
 
 import mongoose from 'mongoose';
-import UserNote, { REF_TYPES, SECTIONS } from '../models/UserNote.js';
+import UserNote, { REF_TYPES, SECTIONS, BIN_DAYS } from '../models/UserNote.js';
+import Notebook from '../models/Notebook.js';
 import ToppersSeen from '../models/ToppersSeen.js';
 import ToppersCopy from '../models/ToppersCopy.js';
 import ToppersPyq from '../models/ToppersPyq.js';
@@ -19,6 +21,9 @@ import User from '../models/User.js';
 const QUOTE_MAX = 4000;
 const BODY_MAX = 10000;
 const QUOTE_FROM_MAX = 80;
+const TITLE_MAX = 200;
+const NOTEBOOK_NAME_MAX = 60;
+const NOTEBOOKS_MAX = 100;
 const PAGE_MAX = 200;
 const SEEN_IMPORT_MAX = 5000;
 
@@ -137,6 +142,16 @@ const resolveRef = async (body = {}, userId) => {
   };
 };
 
+const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
+
+// A notebookId from the client -> the id if it's one of this student's notebooks, null for
+// "unfiled" (null / ''), otherwise 404.
+const ownNotebook = async (id, userId) => {
+  if (id === undefined || id === null || id === '') return null;
+  if (!isId(id) || !(await Notebook.exists({ _id: id, user: userId }))) fail(404, 'Notebook not found');
+  return id;
+};
+
 const sendError = (res, err, fallback) => {
   if (err.status) return res.status(err.status).json({ error: err.message });
   console.error(`study ${fallback}:`, err);
@@ -154,6 +169,8 @@ const shapeItem = (n, extra = {}) => ({
   quoteFrom: n.quoteFrom,
   body: n.body,
   subtopic: n.subtopic || '',
+  notebook: n.notebook || null,
+  deletedAt: n.deletedAt || null,
   revisedCount: n.revisedCount,
   lastRevisedAt: n.lastRevisedAt,
   createdAt: n.createdAt,
@@ -215,26 +232,36 @@ const attachSubtopics = async (items) => {
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// GET /api/study/items?kind=&section=&subject=&q=&skip=&limit=
+// GET /api/study/items?kind=&section=&subject=&q=&notebook=&bin=1&skip=&limit=
+// `bin=1` lists "Recently deleted" instead of the live items. Facets (the section / subject
+// counts) cover the current notebook or bin, before kind/section/subject/q narrow it.
 export const listItems = async (req, res) => {
   try {
-    const filter = { user: req.userId };
+    const bin = req.query.bin === '1';
+    const scope = { user: new mongoose.Types.ObjectId(req.userId), deletedAt: bin ? { $ne: null } : null };
+    if (isId(req.query.notebook)) {
+      // A notebook's view also shows what's filed in its sub-topics.
+      const id = new mongoose.Types.ObjectId(req.query.notebook);
+      const subs = await Notebook.find({ user: scope.user, parent: id }).distinct('_id');
+      scope.notebook = subs.length ? { $in: [id, ...subs] } : id;
+    }
+    const filter = { ...scope };
     if (['bookmark', 'note'].includes(req.query.kind)) filter.kind = req.query.kind;
     if (SECTIONS.includes(req.query.section)) filter['context.section'] = req.query.section;
     if (typeof req.query.subject === 'string' && req.query.subject) filter['context.subject'] = req.query.subject;
     const q = clip(req.query.q, 200);
     if (q) {
       const rx = new RegExp(escapeRegex(q), 'i');
-      filter.$or = [{ 'context.title': rx }, { 'context.topic': rx }, { quote: rx }, { body: rx }];
+      filter.$or = [{ 'context.title': rx }, { 'context.topic': rx }, { 'context.subject': rx }, { quote: rx }, { body: rx }];
     }
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const limit = Math.min(PAGE_MAX, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
     const [items, total, facets] = await Promise.all([
-      UserNote.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+      UserNote.find(filter).sort(bin ? { deletedAt: -1 } : { updatedAt: -1 }).skip(skip).limit(limit).lean(),
       UserNote.countDocuments(filter),
       UserNote.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(req.userId) } },
+        { $match: scope },
         { $group: { _id: { section: '$context.section', kind: '$kind', subject: '$context.subject' }, n: { $sum: 1 } } },
       ]),
     ]);
@@ -283,20 +310,27 @@ export const toggleBookmark = async (req, res) => {
   }
 };
 
-// POST /api/study/notes  { refType, …ref ids, quote?, quoteFrom?, body? }
+// POST /api/study/notes  { refType, …ref ids, quote?, quoteFrom?, body?, notebookId? }
+//                       or { refType: 'own', title?, body?, notebookId? }  (written from scratch)
 export const createNote = async (req, res) => {
   try {
-    const r = await resolveRef(req.body, req.userId);
-    const quote = clip(req.body.quote, QUOTE_MAX);
+    const own = req.body?.refType === 'own';
+    const notebook = await ownNotebook(req.body?.notebookId, req.userId);
+    const title = own ? clip(req.body.title, TITLE_MAX) : '';
+    const r = own
+      ? { refType: 'own', refKey: `own:${new mongoose.Types.ObjectId()}`, context: { section: 'own', title } }
+      : await resolveRef(req.body, req.userId);
+    const quote = own ? '' : clip(req.body.quote, QUOTE_MAX);
     const body = clip(req.body.body, BODY_MAX);
-    if (!quote && !body) return res.status(400).json({ error: 'A note needs some text' });
+    if (!quote && !body && !title) return res.status(400).json({ error: 'A note needs some text' });
     const item = await UserNote.create({
       user: req.userId,
       kind: 'note',
       ...r,
       quote,
-      quoteFrom: clip(req.body.quoteFrom, QUOTE_FROM_MAX),
+      quoteFrom: own ? '' : clip(req.body.quoteFrom, QUOTE_FROM_MAX),
       body,
+      notebook,
     });
     res.status(201).json({ item: shapeItem(item) });
   } catch (err) {
@@ -304,31 +338,171 @@ export const createNote = async (req, res) => {
   }
 };
 
-// PATCH /api/study/items/:id  { body?, quote? }  (notes only)
+// PATCH /api/study/items/:id  { notebookId? } for any item; { body?, quote?, title? } for notes
+// (title only on notes the student wrote themselves).
 export const updateNote = async (req, res) => {
   try {
-    if (!isId(req.params.id)) return res.status(404).json({ error: 'Note not found' });
-    const note = await UserNote.findOne({ _id: req.params.id, user: req.userId, kind: 'note' });
-    if (!note) return res.status(404).json({ error: 'Note not found' });
-    if (typeof req.body?.body === 'string') note.body = clip(req.body.body, BODY_MAX);
-    if (typeof req.body?.quote === 'string') note.quote = clip(req.body.quote, QUOTE_MAX);
-    if (!note.quote && !note.body) return res.status(400).json({ error: 'A note needs some text' });
-    await note.save();
-    res.json({ item: shapeItem(note) });
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Not found' });
+    const item = await UserNote.findOne({ _id: req.params.id, user: req.userId, deletedAt: null });
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    const b = req.body || {};
+    const moving = 'notebookId' in b;
+    if (moving) item.notebook = await ownNotebook(b.notebookId, req.userId);
+    const editing = item.kind === 'note' && ['body', 'quote', 'title'].some((k) => typeof b[k] === 'string');
+    if (editing) {
+      if (typeof b.body === 'string') item.body = clip(b.body, BODY_MAX);
+      if (typeof b.quote === 'string' && item.refType !== 'own') item.quote = clip(b.quote, QUOTE_MAX);
+      if (typeof b.title === 'string' && item.refType === 'own') item.context.title = clip(b.title, TITLE_MAX);
+      if (!item.quote && !item.body && !item.context.title) return res.status(400).json({ error: 'A note needs some text' });
+    }
+    // Filing into a notebook isn't an edit — don't bump it to the top of the list.
+    await item.save({ timestamps: editing });
+    res.json({ item: shapeItem(item) });
   } catch (err) {
     sendError(res, err, 'Failed to update note');
   }
 };
 
-// DELETE /api/study/items/:id
+// DELETE /api/study/items/:id — a note goes to "Recently deleted"; a bookmark, or a note
+// that's already in the bin, is removed for good.
 export const deleteItem = async (req, res) => {
   try {
     if (!isId(req.params.id)) return res.status(404).json({ error: 'Not found' });
-    const gone = await UserNote.findOneAndDelete({ _id: req.params.id, user: req.userId });
-    if (!gone) return res.status(404).json({ error: 'Not found' });
-    res.json({ ok: true, refKey: gone.refKey, kind: gone.kind });
+    const item = await UserNote.findOne({ _id: req.params.id, user: req.userId });
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    const purge = item.kind === 'bookmark' || !!item.deletedAt;
+    if (purge) {
+      await item.deleteOne();
+    } else {
+      item.deletedAt = new Date();
+      await item.save({ timestamps: false });
+    }
+    res.json({ ok: true, refKey: item.refKey, kind: item.kind, purged: purge });
   } catch (err) {
     sendError(res, err, 'Failed to delete');
+  }
+};
+
+// POST /api/study/items/:id/restore — back out of the bin. If its notebook was deleted in
+// the meantime it comes back unfiled.
+export const restoreItem = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Not found' });
+    const item = await UserNote.findOne({ _id: req.params.id, user: req.userId, deletedAt: { $ne: null } });
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    if (item.notebook && !(await Notebook.exists({ _id: item.notebook, user: req.userId }))) item.notebook = null;
+    item.deletedAt = null;
+    await item.save({ timestamps: false });
+    res.json({ item: shapeItem(item) });
+  } catch (err) {
+    sendError(res, err, 'Failed to restore');
+  }
+};
+
+// DELETE /api/study/bin — "Empty bin".
+export const emptyBin = async (req, res) => {
+  try {
+    const { deletedCount } = await UserNote.deleteMany({ user: req.userId, deletedAt: { $ne: null } });
+    res.json({ ok: true, deleted: deletedCount });
+  } catch (err) {
+    sendError(res, err, 'Failed to empty the bin');
+  }
+};
+
+// --- Notebooks ------------------------------------------------------------------------------
+
+const cleanName = (v) => clip(v, NOTEBOOK_NAME_MAX).replace(/\s+/g, ' ');
+
+// Case-insensitive "is this name taken?" among its siblings — other top-level notebooks, or
+// the other sub-topics of the same notebook (excluding the notebook being renamed).
+const nameTaken = (userId, name, parent = null, exceptId = null) => Notebook.exists({
+  user: userId,
+  parent: parent || null,
+  name: new RegExp(`^${escapeRegex(name)}$`, 'i'),
+  ...(exceptId ? { _id: { $ne: exceptId } } : {}),
+});
+const takenMsg = (parent) => (parent ? 'This notebook already has a sub-topic with that name' : 'You already have a notebook with that name');
+
+// GET /api/study/notebooks -> { notebooks: [{ _id, name, parent, count }], counts: { all, starred, bin }, binDays }
+// `count` is what's filed directly in that notebook / sub-topic; the client adds a notebook's
+// sub-topics to its total.
+export const listNotebooks = async (req, res) => {
+  try {
+    const user = new mongoose.Types.ObjectId(req.userId);
+    const [notebooks, perNotebook, starred, bin] = await Promise.all([
+      Notebook.find({ user }).collation({ locale: 'en' }).sort({ name: 1 }).lean(),
+      UserNote.aggregate([
+        { $match: { user, deletedAt: null } },
+        { $group: { _id: '$notebook', n: { $sum: 1 } } },
+      ]),
+      UserNote.countDocuments({ user, kind: 'bookmark', deletedAt: null }),
+      UserNote.countDocuments({ user, deletedAt: { $ne: null } }),
+    ]);
+    const countOf = new Map(perNotebook.map((r) => [String(r._id), r.n]));
+    res.json({
+      notebooks: notebooks.map((nb) => ({ _id: nb._id, name: nb.name, parent: nb.parent || null, count: countOf.get(String(nb._id)) || 0 })),
+      counts: { all: perNotebook.reduce((a, r) => a + r.n, 0), starred, bin },
+      binDays: BIN_DAYS,
+    });
+  } catch (err) {
+    sendError(res, err, 'Failed to load notebooks');
+  }
+};
+
+// POST /api/study/notebooks  { name, parentId? }  — with parentId it's a sub-topic of that notebook.
+export const createNotebook = async (req, res) => {
+  try {
+    const name = cleanName(req.body?.name);
+    const parentId = req.body?.parentId || null;
+    if (!name) return res.status(400).json({ error: parentId ? 'Give the sub-topic a name' : 'Give the notebook a name' });
+    if (parentId && !(isId(parentId) && await Notebook.exists({ _id: parentId, user: req.userId, parent: null }))) {
+      return res.status(404).json({ error: 'Notebook not found' });
+    }
+    if ((await Notebook.countDocuments({ user: req.userId })) >= NOTEBOOKS_MAX) {
+      return res.status(400).json({ error: `You can have up to ${NOTEBOOKS_MAX} notebooks and sub-topics` });
+    }
+    if (await nameTaken(req.userId, name, parentId)) return res.status(409).json({ error: takenMsg(parentId) });
+    const nb = await Notebook.create({ user: req.userId, name, parent: parentId });
+    res.status(201).json({ notebook: { _id: nb._id, name: nb.name, parent: nb.parent || null, count: 0 } });
+  } catch (err) {
+    sendError(res, err, 'Failed to create notebook');
+  }
+};
+
+// PATCH /api/study/notebooks/:id  { name }
+export const renameNotebook = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Notebook not found' });
+    const name = cleanName(req.body?.name);
+    if (!name) return res.status(400).json({ error: 'Give it a name' });
+    const cur = await Notebook.findOne({ _id: req.params.id, user: req.userId }, { parent: 1 }).lean();
+    if (!cur) return res.status(404).json({ error: 'Notebook not found' });
+    if (await nameTaken(req.userId, name, cur.parent, req.params.id)) return res.status(409).json({ error: takenMsg(cur.parent) });
+    const nb = await Notebook.findOneAndUpdate({ _id: req.params.id, user: req.userId }, { $set: { name } }, { returnDocument: 'after' });
+    if (!nb) return res.status(404).json({ error: 'Notebook not found' });
+    res.json({ notebook: { _id: nb._id, name: nb.name, parent: nb.parent || null } });
+  } catch (err) {
+    sendError(res, err, 'Failed to rename notebook');
+  }
+};
+
+// DELETE /api/study/notebooks/:id — the notebook goes along with its sub-topics; their items
+// stay, unfiled. Deleting a sub-topic moves its items up into the parent notebook.
+export const deleteNotebook = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Notebook not found' });
+    const gone = await Notebook.findOneAndDelete({ _id: req.params.id, user: req.userId });
+    if (!gone) return res.status(404).json({ error: 'Notebook not found' });
+    if (gone.parent) {
+      await UserNote.updateMany({ user: req.userId, notebook: gone._id }, { $set: { notebook: gone.parent } }, { timestamps: false });
+    } else {
+      const subs = await Notebook.find({ user: req.userId, parent: gone._id }).distinct('_id');
+      await Notebook.deleteMany({ user: req.userId, parent: gone._id });
+      await UserNote.updateMany({ user: req.userId, notebook: { $in: [gone._id, ...subs] } }, { $set: { notebook: null } }, { timestamps: false });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    sendError(res, err, 'Failed to delete notebook');
   }
 };
 
@@ -338,7 +512,7 @@ export const markRevised = async (req, res) => {
   try {
     if (!isId(req.params.id)) return res.status(404).json({ error: 'Not found' });
     const item = await UserNote.findOneAndUpdate(
-      { _id: req.params.id, user: req.userId },
+      { _id: req.params.id, user: req.userId, deletedAt: null },
       { $inc: { revisedCount: 1 }, $set: { lastRevisedAt: new Date() } },
       { returnDocument: 'after', timestamps: false }
     );
