@@ -22,6 +22,7 @@ const questionResponseSchema = new mongoose.Schema({
   // runner disagree with the answers it already recorded. (Attempts created before this existed have
   // neither field and fall back to a live lookup by question id.)
   questionText: { type: String },
+  statements: { type: [String], default: undefined },
   options: { type: [optionSnapshotSchema], default: undefined },
 
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'] },

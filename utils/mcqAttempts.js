@@ -85,6 +85,7 @@ export function buildResponses(questions, testsById) {
       question: q._id,
       order: i + 1,
       questionText: q.questionText,
+      statements: q.statements || [],
       options: q.options.map((o) => ({ label: o.label, text: o.text })),
       difficulty: q.difficulty,
       tags: q.tags.map((t) => ({ section: t.section, title: t.title })),
@@ -105,7 +106,7 @@ export async function attemptPayload(attempt, extra = {}) {
   const needLive = responses.filter((r) => !r.questionText).map((r) => r.question);
   const liveById = new Map();
   if (needLive.length) {
-    const live = await McqQuestion.find({ _id: { $in: needLive } }).select('questionText options');
+    const live = await McqQuestion.find({ _id: { $in: needLive } }).select('questionText statements options');
     live.forEach((q) => liveById.set(String(q._id), q));
   }
 
@@ -153,6 +154,7 @@ export async function attemptPayload(attempt, extra = {}) {
         _id: r.question,
         order: r.order,
         questionText: r.questionText ?? live?.questionText ?? '(question no longer available)',
+        statements: r.questionText ? (r.statements || []) : (live?.statements || []),
         options: r.options?.length ? r.options.map((o) => ({ label: o.label, text: o.text })) : (live?.options || [])
       };
     }),
