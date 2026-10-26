@@ -126,9 +126,8 @@ export const shapeAnalysis = (parsed) => {
       body: asArr(ma.body).map((part) => ({
         part: asStr(part.part || part.title),
         points: asArr(part.points).map((p) => ({
+          heading: asStr(p.heading || p.title),
           text: asStr(p.text),
-          tag: asStr(p.tag),
-          unconventionalBecause: asStr(p.unconventionalBecause || p.unconventional_because),
         })).filter((p) => p.text),
       })).filter((part) => part.points.length),
       wayForward: {
@@ -186,7 +185,7 @@ ${answerLines}
 
 MODEL ANSWER STRUCTURE (total 150-200 words, aim for ~180, HARD LIMIT 200 — crisp and on point, every word earns marks):
 - introduction: 20-30 words. Open with a data point, report finding or recent development on the question's theme. Load it with the subject's terminology / jargon. No throat-clearing.
-- body: 100-125 words, as bullet points, in EXACTLY 2 parts of 2-3 bullets each. Give each part a short label reflecting the question's demand (e.g. dimensions / challenges, for / against, causes / consequences). Each bullet = ONE claim fused with its evidence (report, datum, case study, example, scheme, judgment) in at most 20 words — no filler, no restating the question. Points must be unique and unconventional.
+- body: 100-125 words, as bullet points, in EXACTLY 2 parts of 2-3 bullets each. Give each part a short label reflecting the question's demand (e.g. dimensions / challenges, for / against, causes / consequences). EVERY bullet starts with its own 2-4 word "heading" naming the point (e.g. "Fiscal stress", "Federal friction"). The bullet "text" is ONE sentence of at most 20 words: lead with the theme keywords, then back the claim with a concrete example, fact, datum, case study, report, scheme or judgment woven into the sentence itself — no filler, no restating the question, and never a label like "Example:" or "[case study]". Points must be unique and unconventional.
 - wayForward: 10-15 words. Name specific recommendations from reports / committees, using the question's theme keywords.
 - conclusion: 15-25 words. Optimistic, future-facing. Use a short quote or a vision-phrase / piece of jargon if it fits naturally.
 
@@ -206,9 +205,9 @@ Return ONE JSON object, no markdown fences, EXACTLY this shape:
     "introduction": { "text": "...", "wordCount": 0, "keywords": ["3-6 theme terms used in the intro"] },
     "body": [
       { "part": "short label for part 1", "points": [
-        { "text": "claim fused with its evidence", "tag": "report | data | case-study | scheme | judgment | example | thinker", "unconventionalBecause": "one line: why most aspirants miss this" }
+        { "heading": "2-4 word heading for this point", "text": "keyword-led claim with its example / fact / case study woven in" }
       ] },
-      { "part": "short label for part 2", "points": [ { "text": "...", "tag": "...", "unconventionalBecause": "..." } ] }
+      { "part": "short label for part 2", "points": [ { "heading": "...", "text": "..." } ] }
     ],
     "wayForward": { "text": "...", "wordCount": 0, "sources": ["committee / report names cited"] },
     "conclusion": { "text": "...", "wordCount": 0, "quote": "the quote used, else \\"\\"" },
@@ -256,7 +255,7 @@ Return ONE JSON object, no markdown fences, EXACTLY this shape:
 }
 
 Rules:
-- Model answer: 150-200 words in total, never more than 200. Body: EXACTLY 2 parts, 2-3 bullets each, each bullet <= 20 words. Every point unconventional. Every point carries evidence.
+- Model answer: 150-200 words in total, never more than 200. Body: EXACTLY 2 parts, 2-3 bullets each; every bullet has a 2-4 word heading plus <= 20 words of text. Every point unconventional. Every point carries an example / fact / case study inside its sentence — no evidence-type tags or labels.
 - diagram: fill ONLY the fields for the chosen "kind"; leave the others out. "keywords" lists exactly the labels shown. Sizes: flow 4-7 nodes ("edges" reference node ids only; "hub-spoke" lists the centre node FIRST; "cycle" lists nodes in loop order with NO closing edge); table 2-4 columns and 2-5 rows (every row has the same cell count as "columns"); chart 2-6 points per series and a real "source"; quadrant 3-6 items with x and y each between -1 and 1; pyramid 3-5 levels; timeline 3-6 events.
 - Prefer "table" for any "compare / distinguish / both sides" question. Only use "chart" with figures you are confident are real.
 - answerImprovements: 4-7 items, ordered by priority (high first).
@@ -333,7 +332,7 @@ export const countWords = (s) => asStr(s).split(/\s+/).filter(Boolean).length;
 
 const withRealCounts = (ma) => {
   const intro = countWords(ma.introduction.text);
-  const body = ma.body.reduce((sum, part) => sum + part.points.reduce((t, p) => t + countWords(p.text), 0), 0);
+  const body = ma.body.reduce((sum, part) => sum + part.points.reduce((t, p) => t + countWords(p.heading) + countWords(p.text), 0), 0);
   const wf = countWords(ma.wayForward.text);
   const concl = countWords(ma.conclusion.text);
   return {
@@ -347,7 +346,7 @@ const withRealCounts = (ma) => {
 
 const buildTrimPrompt = (ma) => `
 This UPSC Mains model answer is ${ma.totalWordCount} words. Rewrite it to 170-190 words (never more than ${MAX_ANSWER_WORDS}) so it is crisp and on point.
-Keep the same structure, the same 2 body parts and their labels, and the strongest evidence (reports, data, cases, judgments). Merge or drop the weakest bullets, cut filler and repetition, keep each bullet <= 20 words. Do not add new facts.
+Keep the same structure, the same 2 body parts and their labels, a 2-4 word heading on every bullet, and the strongest evidence (reports, data, cases, judgments) woven into each sentence. Merge or drop the weakest bullets, cut filler and repetition, keep each bullet's text <= 20 words. Do not add new facts.
 Budgets: introduction 20-30 words, body 100-125, wayForward 10-15, conclusion 15-25.
 
 Return ONE JSON object, no markdown fences, in exactly the same shape as the input:

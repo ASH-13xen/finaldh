@@ -35,8 +35,10 @@ const answerSchema = new mongoose.Schema({
 //   3. learnings — transferable takeaways a student can carry to other questions.
 
 const modelAnswerPointSchema = new mongoose.Schema({
-  text: { type: String, default: '' },              // claim fused with its evidence
-  tag: { type: String, default: '' },               // report | data | case-study | scheme | judgment | example | thinker
+  heading: { type: String, default: '' },           // 2-4 word sub-heading for the bullet
+  text: { type: String, default: '' },              // keyword-led claim fused with its example / fact / case
+  // Legacy (pre 2026-10-26): no longer generated or shown, kept so older analyses still load.
+  tag: { type: String, default: '' },
   unconventionalBecause: { type: String, default: '' },
 }, { _id: false });
 
