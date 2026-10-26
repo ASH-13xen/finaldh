@@ -15,6 +15,7 @@ import pdfEditorRoutes from './routes/pdfEditorRoutes.js';
 import mcqRoutes from './routes/mcqRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import toppersCopyRoutes from './routes/toppersCopyRoutes.js';
 
 dotenv.config();
 
@@ -82,6 +83,7 @@ app.use('/api/pdf-editor', pdfEditorRoutes);
 app.use('/api/mcq', mcqRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/toppers-copy', toppersCopyRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
