@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 
 // The "enhancement layer" drawn over ONE topper's answer copy (Aspirants-Hub style
-// margin notes). It never critiques the topper — only two kinds of note:
-//   • works — green, left margin: the technique behind a stretch of lines
-//   • addon — blue, right margin: extra material that builds on the topper's point
-// plus an end-of-answer Takeaways card.
+// margin notes). Two kinds of note:
+//   • works — green, left margin: what the topper did well (incl. diagrams / layout)
+//             + how a student can reuse it
+//   • addon — blue, right margin: how the point can be made stronger, plus extra
+//             examples / cases / data and a diagram that could be drawn
+// plus an end-of-answer Takeaways card (presentation, alternate intro + conclusion).
+// Improvements are always worded as upgrades, never as faults (see CRITIQUE_RE).
 //
 // Kept in its own collection (not inside ToppersCopy.questions[].answers[]) because
 // the admin PATCH /admin/:id rewrites questions[] wholesale, which would silently
@@ -18,9 +21,16 @@ const noteSchema = new mongoose.Schema({
   yFrom: { type: Number, required: true, min: 0, max: 1 },
   yTo: { type: Number, required: true, min: 0, max: 1 },
   title: { type: String, default: '', trim: true },  // works: the technique · addon: "Enrich with…" heading
-  text: { type: String, default: '', trim: true },   // one line of explanation
+  text: { type: String, default: '', trim: true },   // works: why it works · addon: how it can be made stronger
+  use: { type: String, default: '', trim: true },    // works: how to replicate it in your own answer
   points: { type: [String], default: [] },           // addon: 1-3 concrete add-ons (report, data, case, example)
+  diagram: { type: String, default: '', trim: true },// addon: a diagram that could be drawn here (described in words)
 });
+
+const altSchema = new mongoose.Schema({
+  text: { type: String, default: '', trim: true },
+  keywords: { type: [String], default: [] },
+}, { _id: false });
 
 const toppersEnhancementSchema = new mongoose.Schema({
   toppersCopy: { type: mongoose.Schema.Types.ObjectId, ref: 'ToppersCopy', required: true },
@@ -34,6 +44,9 @@ const toppersEnhancementSchema = new mongoose.Schema({
     techniques: { type: [String], default: [] },     // what to copy from this answer
     enrichment: { type: [String], default: [] },     // reports / cases / data / quotes to add
     keywords: { type: [String], default: [] },
+    presentation: { type: [String], default: [] },   // spacing, headings, diagrams, page use
+    altIntro: { type: altSchema, default: () => ({}) },
+    altConclusion: { type: altSchema, default: () => ({}) },
   },
 
   published: { type: Boolean, default: false },      // drafts are admin-only
