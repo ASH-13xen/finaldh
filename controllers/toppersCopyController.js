@@ -42,6 +42,7 @@ import ToppersPyq from '../models/ToppersPyq.js';
 import ToppersCopyJob from '../models/ToppersCopyJob.js';
 import { requireAdmin } from './progressController.js';
 import { enhancementsByAnswer } from './toppersEnhancementController.js';
+import { bestPartsByQuestion } from './toppersBestPartController.js';
 import { loadTopicPdf } from '../utils/toppersEnhancement.js';
 import {
   runJsonExtraction,
@@ -1662,6 +1663,7 @@ export const getToppersCopy = async (req, res) => {
     if (bestTier <= 1) topicPyqs = topicPyqs.slice(0, PYQ_SECTION_FALLBACK_CAP);
 
     const enhancements = await enhancementsByAnswer(doc._id, { admin: viewerIsAdmin });
+    const bestParts = await bestPartsByQuestion(doc);
     const questions = (doc.questions || [])
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -1683,6 +1685,7 @@ export const getToppersCopy = async (req, res) => {
         })),
         subtopicId: q.subtopicId || null,
         aiAnalysis: q.aiAnalysis?.generatedAt ? q.aiAnalysis : null,
+        bestParts: bestParts.get(String(q._id)) || [],
       }));
 
     res.json({

@@ -33,7 +33,6 @@ const publicShape = (enh) => ({
     techniques: enh.takeaways?.techniques || [],
     enrichment: enh.takeaways?.enrichment || [],
     keywords: enh.takeaways?.keywords || [],
-    presentation: enh.takeaways?.presentation || [],
     altIntro: { text: enh.takeaways?.altIntro?.text || '', keywords: enh.takeaways?.altIntro?.keywords || [] },
     altConclusion: { text: enh.takeaways?.altConclusion?.text || '', keywords: enh.takeaways?.altConclusion?.keywords || [] },
   },
