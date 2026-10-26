@@ -14,6 +14,16 @@ const toppersValueAdditionSchema = new mongoose.Schema({
   pdfKey: { type: String, default: '' },              // 'r2://tc-value-addition/…' or ''
   pdfName: { type: String, default: '' },             // original file name, for the admin list
   pdfSize: { type: Number, default: 0 },
+  // Searchable notes bank parsed from an uploaded Word file (utils/valueAdditionDocx.js):
+  // { sections: [{ id, name, pyqs, keywords }], notes: [{ id, section, type, sub, title, text, cols? }] }.
+  // Sent to students only through GET /value-additions/:vid/bank, not with the topic.
+  bank: { type: mongoose.Schema.Types.Mixed, default: null },
+  bankName: { type: String, default: '' },            // original .docx name, for the admin list
+  bankStats: {
+    notes: { type: Number, default: 0 },
+    pyqs: { type: Number, default: 0 },
+    sections: { type: Number, default: 0 },
+  },
   published: { type: Boolean, default: true },        // hide a half-ready entry from students
   order: { type: Number, default: 0 },
 }, { timestamps: true });
