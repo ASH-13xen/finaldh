@@ -32,6 +32,7 @@
 // ============================================================================
 
 import fs from 'fs/promises';
+import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { PDFDocument } from 'pdf-lib';
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
@@ -40,6 +41,7 @@ import ToppersCopy from '../models/ToppersCopy.js';
 import ToppersPyq from '../models/ToppersPyq.js';
 import ToppersCopyJob from '../models/ToppersCopyJob.js';
 import { requireAdmin } from './progressController.js';
+import { enhancementsByAnswer } from './toppersEnhancementController.js';
 import {
   runJsonExtraction,
   assertAiConfigured,
@@ -1401,6 +1403,88 @@ export const updateToppersCopy = async (req, res) => {
   }
 };
 
+// PUT /admin/:id/structure — the admin's manual sub-topic grouping for one topic.
+// Body: { subtopics: [{ _id?, tempId?, name }], groups: [{ subtopic: <_id|tempId|null>, questionIds: [] }] }
+//   subtopics — the full list in display order; omit _id (send a tempId) to create one,
+//               leave one out to delete it.
+//   groups    — every question exactly once, grouped, in display order. The ungrouped
+//               group is conventionally first.
+// Only `subtopics`, each question's `subtopicId` and `order` change — never the question
+// content, answers or AI analysis, so this is safe to call however often.
+const SUBTOPIC_NAME_MAX = 120;
+const SUBTOPICS_MAX = 50;
+
+export const updateToppersCopyStructure = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const doc = await ToppersCopy.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+
+    const inSubs = Array.isArray(req.body?.subtopics) ? req.body.subtopics : null;
+    const inGroups = Array.isArray(req.body?.groups) ? req.body.groups : null;
+    if (!inSubs || !inGroups) return res.status(400).json({ error: 'subtopics[] and groups[] are required' });
+    if (inSubs.length > SUBTOPICS_MAX) return res.status(400).json({ error: `At most ${SUBTOPICS_MAX} sub-topics per topic` });
+
+    // Resolve sub-topics: keep existing _ids, mint new ones for tempIds.
+    const existingIds = new Set(doc.subtopics.map((s) => String(s._id)));
+    const keyToId = new Map();
+    const nextSubs = [];
+    const seenNames = new Set();
+    for (const s of inSubs) {
+      const name = typeof s?.name === 'string' ? s.name.trim().slice(0, SUBTOPIC_NAME_MAX) : '';
+      if (!name) return res.status(400).json({ error: 'Every sub-topic needs a name' });
+      const lower = name.toLowerCase();
+      if (seenNames.has(lower)) return res.status(400).json({ error: `Duplicate sub-topic "${name}"` });
+      seenNames.add(lower);
+      let id;
+      if (s._id) {
+        if (!existingIds.has(String(s._id))) return res.status(400).json({ error: `Unknown sub-topic id ${s._id}` });
+        id = new mongoose.Types.ObjectId(String(s._id));
+        keyToId.set(String(s._id), id);
+      } else {
+        if (!s.tempId) return res.status(400).json({ error: 'A new sub-topic needs a tempId' });
+        id = new mongoose.Types.ObjectId();
+        keyToId.set(String(s.tempId), id);
+      }
+      nextSubs.push({ _id: id, name });
+    }
+
+    // Every current question must appear exactly once.
+    const byId = new Map(doc.questions.map((q) => [String(q._id), q]));
+    const placed = new Set();
+    const ordered = [];
+    for (const g of inGroups) {
+      const key = g?.subtopic == null ? null : String(g.subtopic);
+      if (key !== null && !keyToId.has(key)) return res.status(400).json({ error: `Group refers to unknown sub-topic ${key}` });
+      for (const qid of Array.isArray(g?.questionIds) ? g.questionIds : []) {
+        const q = byId.get(String(qid));
+        if (!q) return res.status(400).json({ error: `Unknown question ${qid}` });
+        if (placed.has(String(qid))) return res.status(400).json({ error: `Question ${qid} listed twice` });
+        placed.add(String(qid));
+        ordered.push({ q, subtopicId: key === null ? null : keyToId.get(key) });
+      }
+    }
+    if (placed.size !== byId.size) {
+      return res.status(409).json({ error: 'The question list changed since you opened it — reload and try again' });
+    }
+
+    ordered.forEach(({ q, subtopicId }, i) => { q.subtopicId = subtopicId; q.order = i; });
+    doc.questions = ordered.map(({ q }) => q);
+    doc.subtopics = nextSubs;
+    await doc.save();
+
+    res.json({
+      subtopics: doc.subtopics.map((s) => ({ _id: s._id, name: s.name })),
+      questions: doc.questions.map((q) => ({ _id: q._id, questionText: q.questionText, subtopicId: q.subtopicId, order: q.order })),
+    });
+  } catch (err) {
+    console.error('updateToppersCopyStructure error:', err);
+    res.status(500).json({ error: 'Failed to save sub-topics' });
+  }
+};
+
 // DELETE /admin/:id  (leaves the R2 object in place — cheap, and avoids orphaning
 // a shared PDF; purge R2 separately if storage matters)
 export const deleteToppersCopy = async (req, res) => {
@@ -1561,6 +1645,7 @@ export const getToppersCopy = async (req, res) => {
     let topicPyqs = scored.filter((s) => s.tier >= keepFrom).map((s) => s.q);
     if (bestTier <= 1) topicPyqs = topicPyqs.slice(0, PYQ_SECTION_FALLBACK_CAP);
 
+    const enhancements = await enhancementsByAnswer(doc._id, { admin: viewerIsAdmin });
     const questions = (doc.questions || [])
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -1578,7 +1663,9 @@ export const getToppersCopy = async (req, res) => {
           curatorNote: a.curatorNote,
           startPage: a.startPage,
           endPage: a.endPage,
+          enhancement: enhancements.get(`${a.startPage}-${a.endPage}`) || null,
         })),
+        subtopicId: q.subtopicId || null,
         aiAnalysis: q.aiAnalysis?.generatedAt ? q.aiAnalysis : null,
       }));
 
@@ -1591,6 +1678,7 @@ export const getToppersCopy = async (req, res) => {
         pdfPageCount: doc.pdfPageCount,
         published: doc.published,
         questions,
+        subtopics: (doc.subtopics || []).map((s) => ({ _id: s._id, name: s.name })),
       },
       relatedPyqs: (topicPyqs.length ? topicPyqs : []).map((q) => {
         const answer = publicPyqAnswer(q.pyqAnswer, { admin: viewerIsAdmin });
