@@ -4,8 +4,8 @@
 // Text-only (question in, structured answer out) — no PDF, so this is cheap.
 // The ONLY input is the exam question itself; we never feed or copy an existing
 // published answer. Output structure mirrors the common UPSC answer format
-// (opening line -> 3-6 headed sections of claim+example bullets -> closing line
-// -> optional quote -> one small diagram). Structure is a format, not content.
+// (opening line -> 2-3 headed sections of claim+example bullets -> closing line
+// -> optional quote -> one small diagram), 150-200 words. Structure is a format, not content.
 //
 // Used by:
 //   • controllers/toppersCopyController.js  (POST /admin/pyqs/:id/answer)
@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { runJsonExtraction, getActiveModelLabel } from './aiProvider.js';
-import { shapeDiagram } from './toppersAnalysis.js';
+import { shapeDiagram, countWords, MAX_ANSWER_WORDS } from './toppersAnalysis.js';
 
 const MAX_OUTPUT_TOKENS = 6000;
 
@@ -51,9 +51,9 @@ ${year ? `Year asked: ${year}` : ''}
 ${marks ? `Marks: ${marks}` : ''}
 Question: ${questionText}
 
-STRUCTURE (total ~${marks && Number(marks) >= 15 ? '250' : '150'} words):
+STRUCTURE (total 150-200 words, aim for ~180, HARD LIMIT 200 — crisp and on point, every word earns marks):
 - openingLine: ONE sentence. A data point, report finding, definition or recent development that frames the answer. No throat-clearing.
-- sections: ${marks && Number(marks) >= 15 ? '3 to 5' : '2 to 3'} thematic sections. Each has a short "heading" reflecting a demand of the question (dimensions / challenges, causes / effects, for / against, etc.) and 2 to 4 "points". Every point is a "claim" fused with a concrete "example" (a report, datum, case study, scheme, judgment, or thinker). Points must be non-obvious.
+- sections: 2 to 3 thematic sections. Each has a short "heading" reflecting a demand of the question (dimensions / challenges, causes / effects, for / against, etc.) and 2 to 3 "points". Claim + example together: at most 20 words — no filler, no restating the question. Every point is a "claim" fused with a concrete "example" (a report, datum, case study, scheme, judgment, or thinker). Points must be non-obvious.
 - closingLine: ONE forward-looking sentence — a specific recommendation from a report/committee, or a vision phrase.
 - quote: a short, genuinely relevant quotation if one fits naturally, else "".
 
@@ -98,7 +98,7 @@ Return ONE JSON object, no markdown fences, EXACTLY this shape:
 }
 
 Rules:
-- Every point pairs a claim with an example. No fabricated report names, data or quotes — if unsure of a figure, describe it qualitatively.
+- 150-200 words in total, never more than 200. Every point pairs a claim with an example. No fabricated report names, data or quotes — if unsure of a figure, describe it qualitatively.
 - diagram: fill ONLY the chosen kind's fields. "keywords" lists exactly the labels shown.
 `.trim();
 
@@ -122,5 +122,35 @@ export const generatePyqAnswer = async (pyq) => {
     year: pyq.year,
   });
   const parsed = await runJsonExtraction({ prompt, maxOutputTokens: MAX_OUTPUT_TOKENS });
-  return shapePyqAnswer(parsed || {});
+  return fitPyqAnswer(shapePyqAnswer(parsed || {}));
+};
+
+// Words the student reads (diagram labels excluded).
+export const pyqAnswerWords = (a) =>
+  countWords(a.openingLine) + countWords(a.closingLine) + countWords(a.quote) +
+  a.sections.reduce((sum, s) => sum + countWords(s.heading) +
+    s.points.reduce((t, p) => t + countWords(p.claim) + countWords(p.example), 0), 0);
+
+// Over the limit → one text-only rewrite; keep it only if it is complete and shorter.
+const fitPyqAnswer = async (answer) => {
+  const words = pyqAnswerWords(answer);
+  if (words <= MAX_ANSWER_WORDS) return answer;
+  const { openingLine, sections, closingLine, quote } = answer;
+  const prompt = `
+This UPSC Mains model answer is ${words} words. Rewrite it to 170-190 words (never more than ${MAX_ANSWER_WORDS}) so it is crisp and on point.
+Keep 2-3 sections with their headings and the strongest evidence. Merge or drop the weakest points, cut filler and repetition, keep claim + example <= 20 words per point. Do not add new facts.
+
+Return ONE JSON object, no markdown fences, in exactly the same shape as the input:
+${JSON.stringify({ openingLine, sections, closingLine, quote })}
+`.trim();
+  try {
+    const parsed = await runJsonExtraction({ prompt, maxOutputTokens: 3000 });
+    const trimmed = shapePyqAnswer(parsed || {});
+    if (trimmed.openingLine && trimmed.sections.length && pyqAnswerWords(trimmed) < words) {
+      return { ...answer, openingLine: trimmed.openingLine, sections: trimmed.sections, closingLine: trimmed.closingLine, quote: trimmed.quote };
+    }
+  } catch (err) {
+    console.warn('[pyqAnswer] trim failed, keeping the longer answer:', err.message);
+  }
+  return answer;
 };
