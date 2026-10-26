@@ -26,6 +26,10 @@ const mcqQuestionSchema = new mongoose.Schema({
   test: { type: mongoose.Schema.Types.ObjectId, ref: 'McqTest', required: true },
   order: { type: Number, required: true },
   questionText: { type: String, required: true },
+  // Extra lead-in lines for "Consider the following" / "Match List I with List II" questions.
+  // Rendered as a list between the stem and the options. Safe to send to the client during a
+  // live attempt (contains no answer key).
+  statements: { type: [String], default: [] },
   options: { type: [optionSchema], required: true },
   correctOption: { type: String, required: true, enum: ['A', 'B', 'C', 'D'] }, // never sent to the client before submission
   explanation: { type: String, default: '' }, // never sent to the client before submission
