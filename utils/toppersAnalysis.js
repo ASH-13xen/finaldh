@@ -8,7 +8,7 @@
 // Given one ToppersCopy doc and one of its questions, it slices that question's
 // answer pages out of the compendium PDF on R2 and asks the active AI provider
 // (Gemini or Claude, see aiProvider.js) for a three-block study breakdown:
-//   1. a fresh ~250-word MODEL ANSWER (may use outside data / reports / news)
+//   1. a fresh 150-200-word MODEL ANSWER (may use outside data / reports / news)
 //   2. concrete IMPROVEMENTS to what the toppers actually wrote (copy-grounded)
 //   3. transferable LEARNINGS
 //
@@ -167,7 +167,7 @@ export const shapeAnalysis = (parsed) => {
 const buildPrompt = ({ subject, topic, question, answerLines }) => `
 You are a UPSC Mains answer coach. You are given ONE question and a SMALL SET (usually 2-3) of hand-picked topper copies answering it, attached as PDF pages. Produce THREE things:
 
-A. A fresh ~250-word MODEL ANSWER that is sharper, more current and more original than the copies.
+A. A fresh 150-200-word MODEL ANSWER that is sharper, more current and more original than the copies.
 B. Concrete IMPROVEMENTS to what the toppers actually wrote.
 C. LEARNINGS a student can carry to OTHER questions.
 
@@ -184,11 +184,11 @@ ${question.marks ? `Marks: ${question.marks}` : ''}
 TOPPER ANSWERS IN THE ATTACHED PDF (page numbers are within THIS PDF, which starts at page 1):
 ${answerLines}
 
-MODEL ANSWER STRUCTURE (total ~250 words — respect each budget, approximate counts are fine):
-- introduction: 30-40 words. Open with a data point, report finding or recent development on the question's theme. Load it with the subject's terminology / jargon. No throat-clearing.
-- body: ~150 words, as bullet points, in EXACTLY 2 parts. Give each part a short label reflecting the question's demand (e.g. dimensions / challenges, for / against, causes / consequences). Each bullet = a claim fused with its evidence (report, datum, case study, example, scheme, judgment). Points must be unique and unconventional.
-- wayForward: 15-20 words. Name specific recommendations from reports / committees, using the question's theme keywords.
-- conclusion: ~30 words. Optimistic, future-facing. Use a short quote or a vision-phrase / piece of jargon if it fits naturally.
+MODEL ANSWER STRUCTURE (total 150-200 words, aim for ~180, HARD LIMIT 200 — crisp and on point, every word earns marks):
+- introduction: 20-30 words. Open with a data point, report finding or recent development on the question's theme. Load it with the subject's terminology / jargon. No throat-clearing.
+- body: 100-125 words, as bullet points, in EXACTLY 2 parts of 2-3 bullets each. Give each part a short label reflecting the question's demand (e.g. dimensions / challenges, for / against, causes / consequences). Each bullet = ONE claim fused with its evidence (report, datum, case study, example, scheme, judgment) in at most 20 words — no filler, no restating the question. Points must be unique and unconventional.
+- wayForward: 10-15 words. Name specific recommendations from reports / committees, using the question's theme keywords.
+- conclusion: 15-25 words. Optimistic, future-facing. Use a short quote or a vision-phrase / piece of jargon if it fits naturally.
 
 Also give ONE diagram for the answer sheet. FIRST decide which FORM best compresses THIS question's content — do NOT default to a flowchart, and across a set of questions the forms should VARY. Choose exactly one "kind":
   • "flow"     — a process, causal chain, cycle, or hub of relationships (boxes/circles + arrows)
@@ -256,7 +256,7 @@ Return ONE JSON object, no markdown fences, EXACTLY this shape:
 }
 
 Rules:
-- Model answer body: EXACTLY 2 parts. Every point unconventional. Every point carries evidence.
+- Model answer: 150-200 words in total, never more than 200. Body: EXACTLY 2 parts, 2-3 bullets each, each bullet <= 20 words. Every point unconventional. Every point carries evidence.
 - diagram: fill ONLY the fields for the chosen "kind"; leave the others out. "keywords" lists exactly the labels shown. Sizes: flow 4-7 nodes ("edges" reference node ids only; "hub-spoke" lists the centre node FIRST; "cycle" lists nodes in loop order with NO closing edge); table 2-4 columns and 2-5 rows (every row has the same cell count as "columns"); chart 2-6 points per series and a real "source"; quadrant 3-6 items with x and y each between -1 and 1; pyramid 3-5 levels; timeline 3-6 events.
 - Prefer "table" for any "compare / distinguish / both sides" question. Only use "chart" with figures you are confident are real.
 - answerImprovements: 4-7 items, ordered by priority (high first).
@@ -318,5 +318,52 @@ export const generateQuestionAnalysis = async (doc, question) => {
   });
 
   const parsed = await runJsonExtraction({ prompt, pdfBase64, maxOutputTokens: MAX_OUTPUT_TOKENS });
-  return shapeAnalysis(parsed || {});
+  const analysis = shapeAnalysis(parsed || {});
+  analysis.modelAnswer = await fitModelAnswer(analysis.modelAnswer);
+  return analysis;
+};
+
+// ---------------------------------------------------------------------------
+// Word budget — the model's own wordCount fields run low, so count here, and if
+// the answer is over the limit ask once (text only, no PDF) for a tighter version.
+// ---------------------------------------------------------------------------
+export const MAX_ANSWER_WORDS = 200;
+
+export const countWords = (s) => asStr(s).split(/\s+/).filter(Boolean).length;
+
+const withRealCounts = (ma) => {
+  const intro = countWords(ma.introduction.text);
+  const body = ma.body.reduce((sum, part) => sum + part.points.reduce((t, p) => t + countWords(p.text), 0), 0);
+  const wf = countWords(ma.wayForward.text);
+  const concl = countWords(ma.conclusion.text);
+  return {
+    ...ma,
+    introduction: { ...ma.introduction, wordCount: intro },
+    wayForward: { ...ma.wayForward, wordCount: wf },
+    conclusion: { ...ma.conclusion, wordCount: concl },
+    totalWordCount: intro + body + wf + concl,
+  };
+};
+
+const buildTrimPrompt = (ma) => `
+This UPSC Mains model answer is ${ma.totalWordCount} words. Rewrite it to 170-190 words (never more than ${MAX_ANSWER_WORDS}) so it is crisp and on point.
+Keep the same structure, the same 2 body parts and their labels, and the strongest evidence (reports, data, cases, judgments). Merge or drop the weakest bullets, cut filler and repetition, keep each bullet <= 20 words. Do not add new facts.
+Budgets: introduction 20-30 words, body 100-125, wayForward 10-15, conclusion 15-25.
+
+Return ONE JSON object, no markdown fences, in exactly the same shape as the input:
+${JSON.stringify({ modelAnswer: ma })}
+`.trim();
+
+export const fitModelAnswer = async (ma) => {
+  const counted = withRealCounts(ma);
+  if (counted.totalWordCount <= MAX_ANSWER_WORDS) return counted;
+  try {
+    const parsed = await runJsonExtraction({ prompt: buildTrimPrompt(counted), maxOutputTokens: 4000 });
+    const trimmed = withRealCounts(shapeAnalysis({ modelAnswer: parsed?.modelAnswer || parsed || {} }).modelAnswer);
+    // Accept only a complete, shorter answer; otherwise keep the original.
+    if (trimmed.introduction.text && trimmed.body.length && trimmed.totalWordCount < counted.totalWordCount) return trimmed;
+  } catch (err) {
+    console.warn('[toppersAnalysis] trim failed, keeping the longer answer:', err.message);
+  }
+  return counted;
 };

@@ -16,6 +16,10 @@
 //   PATCH  /topics/:id                         edit title/theme/body/facts/research/hidden
 //   POST   /topics/:id/ai-extras               AI-draft facts + research (saved as draft)
 //   PATCH  /themes/:key                        title/description/publish/order/PYQ link
+//   POST   /themes/:key/ai-extras { redraft }  background job: AI-draft every topic with no extras
+//   POST   /themes/:key/ai-extras/stop         stop that job after the topics in flight
+//   GET    /ai-extras-jobs                     progress of those jobs, by theme
+//   POST   /themes/:key/publish-extras         publish every draft in the theme
 //   POST   /import?mode=&dryRun=&overwriteEdited=   parsed JSON (file or body)
 //   POST   /source-pdf                         upload the source PDF (for "view original page")
 
@@ -32,7 +36,8 @@ import QuizQuestion from '../models/QuizQuestion.js';
 import User from '../models/User.js';
 import { ECONOMY_THEMES } from '../utils/economyThemes.js';
 import { importParsed, seedThemes } from '../utils/economyImport.js';
-import { runJsonExtraction, assertAiConfigured, getActiveModelLabel } from '../utils/aiProvider.js';
+import { assertAiConfigured, getActiveModelLabel } from '../utils/aiProvider.js';
+import { draftTopicExtras, startThemeExtrasJob, stopThemeExtrasJob, getExtrasJobs } from '../utils/economyExtras.js';
 
 const SOURCE_PDF_KEY = 'economy-master-pdf';
 const REVIEW_STEPS_DAYS = [1, 3, 7, 21];
@@ -448,18 +453,6 @@ export const adminUpdateTopic = async (req, res) => {
   }
 };
 
-const EXTRAS_SYSTEM = `You write short study add-ons for Indian UPSC aspirants revising Economy.
-You are given one topic from a revision master file. Do NOT repeat or rephrase the notes — add to them.
-Return JSON only: {"facts": [string], "research": string}
-- facts: 2-3 relatable, real-world hooks that make the concept stick — a well-known Indian or global
-  episode, a number a student can picture, an everyday analogy. One sentence each, max 30 words.
-- research: 3-5 crisp lines (separate with \\n) of "beyond the book" value: the latest official data
-  or rule change you are confident about, the committee/report/act behind it, and one Mains angle.
-  Start each line with a short bold-free label like "Latest:", "Source:", "Mains angle:".
-- Accuracy first: use only widely documented facts (RBI / Budget / Economic Survey / well-known
-  history). Never invent an event, allocation, date or number; if unsure, leave it out — fewer
-  items is fine. No markdown.`;
-
 // POST /admin/topics/:id/ai-extras
 export const adminAiExtras = async (req, res) => {
   try {
@@ -469,23 +462,46 @@ export const adminAiExtras = async (req, res) => {
     if (!t) return res.status(404).json({ error: 'Topic not found' });
     try { assertAiConfigured(); } catch (e) { return res.status(503).json({ error: e.message }); }
 
-    const notes = t.blocks.map((b) => `${'  '.repeat(b.level)}- ${b.spans.map((s) => (s.m === 'ok' ? '[correct] ' : s.m === 'no' ? '[wrong] ' : s.t)).join('')}`).join('\n');
-    const out = await runJsonExtraction({
-      system: EXTRAS_SYSTEM,
-      prompt: `Theme: ${t.themeKey}\nTopic: ${t.title}\n\nNotes:\n${notes}`,
-      maxOutputTokens: 1500,
-      maxRetries: 3,
-    });
-    const facts = (Array.isArray(out?.facts) ? out.facts : []).map((f) => clip(String(f), 600)).filter(Boolean).slice(0, 5);
-    const research = clip(typeof out?.research === 'string' ? out.research : '', 4000);
-    if (!facts.length && !research) return res.status(502).json({ error: 'The AI returned nothing usable — try again' });
-    t.facts = facts;
-    t.research = research;
-    t.extrasStatus = 'draft';
-    await t.save();
+    await draftTopicExtras(t);
     res.json({ topic: { ...shapeTopic(t.toObject(), { admin: true }), hidden: t.hidden, editedAt: t.editedAt }, model: getActiveModelLabel() });
   } catch (err) {
     sendError(res, err, 'AI draft failed');
+  }
+};
+
+// POST /admin/themes/:key/ai-extras  { redraft?: boolean }
+export const adminThemeAiExtras = async (req, res) => {
+  try {
+    if (!(await adminOnly(req, res))) return;
+    if (!ECONOMY_THEMES.some((x) => x.key === req.params.key)) return res.status(404).json({ error: 'Theme not found' });
+    try { assertAiConfigured(); } catch (e) { return res.status(503).json({ error: e.message }); }
+    const job = await startThemeExtrasJob(req.params.key, { redraft: req.body?.redraft === true });
+    res.json({ job, model: getActiveModelLabel() });
+  } catch (err) {
+    sendError(res, err, 'Failed to start AI drafts');
+  }
+};
+
+// POST /admin/themes/:key/ai-extras/stop
+export const adminStopThemeAiExtras = async (req, res) => {
+  if (!(await adminOnly(req, res))) return;
+  res.json({ stopping: stopThemeExtrasJob(req.params.key) });
+};
+
+// GET /admin/ai-extras-jobs
+export const adminAiExtrasJobs = async (req, res) => {
+  if (!(await adminOnly(req, res))) return;
+  res.json({ jobs: getExtrasJobs() });
+};
+
+// POST /admin/themes/:key/publish-extras
+export const adminPublishThemeExtras = async (req, res) => {
+  try {
+    if (!(await adminOnly(req, res))) return;
+    const r = await EconomyTopic.updateMany({ themeKey: req.params.key, extrasStatus: 'draft' }, { $set: { extrasStatus: 'published' } });
+    res.json({ published: r.modifiedCount });
+  } catch (err) {
+    sendError(res, err, 'Failed to publish extras');
   }
 };
 

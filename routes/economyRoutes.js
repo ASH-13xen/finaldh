@@ -17,6 +17,10 @@ import {
   adminListTopics,
   adminUpdateTopic,
   adminAiExtras,
+  adminThemeAiExtras,
+  adminStopThemeAiExtras,
+  adminPublishThemeExtras,
+  adminAiExtrasJobs,
   adminUpdateTheme,
   adminImport,
   adminUploadSourcePdf,
@@ -51,6 +55,10 @@ router.get('/admin/topics', adminListTopics);
 router.patch('/admin/topics/:id', adminUpdateTopic);
 router.post('/admin/topics/:id/ai-extras', adminAiExtras);
 router.patch('/admin/themes/:key', adminUpdateTheme);
+router.post('/admin/themes/:key/ai-extras', adminThemeAiExtras);
+router.post('/admin/themes/:key/ai-extras/stop', adminStopThemeAiExtras);
+router.post('/admin/themes/:key/publish-extras', adminPublishThemeExtras);
+router.get('/admin/ai-extras-jobs', adminAiExtrasJobs);
 router.post('/admin/import', upload.single('file'), adminImport);
 router.post('/admin/source-pdf', upload.single('file'), adminUploadSourcePdf);
 

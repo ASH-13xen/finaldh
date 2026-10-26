@@ -42,6 +42,7 @@ import ToppersPyq from '../models/ToppersPyq.js';
 import ToppersCopyJob from '../models/ToppersCopyJob.js';
 import { requireAdmin } from './progressController.js';
 import { enhancementsByAnswer } from './toppersEnhancementController.js';
+import { loadTopicPdf } from '../utils/toppersEnhancement.js';
 import {
   runJsonExtraction,
   assertAiConfigured,
@@ -51,7 +52,7 @@ import {
 import { makeChunkPdfBase64 } from '../utils/pdfChunk.js';
 import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis.js';
 import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
-import { formatPyqAnswerText } from '../utils/pyqAnswerFormat.js';
+import { formatPyqAnswerText, rewordPyqAnswerText } from '../utils/pyqAnswerFormat.js';
 import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
 
 // ---------------------------------------------------------------------------
@@ -1101,9 +1102,13 @@ export const bulkDeleteToppersPyqs = async (req, res) => {
 // frontend addresses each image by its _id via the stream endpoint.
 const publicPyqAnswer = (pa, { admin = false } = {}) => {
   if (!pa || !pa.generatedAt) return null;
+  // The book's own wording is for admins only. A book answer that has not been
+  // through the format/reword pass yet has nothing else to show a student.
+  if (!admin && pa.source === 'pdf' && !pa.sections?.length) return null;
   return {
     source: pa.source || 'ai',
-    rawText: pa.rawText || '',
+    rawText: admin ? pa.rawText || '' : '',
+    reworded: !!pa.reworded,
     openingLine: pa.openingLine || '',
     sections: pa.sections || [],
     closingLine: pa.closingLine || '',
@@ -1155,6 +1160,9 @@ export const generateToppersPyqAnswer = async (req, res) => {
 // Called automatically (client-side loop) right after a JSON/PDF commit that
 // attached new answerText, and available as a manual "Reformat" button for
 // re-runs. Skips (409) if already formatted unless { force: true }.
+// With { reword: true } the text is instead rewritten in our own words, facts
+// unchanged (rewordPyqAnswerText) — that is what the automatic pass sends, so
+// students never read the book's sentences. rawText keeps the original either way.
 export const formatToppersPyqAnswerText = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -1166,11 +1174,15 @@ export const formatToppersPyqAnswerText = async (req, res) => {
     if (!doc.pyqAnswer?.rawText) {
       return res.status(400).json({ error: 'This answer has no source text to format.' });
     }
-    if (doc.pyqAnswer.sections?.length && !req.body?.force) {
-      return res.status(409).json({ error: 'Already formatted. Pass { force: true } to re-run.' });
+    const reword = !!req.body?.reword;
+    const alreadyDone = reword ? doc.pyqAnswer.reworded : doc.pyqAnswer.sections?.length;
+    if (alreadyDone && !req.body?.force) {
+      return res.status(409).json({ error: `Already ${reword ? 'reworded' : 'formatted'}. Pass { force: true } to re-run.` });
     }
 
-    const formatted = await formatPyqAnswerText(doc.pyqAnswer.rawText);
+    const formatted = reword
+      ? await rewordPyqAnswerText(doc.pyqAnswer.rawText, { questionText: doc.questionText })
+      : await formatPyqAnswerText(doc.pyqAnswer.rawText);
     // Atomic $set, not load-then-.save() — this can run minutes after the doc
     // was fetched (client-side format loops sequence many of these), and an
     // admin actively editing the same row concurrently would otherwise throw a
@@ -1183,12 +1195,16 @@ export const formatToppersPyqAnswerText = async (req, res) => {
           'pyqAnswer.sections': formatted.sections,
           'pyqAnswer.closingLine': formatted.closingLine,
           'pyqAnswer.quote': formatted.quote,
+          'pyqAnswer.reworded': reword,
         },
       },
       { new: true },
     );
 
-    res.json({ pyqAnswer: publicPyqAnswer(updated.pyqAnswer, { admin: true }) });
+    res.json({
+      pyqAnswer: publicPyqAnswer(updated.pyqAnswer, { admin: true }),
+      ...(reword ? { report: formatted.report } : {}),
+    });
   } catch (err) {
     if (err.code === 'NO_TEXT') return res.status(400).json({ error: err.message });
     if (isQuotaError(err)) return res.status(429).json({ error: 'AI rate limit — try again shortly.' });
@@ -1732,5 +1748,54 @@ export const streamToppersCopyPdf = async (req, res) => {
   } catch (err) {
     console.error('streamToppersCopyPdf error:', err);
     res.status(500).json({ error: 'Server error streaming PDF' });
+  }
+};
+
+// GET /admin/:id/questions/:qid/export-pages[?answer=<idx>]
+// Admin PDF export (built in the browser): returns a small PDF holding only the
+// pages of this question's answer copies, so the client never pulls the whole
+// compendium. X-Export-Pages lists the absolute page number of each returned page.
+export const exportQuestionPages = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    const doc = await ToppersCopy.findById(req.params.id).select('pdfKey questions').lean();
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!doc.pdfKey?.startsWith('r2://')) return res.status(400).json({ error: 'This topic has no source PDF' });
+
+    const question = (doc.questions || []).find((q) => String(q._id) === req.params.qid);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+
+    let answers = question.answers || [];
+    if (req.query.answer != null && req.query.answer !== '') {
+      const one = answers[Number(req.query.answer)];
+      if (!one) return res.status(404).json({ error: 'Answer not found' });
+      answers = [one];
+    }
+
+    const srcDoc = await loadTopicPdf(doc);
+    const total = srcDoc.getPageCount();
+    const wanted = new Set();
+    for (const a of answers) {
+      const lo = Math.max(1, a.startPage || 0);
+      const hi = Math.min(total, a.endPage || 0);
+      for (let p = lo; p <= hi; p++) wanted.add(p);
+    }
+    const pages = [...wanted].sort((a, b) => a - b);
+    if (!pages.length) return res.status(400).json({ error: 'This question has no answer pages' });
+
+    const out = await PDFDocument.create();
+    const copied = await out.copyPages(srcDoc, pages.map((p) => p - 1));
+    copied.forEach((pg) => out.addPage(pg));
+    const bytes = await out.save();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('X-Export-Pages', pages.join(','));
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(Buffer.from(bytes));
+  } catch (err) {
+    console.error('exportQuestionPages error:', err);
+    res.status(500).json({ error: 'Server error preparing the pages' });
   }
 };
