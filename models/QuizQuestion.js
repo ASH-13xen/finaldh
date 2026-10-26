@@ -21,23 +21,29 @@ const matchListsSchema = new mongoose.Schema({
 // pool, tagged by topic). No fixed "sets" — the student picks a mode (a topic, a random test,
 // or the whole pool) and an attempt snapshots which questions it covers.
 //
-// `correctKey` / `whyCorrect` / `hint` are secret: quizController never sends them with the
-// question list — they come back only from POST /answer and /hint (same rule as
-// McqQuestion.correctOption / .explanation).
+// `correctKey` / `whyCorrect` are secret: quizController never sends them with the question
+// list — they come back only from POST /answer (same rule as McqQuestion.correctOption /
+// .explanation).
 const quizQuestionSchema = new mongoose.Schema({
   subject: { type: String, required: true },        // e.g. "Geography"
   topic: { type: String, required: true, default: 'Miscellaneous' },
   seq: { type: Number, required: true },            // stable global order within the subject (import index)
 
   questionText: { type: String, required: true },
+  // Extra lead-in lines for "Consider the following" questions (the numbered statements),
+  // rendered under the stem. `matchLists` covers the "Match List I/II" shape instead.
+  statements: { type: [String], default: [] },
   matchLists: { type: matchListsSchema, default: null },
   options: { type: [optionSchema], required: true },
   correctKey: { type: String, required: true, enum: ['A', 'B', 'C', 'D'] },
 
-  // Filled by scripts/generate_quiz_ai.mjs via utils/quizAI.js. Questions are usable before
-  // this runs — the UI just shows "Explanation coming soon".
+  // "conceptual" = understanding/reasoning, "factual" = recall. From the import `type` field
+  // or set by an admin; defaults to conceptual.
+  questionType: { type: String, enum: ['conceptual', 'factual'], default: 'conceptual' },
+
+  // Filled by scripts/generate_quiz_ai.mjs via utils/quizAI.js, or the bank admin editor.
+  // Questions are usable before this runs — the UI just shows "Explanation coming soon".
   whyCorrect: { type: String, default: '' },
-  hint: { type: String, default: '' },
   aiStatus: { type: String, enum: ['pending', 'done', 'failed'], default: 'pending' },
 
   examSource: { type: String, default: '' }         // e.g. "CDS (I) 2015"

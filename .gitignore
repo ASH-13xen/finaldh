@@ -31,6 +31,10 @@ node_modules/
 temp/
 dist/
 
+# local screenshots for chat
+ss/
+scratch/
+
 # One-off DB migration backups (contain user PII - emails, course access) - local safety
 # net only, never meant to be pushed.
 migration-backups/

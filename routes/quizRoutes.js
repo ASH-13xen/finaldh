@@ -5,7 +5,6 @@ import {
   startAttempt,
   getAttemptQuestions,
   answerQuestion,
-  useHint,
   completeAttempt,
   getAttempt,
   listAttempts,
@@ -24,7 +23,6 @@ router.post('/attempts', startAttempt);
 router.get('/attempts/:id', getAttempt);
 router.get('/attempts/:id/questions', getAttemptQuestions);
 router.post('/attempts/:id/answer', answerQuestion);
-router.post('/attempts/:id/hint', useHint);
 router.post('/attempts/:id/complete', completeAttempt);
 
 router.post('/questions/:questionId/report', reportQuestion);
