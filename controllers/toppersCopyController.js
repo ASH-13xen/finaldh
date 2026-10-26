@@ -38,6 +38,8 @@ import { PDFDocument } from 'pdf-lib';
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client } from '../config/r2.js';
 import ToppersCopy from '../models/ToppersCopy.js';
+import { getToppersAccess, ownsSubject, canOpenQuestion } from '../utils/toppersAccess.js';
+import { buildPreviewPdf } from '../utils/toppersPreviewPdf.js';
 import ToppersPyq from '../models/ToppersPyq.js';
 import ToppersCopyJob from '../models/ToppersCopyJob.js';
 import { requireAdmin } from './progressController.js';
@@ -1322,11 +1324,16 @@ export const deleteToppersPyqAnswerImage = async (req, res) => {
 // Admins can see drafts; everyone else only if the answer is published.
 export const streamToppersPyqAnswerImage = async (req, res) => {
   try {
-    const doc = await ToppersPyq.findById(req.params.id).select('pyqAnswer').lean();
+    const doc = await ToppersPyq.findById(req.params.id).select('subject pyqAnswer').lean();
     const img = (doc?.pyqAnswer?.images || []).find((im) => String(im._id) === req.params.imageId);
     if (!img?.key?.startsWith('r2://')) return res.status(404).json({ error: 'Not found' });
     if (!doc.pyqAnswer.published && !(await isAdminReq(req))) {
       return res.status(403).json({ error: 'Not available' });
+    }
+    // Same rule as getToppersCopy's relatedPyqs: the subject, or a subject with free samples.
+    if (!ownsSubject(await getToppersAccess(req.userId), doc.subject)
+      && !(await ToppersCopy.exists({ subject: doc.subject, published: true, 'questions.freePreview': true }))) {
+      return res.status(403).json({ error: 'Buy this subject to see this answer', code: 'TC_LOCKED' });
     }
     const r2Response = await r2Client.send(new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
@@ -1485,6 +1492,26 @@ export const updateToppersCopyStructure = async (req, res) => {
   }
 };
 
+// PATCH /admin/:id/questions/:qid/free-preview  { freePreview: bool } — the admin-picked
+// sample questions students can open without buying the subject.
+export const setQuestionFreePreview = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
+  try {
+    if (typeof req.body?.freePreview !== 'boolean') return res.status(400).json({ error: 'freePreview must be true or false' });
+    const result = await ToppersCopy.updateOne(
+      { _id: req.params.id, 'questions._id': req.params.qid },
+      { $set: { 'questions.$.freePreview': req.body.freePreview } }
+    );
+    if (!result.matchedCount) return res.status(404).json({ error: 'Not found' });
+    res.json({ freePreview: req.body.freePreview });
+  } catch (err) {
+    console.error('setQuestionFreePreview error:', err);
+    res.status(500).json({ error: 'Failed to update free preview' });
+  }
+};
+
 // DELETE /admin/:id  (leaves the R2 object in place — cheap, and avoids orphaning
 // a shared PDF; purge R2 separately if storage matters)
 export const deleteToppersCopy = async (req, res) => {
@@ -1579,12 +1606,16 @@ export const listTopics = async (req, res) => {
     const filter = { subject };
     if (!(await isAdminReq(req))) filter.published = true;
 
-    const docs = await ToppersCopy.find(filter)
-      .sort({ order: 1, topic: 1 })
-      .select('subject syllabusSection topic order published pdfPageCount questions')
-      .lean();
+    const [docs, access] = await Promise.all([
+      ToppersCopy.find(filter)
+        .sort({ order: 1, topic: 1 })
+        .select('subject syllabusSection topic order published pdfPageCount questions')
+        .lean(),
+      getToppersAccess(req.userId),
+    ]);
 
     res.json({
+      owned: ownsSubject(access, subject),
       topics: docs.map((d) => {
         const questions = d.questions || [];
         const answerCount = questions.reduce((n, q) => n + (q.answers?.length || 0), 0);
@@ -1601,6 +1632,7 @@ export const listTopics = async (req, res) => {
           answerCount,
           analyzedCount,
           hasAnalysis: analyzedCount > 0,
+          freeCount: questions.filter((q) => q.freePreview).length,
         };
       }),
     });
@@ -1645,15 +1677,23 @@ export const getToppersCopy = async (req, res) => {
     let topicPyqs = scored.filter((s) => s.tier >= keepFrom).map((s) => s.q);
     if (bestTier <= 1) topicPyqs = topicPyqs.slice(0, PYQ_SECTION_FALLBACK_CAP);
 
+    // Without the subject, only freePreview questions open; the rest keep their title
+    // and counts but lose answers, enhancements and analysis.
+    const access = await getToppersAccess(req.userId);
+    const owned = ownsSubject(access, doc.subject);
+    const hasFree = (doc.questions || []).some((q) => q.freePreview);
+
     const enhancements = await enhancementsByAnswer(doc._id, { admin: viewerIsAdmin });
     const questions = (doc.questions || [])
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map((q) => ({
+      .map((q) => canOpenQuestion(access, doc.subject, q) ? {
         _id: q._id,
         questionText: q.questionText,
         year: q.year,
         marks: q.marks,
+        freePreview: !!q.freePreview,
+        locked: false,
         answers: (q.answers || []).map((a) => ({
           name: a.name,
           rank: a.rank,
@@ -1667,7 +1707,18 @@ export const getToppersCopy = async (req, res) => {
         })),
         subtopicId: q.subtopicId || null,
         aiAnalysis: q.aiAnalysis?.generatedAt ? q.aiAnalysis : null,
-      }));
+      } : {
+        _id: q._id,
+        questionText: q.questionText,
+        year: q.year,
+        marks: q.marks,
+        freePreview: false,
+        locked: true,
+        answerCount: (q.answers || []).length,
+        answers: [],
+        subtopicId: q.subtopicId || null,
+        aiAnalysis: null,
+      });
 
     res.json({
       toppersCopy: {
@@ -1677,10 +1728,19 @@ export const getToppersCopy = async (req, res) => {
         topic: doc.topic,
         pdfPageCount: doc.pdfPageCount,
         published: doc.published,
+        owned,
         questions,
         subtopics: (doc.subtopics || []).map((s) => ({ _id: s._id, name: s.name })),
       },
       relatedPyqs: (topicPyqs.length ? topicPyqs : []).map((q) => {
+        // PYQ model answers come with the subject, or as part of a topic's free sample.
+        if (!owned && !hasFree) {
+          return {
+            _id: q._id, questionText: q.questionText, year: q.year, marks: q.marks,
+            section: q.section, topic: q.topic, microtheme: q.microtheme,
+            pyqAnswer: null, pyqAnswerStatus: q.pyqAnswer?.published ? 'locked' : 'none',
+          };
+        }
         const answer = publicPyqAnswer(q.pyqAnswer, { admin: viewerIsAdmin });
         return {
           _id: q._id,
@@ -1707,10 +1767,27 @@ export const getToppersCopy = async (req, res) => {
 // (Same technique as courseController.js getRawCoursePdf.)
 export const streamToppersCopyPdf = async (req, res) => {
   try {
-    const doc = await ToppersCopy.findById(req.params.id).select('pdfKey published').lean();
+    const doc = await ToppersCopy.findById(req.params.id)
+      .select('subject pdfKey published updatedAt questions.freePreview questions.answers.startPage questions.answers.endPage')
+      .lean();
     if (!doc) return res.status(404).json({ error: 'Not found' });
     if (!doc.published && !(await isAdminReq(req))) return res.status(403).json({ error: 'Not available' });
     if (!doc.pdfKey?.startsWith('r2://')) return res.status(404).json({ error: 'No PDF for this topic' });
+
+    // Not bought: serve a copy where every page outside the free answers is blank, so
+    // page numbers still line up but nothing paid can be read or saved from it.
+    if (!ownsSubject(await getToppersAccess(req.userId), doc.subject)) {
+      const ranges = (doc.questions || [])
+        .filter((q) => q.freePreview)
+        .flatMap((q) => (q.answers || []).map((a) => [a.startPage, a.endPage]));
+      if (!ranges.length) return res.status(403).json({ error: 'Buy this subject to read these copies', code: 'TC_LOCKED' });
+      const pdf = await buildPreviewPdf(doc, ranges);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Content-Length', pdf.length);
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.end(pdf);
+    }
 
     const r2Key = doc.pdfKey.replace('r2://', '');
     const rangeHeader = req.headers.range;

@@ -137,6 +137,9 @@ const questionSchema = new mongoose.Schema({
   order: { type: Number, default: 0 },
   // Admin-made grouping inside the topic (ToppersCopy.subtopics[]._id); null = not grouped.
   subtopicId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  // Admin-picked sample: open in full to students who haven't bought this subject
+  // (see utils/toppersAccess.js).
+  freePreview: { type: Boolean, default: false },
   answers: { type: [answerSchema], default: [] },
   aiAnalysis: { type: aiAnalysisSchema, default: () => ({}) },
 });
