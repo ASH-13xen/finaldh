@@ -46,11 +46,24 @@ const quizQuestionSchema = new mongoose.Schema({
   whyCorrect: { type: String, default: '' },
   aiStatus: { type: String, enum: ['pending', 'done', 'failed'], default: 'pending' },
 
-  examSource: { type: String, default: '' }         // e.g. "CDS (I) 2015"
+  examSource: { type: String, default: '' },        // e.g. "CDS (I) 2015"
+  sourceRef: { type: String, default: '' },         // stable key from the import file, e.g. "econ-pyq:6.12"
+
+  // Economy Master File topics this PYQ belongs under (Economy bank only). Placed by AI
+  // (utils/economyPyqTagging.js) or an admin; `econTag.by === 'admin'` is never overwritten by
+  // a bulk AI run. Ported between databases by sourceRef ↔ EconomyTopic.importKey
+  // (scripts/economy_pyq_placements.mjs).
+  econTopics: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EconomyTopic' }], default: [] },
+  econTag: {
+    by: { type: String, enum: ['ai', 'admin', null], default: null },
+    confidence: { type: Number, default: null },  // AI's 0–1 score for its best match
+    at: { type: Date, default: null },
+  }
 }, { timestamps: true });
 
 quizQuestionSchema.index({ subject: 1, topic: 1, seq: 1 });
 quizQuestionSchema.index({ subject: 1, seq: 1 });
 quizQuestionSchema.index({ aiStatus: 1 });
+quizQuestionSchema.index({ econTopics: 1 });
 
 export default mongoose.model('QuizQuestion', quizQuestionSchema);

@@ -9,6 +9,8 @@ import {
   getTheme,
   getThemePyqs,
   getTopic,
+  getTopicPyqs,
+  checkPyq,
   searchTopics,
   revisionQueue,
   setProgress,
@@ -24,6 +26,11 @@ import {
   adminUpdateTheme,
   adminImport,
   adminUploadSourcePdf,
+  adminListPyqs,
+  adminPlacePyq,
+  adminStartPyqTagging,
+  adminStopPyqTagging,
+  adminPyqTaggingStatus,
 } from '../controllers/economyController.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -45,6 +52,8 @@ router.get('/themes', listThemes);
 router.get('/themes/:key', getTheme);
 router.get('/themes/:key/pyqs', getThemePyqs);
 router.get('/topics/:id', getTopic);
+router.get('/topics/:id/pyqs', getTopicPyqs);
+router.post('/pyqs/:id/check', checkPyq);
 router.get('/search', searchTopics);
 router.get('/revision', revisionQueue);
 router.put('/progress/:topicId', setProgress);
@@ -61,5 +70,10 @@ router.post('/admin/themes/:key/publish-extras', adminPublishThemeExtras);
 router.get('/admin/ai-extras-jobs', adminAiExtrasJobs);
 router.post('/admin/import', upload.single('file'), adminImport);
 router.post('/admin/source-pdf', upload.single('file'), adminUploadSourcePdf);
+router.get('/admin/pyqs', adminListPyqs);
+router.patch('/admin/pyqs/:id', adminPlacePyq);
+router.post('/admin/pyq-tagging', adminStartPyqTagging);
+router.post('/admin/pyq-tagging/stop', adminStopPyqTagging);
+router.get('/admin/pyq-tagging', adminPyqTaggingStatus);
 
 export default router;

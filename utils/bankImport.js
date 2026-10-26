@@ -12,6 +12,7 @@
 //     "topic":         "DRAINAGE SYSTEM",                    // optional
 //     "type":          "Factual",                            // optional -> conceptual|factual
 //     "correct_why":   "Both statements are correct because ..."  // optional
+//     "source_ref":    "econ-pyq:6.12"                       // optional stable key
 //   }
 
 const MISC_TOPIC = 'Miscellaneous';
@@ -169,13 +170,15 @@ export function mapBankRow(row) {
       questionType,
       whyCorrect,
       aiStatus: whyCorrect ? 'done' : 'pending',
-      examSource: collapseWs(row.exam_source || row.examSource)
+      examSource: collapseWs(row.exam_source || row.examSource),
+      sourceRef: collapseWs(row.source_ref || row.sourceRef)
     }
   };
 }
 
 const dedupeKey = (doc) => {
-  let s = doc.questionText + ' ' + doc.options.map((o) => o.text).join(' ');
+  // statements included: many PYQs share "Consider the following statements:" + "1 only / 2 only…"
+  let s = [doc.questionText, ...doc.statements, ...doc.options.map((o) => o.text)].join(' ');
   if (doc.matchLists) {
     s += ' ' + [...doc.matchLists.left.items, ...doc.matchLists.right.items].map((i) => i.text).join(' ');
   }

@@ -7,6 +7,8 @@
 //   GET    /api/economy/search?q=              topic search across published themes
 //   GET    /api/economy/revision               topics due for revision today
 //   GET    /api/economy/topics/:id             one topic (used to reopen it from My Notes)
+//   GET    /api/economy/topics/:id/pyqs        Question Bank PYQs placed under this topic (no answers)
+//   POST   /api/economy/pyqs/:id/check         { key } → correct answer + explanation
 //   PUT    /api/economy/progress/:topicId      { status: read|revised|mastered|null }
 //   GET    /api/economy/source-page/:page      that one page of the source PDF (1-page PDF)
 //
@@ -22,6 +24,11 @@
 //   POST   /themes/:key/publish-extras         publish every draft in the theme
 //   POST   /import?mode=&dryRun=&overwriteEdited=   parsed JSON (file or body)
 //   POST   /source-pdf                         upload the source PDF (for "view original page")
+//   GET    /pyqs?status=&section=&q=           Economy PYQs with their topic placements, for review
+//   PATCH  /pyqs/:id                           { topicIds } — place a PYQ by hand (AI never overrides it)
+//   POST   /pyq-tagging { retag, limit }       background job: AI places untagged PYQs under topics
+//   POST   /pyq-tagging/stop                   stop that job after the batch in flight
+//   GET    /pyq-tagging                        progress of that job + placement counts
 
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
@@ -38,6 +45,7 @@ import { ECONOMY_THEMES } from '../utils/economyThemes.js';
 import { importParsed, seedThemes } from '../utils/economyImport.js';
 import { assertAiConfigured, getActiveModelLabel } from '../utils/aiProvider.js';
 import { draftTopicExtras, startThemeExtrasJob, stopThemeExtrasJob, getExtrasJobs } from '../utils/economyExtras.js';
+import { ECONOMY_PYQ_SUBJECT, startPyqTagJob, stopPyqTagJob, getPyqTagJob } from '../utils/economyPyqTagging.js';
 
 const SOURCE_PDF_KEY = 'economy-master-pdf';
 const REVIEW_STEPS_DAYS = [1, 3, 7, 21];
@@ -84,8 +92,31 @@ const shapeTopic = (t, { admin = false } = {}) => {
     facts: showExtras ? t.facts : [],
     research: showExtras ? t.research : '',
     extrasStatus: admin ? t.extrasStatus : undefined,
+    pyqCount: t.pyqCount || 0,
   };
 };
+
+// How many Economy PYQs are placed under each of these topics: { topicId: n }.
+const pyqCountsFor = async (topicIds) => {
+  const rows = await QuizQuestion.aggregate([
+    { $match: { subject: ECONOMY_PYQ_SUBJECT, econTopics: { $in: topicIds } } },
+    { $unwind: '$econTopics' },
+    { $match: { econTopics: { $in: topicIds } } },
+    { $group: { _id: '$econTopics', n: { $sum: 1 } } },
+  ]);
+  return Object.fromEntries(rows.map((r) => [String(r._id), r.n]));
+};
+
+// A PYQ as the student sees it before answering — same secrecy rule as quizController.
+const shapePyq = (q) => ({
+  _id: q._id,
+  questionText: q.questionText,
+  statements: q.statements,
+  matchLists: q.matchLists,
+  options: q.options,
+  questionType: q.questionType,
+  examSource: q.examSource,
+});
 
 const shapeProgress = (p) => ({
   status: p.status,
@@ -167,11 +198,15 @@ export const getTheme = async (req, res) => {
   try {
     const { admin, theme } = await loadVisibleTheme(req.userId, req.params.key);
     const topics = await EconomyTopic.find({ themeKey: theme.key, hidden: false }).sort({ order: 1 }).lean();
-    const progress = await EconomyProgress.find({ user: req.userId, topic: { $in: topics.map((t) => t._id) } }).lean();
+    const ids = topics.map((t) => t._id);
+    const [progress, pyqCounts] = await Promise.all([
+      EconomyProgress.find({ user: req.userId, topic: { $in: ids } }).lean(),
+      pyqCountsFor(ids),
+    ]);
     res.json({
       admin,
       theme: { key: theme.key, title: theme.title, description: theme.description, isPublished: theme.isPublished, pyq: theme.pyq },
-      topics: topics.map((t) => shapeTopic(t, { admin })),
+      topics: topics.map((t) => shapeTopic({ ...t, pyqCount: pyqCounts[String(t._id)] }, { admin })),
       progress: Object.fromEntries(progress.map((p) => [String(p.topic), shapeProgress(p)])),
     });
   } catch (err) {
@@ -186,9 +221,44 @@ export const getTopic = async (req, res) => {
     const t = await EconomyTopic.findById(req.params.id).lean();
     if (!t || t.hidden) return res.status(404).json({ error: 'Topic not found' });
     const { admin } = await loadVisibleTheme(req.userId, t.themeKey);
-    res.json({ topic: shapeTopic(t, { admin }) });
+    const pyqCounts = await pyqCountsFor([t._id]);
+    res.json({ topic: shapeTopic({ ...t, pyqCount: pyqCounts[String(t._id)] }, { admin }) });
   } catch (err) {
     sendError(res, err, 'Failed to load topic');
+  }
+};
+
+// GET /topics/:id/pyqs
+export const getTopicPyqs = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Topic not found' });
+    const t = await EconomyTopic.findById(req.params.id).select('themeKey hidden').lean();
+    if (!t || t.hidden) return res.status(404).json({ error: 'Topic not found' });
+    await loadVisibleTheme(req.userId, t.themeKey);
+    const qs = await QuizQuestion.find({ subject: ECONOMY_PYQ_SUBJECT, econTopics: t._id }).lean();
+    // newest exam first
+    const year = (q) => Number(String(q.examSource).match(/\d{4}/)?.[0]) || 0;
+    qs.sort((a, b) => year(b) - year(a) || a.seq - b.seq);
+    res.json({ pyqs: qs.map(shapePyq) });
+  } catch (err) {
+    sendError(res, err, 'Failed to load PYQs');
+  }
+};
+
+// POST /pyqs/:id/check { key }
+export const checkPyq = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Question not found' });
+    const q = await QuizQuestion.findOne({ _id: req.params.id, subject: ECONOMY_PYQ_SUBJECT, 'econTopics.0': { $exists: true } })
+      .select('correctKey whyCorrect econTopics').lean();
+    if (!q) return res.status(404).json({ error: 'Question not found' });
+    const { themes } = await visibleThemeKeys(req.userId);
+    const ok = await EconomyTopic.exists({ _id: { $in: q.econTopics }, hidden: false, themeKey: { $in: themes.map((th) => th.key) } });
+    if (!ok) return res.status(404).json({ error: 'Question not found' });
+    const key = String(req.body?.key || '').toUpperCase();
+    res.json({ correct: key === q.correctKey, correctKey: q.correctKey, whyCorrect: q.whyCorrect || '' });
+  } catch (err) {
+    sendError(res, err, 'Failed to check answer');
   }
 };
 
@@ -575,5 +645,105 @@ export const adminUploadSourcePdf = async (req, res) => {
     }
   } catch (err) {
     sendError(res, err, 'Upload failed');
+  }
+};
+
+// ---------------------------------------------------------------- admin: PYQ placement
+
+const placementSummary = async () => {
+  const [total, placed, untagged, admin] = await Promise.all([
+    QuizQuestion.countDocuments({ subject: ECONOMY_PYQ_SUBJECT }),
+    QuizQuestion.countDocuments({ subject: ECONOMY_PYQ_SUBJECT, 'econTopics.0': { $exists: true } }),
+    QuizQuestion.countDocuments({ subject: ECONOMY_PYQ_SUBJECT, 'econTag.by': null }),
+    QuizQuestion.countDocuments({ subject: ECONOMY_PYQ_SUBJECT, 'econTag.by': 'admin' }),
+  ]);
+  return { total, placed, untagged, unplaced: total - placed - untagged, byAdmin: admin };
+};
+
+// GET /admin/pyqs?status=placed|unplaced|untagged|low|admin&section=&q=
+export const adminListPyqs = async (req, res) => {
+  try {
+    if (!(await adminOnly(req, res))) return;
+    const filter = { subject: ECONOMY_PYQ_SUBJECT };
+    const st = req.query.status;
+    if (st === 'placed') filter['econTopics.0'] = { $exists: true };
+    else if (st === 'unplaced') Object.assign(filter, { 'econTopics.0': { $exists: false }, 'econTag.by': { $ne: null } });
+    else if (st === 'untagged') filter['econTag.by'] = null;
+    else if (st === 'low') Object.assign(filter, { 'econTag.by': 'ai', 'econTag.confidence': { $lt: 0.75 } });
+    else if (st === 'admin') filter['econTag.by'] = 'admin';
+    if (typeof req.query.section === 'string' && req.query.section) filter.topic = req.query.section;
+    const q = clip(req.query.q, 100);
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), 'i');
+      filter.$or = [{ questionText: rx }, { statements: rx }, { examSource: rx }, { sourceRef: rx }];
+    }
+    const [qs, sections] = await Promise.all([
+      QuizQuestion.find(filter).sort({ seq: 1 }).limit(500).lean(),
+      QuizQuestion.distinct('topic', { subject: ECONOMY_PYQ_SUBJECT }),
+    ]);
+    const topicIds = [...new Set(qs.flatMap((x) => x.econTopics.map(String)))];
+    const topics = await EconomyTopic.find({ _id: { $in: topicIds } }).select('themeKey title source number').lean();
+    const byId = Object.fromEntries(topics.map((t) => [String(t._id), t]));
+    res.json({
+      summary: await placementSummary(),
+      sections,
+      pyqs: qs.map((x) => ({
+        ...shapePyq(x),
+        section: x.topic,
+        sourceRef: x.sourceRef,
+        correctKey: x.correctKey,
+        econTag: x.econTag,
+        topics: x.econTopics.map((id) => byId[String(id)]).filter(Boolean),
+      })),
+    });
+  } catch (err) {
+    sendError(res, err, 'Failed to load PYQs');
+  }
+};
+
+// PATCH /admin/pyqs/:id { topicIds }
+export const adminPlacePyq = async (req, res) => {
+  try {
+    if (!(await adminOnly(req, res))) return;
+    if (!isId(req.params.id)) return res.status(404).json({ error: 'Question not found' });
+    const q = await QuizQuestion.findOne({ _id: req.params.id, subject: ECONOMY_PYQ_SUBJECT });
+    if (!q) return res.status(404).json({ error: 'Question not found' });
+    const ids = (Array.isArray(req.body?.topicIds) ? req.body.topicIds : []).filter(isId).slice(0, 10);
+    const found = await EconomyTopic.find({ _id: { $in: ids } }).select('_id themeKey title source number').lean();
+    q.econTopics = found.map((t) => t._id);
+    q.econTag = { by: 'admin', confidence: null, at: new Date() };
+    await q.save();
+    res.json({ pyq: { _id: q._id, econTag: q.econTag, topics: found } });
+  } catch (err) {
+    sendError(res, err, 'Failed to place PYQ');
+  }
+};
+
+// POST /admin/pyq-tagging { retag, limit }
+export const adminStartPyqTagging = async (req, res) => {
+  try {
+    if (!(await adminOnly(req, res))) return;
+    try { assertAiConfigured(); } catch (e) { return res.status(503).json({ error: e.message }); }
+    const limit = Math.max(0, Math.min(1000, parseInt(req.body?.limit, 10) || 0));
+    const job = await startPyqTagJob({ retag: !!req.body?.retag, limit });
+    res.json({ job, model: getActiveModelLabel() });
+  } catch (err) {
+    sendError(res, err, 'Failed to start tagging');
+  }
+};
+
+// POST /admin/pyq-tagging/stop
+export const adminStopPyqTagging = async (req, res) => {
+  if (!(await adminOnly(req, res))) return;
+  res.json({ stopping: stopPyqTagJob() });
+};
+
+// GET /admin/pyq-tagging
+export const adminPyqTaggingStatus = async (req, res) => {
+  try {
+    if (!(await adminOnly(req, res))) return;
+    res.json({ job: getPyqTagJob(), summary: await placementSummary(), model: getActiveModelLabel() });
+  } catch (err) {
+    sendError(res, err, 'Failed to load tagging status');
   }
 };
