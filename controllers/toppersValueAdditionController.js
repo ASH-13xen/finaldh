@@ -36,7 +36,7 @@ const readBank = async (docx, title) => {
   if (!parsed.notes.length) {
     throw Object.assign(new Error('No notes found in the Word file. Use Heading 1 / Heading 2 for sections such as Data, Facts, Examples.'), { status: 400 });
   }
-  return { bank: { sections: parsed.sections, notes: parsed.notes }, bankName: docx.originalname, bankStats: parsed.stats };
+  return { bank: { sections: parsed.sections, notes: parsed.notes, tables: parsed.tables }, bankName: docx.originalname, bankStats: parsed.stats };
 };
 
 const publicShape = (v) => ({
@@ -77,7 +77,7 @@ const deletePdf = (pdfKey) => {
 export const valueAdditionsFor = async (topicId, { admin = false } = {}) => {
   const filter = { toppersCopy: topicId, ...(admin ? {} : { published: true }) };
   // The bank's contents stay out of the topic payload; `bank` comes back as {} (or null) — enough for hasBank.
-  const rows = await ToppersValueAddition.find(filter).select('-bank.notes -bank.sections').sort({ order: 1, createdAt: 1 }).lean();
+  const rows = await ToppersValueAddition.find(filter).select('-bank.notes -bank.sections -bank.tables').sort({ order: 1, createdAt: 1 }).lean();
   return rows.map(publicShape);
 };
 

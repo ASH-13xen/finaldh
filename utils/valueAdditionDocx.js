@@ -13,7 +13,9 @@ import zlib from 'zlib';
 //
 // Every paragraph, bullet or table row under a type becomes one note. "Label: text"
 // paragraphs keep the label as the note's title; a table row's first cell is the title
-// and the other cells become label/value pairs from the header row. "Year | Question"
+// and the other cells become label/value pairs from the header row. Table rows also carry
+// `tbl` (an id into `tables`, which keeps each table's header) so the page can redraw
+// them as the original table. "Year | Question"
 // tables and "PYQ mapping" bullets become the section's PYQs; "Keywords" become chips.
 
 export const NOTE_TYPES = ['intro', 'quote', 'data', 'fact', 'example', 'case', 'now', 'conclusion', 'diagram'];
@@ -96,7 +98,7 @@ const splitLabel = (t) => {
 const stripNum = (s) => s.replace(/^[\d.]+\s*/, '').trim();
 const level = (style) => Number(style.match(/^Heading(\d)$/i)?.[1]) || 0;
 
-/** Parse a .docx buffer into { sections, notes, stats }. `fallbackName` names a single-topic file. */
+/** Parse a .docx buffer into { sections, notes, tables, stats }. `fallbackName` names a single-topic file. */
 export const parseValueAdditionDocx = (buffer, fallbackName = 'Notes') => {
   const blocks = blocksOf(readZipEntry(buffer, 'word/document.xml'));
   const h1 = blocks.filter((b) => b.kind === 'p' && level(b.style) === 1);
@@ -104,6 +106,7 @@ export const parseValueAdditionDocx = (buffer, fallbackName = 'Notes') => {
 
   const sections = [];
   const notes = [];
+  const tables = [];
   let section = null;
   let type = null;      // current note type
   let baseType = null;  // type set by the section heading, restored after a Quotes / PYQs sub-heading
@@ -126,9 +129,11 @@ export const parseValueAdditionDocx = (buffer, fallbackName = 'Notes') => {
         continue;
       }
       if (!type || type === 'keyword') continue;
+      const tbl = `t${tables.length + 1}`;
+      tables.push({ id: tbl, head });
       rest.forEach((r) => {
         if (!r.some(Boolean)) return;
-        add({ title: r[0], text: '', cols: r.slice(1).map((v, i) => [head[i + 1] || '', v]).filter(([, v]) => v) });
+        add({ title: r[0], text: '', tbl, cols: r.slice(1).map((v, i) => [head[i + 1] || '', v]).filter(([, v]) => v) });
       });
       continue;
     }
@@ -163,6 +168,7 @@ export const parseValueAdditionDocx = (buffer, fallbackName = 'Notes') => {
   return {
     sections: kept,
     notes,
+    tables: tables.filter((t) => notes.some((n) => n.tbl === t.id)),
     stats: { notes: notes.length, pyqs: kept.reduce((n, s) => n + s.pyqs.length, 0), sections: kept.length },
   };
 };
