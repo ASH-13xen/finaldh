@@ -21,7 +21,6 @@ import {
   listDownloadLogs
 } from '../controllers/courseController.js';
 import {
-  createPurchaseRequest,
   getStudentPurchaseRequests,
   getAdminPurchaseRequests,
   approvePurchaseRequest,
@@ -99,16 +98,8 @@ router.post('/github-callback', githubCallback);
 router.get('/site-content/:key', getSiteContent);
 router.put('/site-content/:key', authenticateToken, updateSiteContent);
 
-// Payment screenshots are stored directly in MongoDB (PurchaseRequest.screenshotData) rather than
-// on local disk, since the local uploads/ directory doesn't persist across deploys/restarts on most
-// hosts — that was causing "Image Unavailable" for older requests once the underlying file was gone.
-const uploadScreenshot = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
-});
-
-// UPI Course purchase endpoints
-router.post('/purchase-request', authenticateToken, uploadScreenshot.single('screenshot'), createPurchaseRequest);
+// Legacy manual-UPI course purchase requests. New purchases are paid through Razorpay (/api/payments);
+// students can no longer submit these, but existing ones stay visible and reviewable.
 router.get('/purchase-requests', authenticateToken, getStudentPurchaseRequests);
 router.get('/purchase-requests/:id/screenshot', authenticateToken, getPurchaseRequestScreenshot);
 router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackTelegramNotification);

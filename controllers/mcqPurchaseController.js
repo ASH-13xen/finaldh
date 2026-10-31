@@ -1,5 +1,5 @@
 import McqPurchaseRequest from '../models/McqPurchaseRequest.js';
-import { escapeRegExp } from '../utils/sanitize.js';
+import { grantMcqSubjectAccess, grantMcqTestAccess } from '../utils/purchaseFulfillment.js';
 import User from '../models/User.js';
 import McqTest from '../models/McqTest.js';
 import McqSubjectPricing from '../models/McqSubjectPricing.js';
@@ -11,125 +11,8 @@ const isAdminEmail = (email) => {
     .includes((email || '').toLowerCase());
 };
 
-// Create a new purchase request - either for a whole subject (req.body.subject, the primary
-// path surfaced in the UI) or a single MCQ test (req.body.mcqTestId, kept working for any
-// pre-existing callers/data).
-export const createMcqPurchaseRequest = async (req, res) => {
-  const { mcqTestId, subject, upiTxnId } = req.body;
-  const screenshotFile = req.file;
-
-  if (!mcqTestId && !subject) {
-    return res.status(400).json({ error: 'MCQ test ID or subject is required' });
-  }
-  if (!screenshotFile) {
-    return res.status(400).json({ error: 'Payment screenshot is required' });
-  }
-
-  const cleanedTxnId = upiTxnId ? upiTxnId.trim() : '';
-
-  try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User profile not found' });
-    }
-
-    if (isAdminEmail(user.email)) {
-      return res.status(400).json({ error: 'Admins do not need to purchase MCQ tests' });
-    }
-
-    if (cleanedTxnId) {
-      const existingTxn = await McqPurchaseRequest.findOne({
-        upiTxnId: { $regex: new RegExp(`^${escapeRegExp(cleanedTxnId)}$`, 'i') }
-      });
-      if (existingTxn) {
-        return res.status(400).json({ error: 'This UPI Transaction ID has already been submitted' });
-      }
-    }
-
-    if (subject) {
-      const alreadyOwned = user.purchasedMcqSubjects.includes(subject);
-      if (alreadyOwned) {
-        return res.status(400).json({ error: 'You already have full access to this subject' });
-      }
-
-      const existingPending = await McqPurchaseRequest.findOne({
-        userId: req.userId, purchaseType: 'subject', subject, status: 'pending'
-      });
-      if (existingPending) {
-        return res.status(400).json({ error: 'You already have a pending purchase request for this subject' });
-      }
-
-      const pricing = await McqSubjectPricing.findOne({ subject });
-      if (!pricing) {
-        return res.status(400).json({ error: 'Pricing is not configured for this subject yet. Please contact the admin.' });
-      }
-
-      const newRequest = new McqPurchaseRequest({
-        userId: user._id,
-        userEmail: user.email,
-        userName: user.fullName || user.name,
-        purchaseType: 'subject',
-        subject,
-        price: pricing.useDiscount ? pricing.discountedPrice : pricing.price,
-        screenshotData: screenshotFile.buffer,
-        screenshotContentType: screenshotFile.mimetype,
-        upiTxnId: cleanedTxnId || undefined,
-        status: 'pending'
-      });
-      newRequest.screenshotUrl = `/api/mcq/purchase-requests/${newRequest._id}/screenshot`;
-      await newRequest.save();
-
-      return res.json({
-        message: 'Purchase request submitted successfully. It will be verified within 6-8 hours.',
-        request: newRequest
-      });
-    }
-
-    const test = await McqTest.findById(mcqTestId);
-    if (!test) {
-      return res.status(404).json({ error: 'MCQ test not found' });
-    }
-
-    const alreadyOwned = user.purchasedMcqTests.some((id) => id.equals(test._id)) || user.purchasedMcqSubjects.includes(test.subject);
-    if (alreadyOwned) {
-      return res.status(400).json({ error: 'You have already purchased this test' });
-    }
-
-    const existingPending = await McqPurchaseRequest.findOne({
-      userId: req.userId,
-      mcqTestObjectId: test._id,
-      status: 'pending'
-    });
-    if (existingPending) {
-      return res.status(400).json({ error: 'You already have a pending purchase request for this test' });
-    }
-
-    const newRequest = new McqPurchaseRequest({
-      userId: user._id,
-      userEmail: user.email,
-      userName: user.fullName || user.name,
-      purchaseType: 'test',
-      mcqTestObjectId: test._id,
-      mcqTestTitle: test.title,
-      price: test.useDiscount ? test.discountedPrice : test.price,
-      screenshotData: screenshotFile.buffer,
-      screenshotContentType: screenshotFile.mimetype,
-      upiTxnId: cleanedTxnId || undefined,
-      status: 'pending'
-    });
-    newRequest.screenshotUrl = `/api/mcq/purchase-requests/${newRequest._id}/screenshot`;
-
-    await newRequest.save();
-
-    res.json({
-      message: 'Purchase request submitted successfully. It will be verified within 6-8 hours.',
-      request: newRequest
-    });
-  } catch (err) {
-    console.error('Error creating MCQ purchase request:', err);
-    res.status(500).json({ error: 'Server error submitting purchase request' });
-  }
-};
+// Legacy manual-UPI MCQ purchase requests. New subject purchases go through Razorpay (paymentController.js);
+// students can no longer submit these, but requests already submitted stay reviewable until the queue is clear.
 
 // Retrieve purchase requests for the logged-in student
 export const getStudentMcqPurchaseRequests = async (req, res) => {
@@ -217,16 +100,12 @@ export const approveMcqPurchaseRequest = async (req, res) => {
     }
 
     if (request.purchaseType === 'subject') {
-      if (!targetUser.purchasedMcqSubjects.includes(request.subject)) {
-        targetUser.purchasedMcqSubjects.push(request.subject);
-      }
-    } else if (!targetUser.purchasedMcqTests.some((id) => id.equals(request.mcqTestObjectId))) {
-      targetUser.purchasedMcqTests.push(request.mcqTestObjectId);
+      await grantMcqSubjectAccess(targetUser._id, request.subject);
+    } else {
+      await grantMcqTestAccess(targetUser._id, request.mcqTestObjectId);
     }
 
     request.status = 'approved';
-
-    await targetUser.save();
     await request.save();
 
     res.json({

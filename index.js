@@ -15,6 +15,7 @@ import pdfEditorRoutes from './routes/pdfEditorRoutes.js';
 import mcqRoutes from './routes/mcqRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 
 dotenv.config();
 
@@ -33,6 +34,14 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Range'],
   exposedHeaders: ['Content-Disposition', 'Content-Length', 'x-download-mode', 'Accept-Ranges', 'Content-Range']
 }));
+
+// Razorpay payments are mounted ahead of the global JSON parser: the webhook's signature check needs the
+// untouched raw body (paymentRoutes.js parses JSON itself for its other routes).
+app.use('/api/payments', (req, res, next) => {
+  console.log(`[HTTP Server] Incoming: ${req.method} ${req.originalUrl}`);
+  next();
+}, paymentRoutes);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

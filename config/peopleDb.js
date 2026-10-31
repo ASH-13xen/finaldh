@@ -14,7 +14,8 @@ export const PEOPLE_COLLECTIONS = [
   'downloadrequests',
   'combooffers',
   'upscqas',
-  'downloadlogs'
+  'downloadlogs',
+  'payments'
 ];
 
 let opening = null;

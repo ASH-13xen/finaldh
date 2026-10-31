@@ -36,7 +36,6 @@ import {
   rejectAllForQuestion
 } from '../controllers/mcqReportController.js';
 import {
-  createMcqPurchaseRequest,
   getStudentMcqPurchaseRequests,
   getAdminMcqPurchaseRequests,
   approveMcqPurchaseRequest,
@@ -54,12 +53,6 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
-});
-
-// Payment screenshots stored directly in MongoDB, same pattern as courseRoutes.js.
-const uploadScreenshot = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
 const router = express.Router();
@@ -107,8 +100,8 @@ router.delete('/flags/:questionId', authenticateToken, unflagQuestion);
 router.post('/questions/:questionId/report', authenticateToken, submitReport);
 router.get('/reports/mine', authenticateToken, myReports);
 
-// UPI MCQ test purchase endpoints (mirrors courseRoutes.js's purchase-request flow)
-router.post('/purchase-requests', authenticateToken, uploadScreenshot.single('screenshot'), createMcqPurchaseRequest);
+// Legacy manual-UPI MCQ purchase requests. New subject purchases are paid through Razorpay (/api/payments);
+// students can no longer submit these, but existing ones stay visible and reviewable.
 router.get('/purchase-requests', authenticateToken, getStudentMcqPurchaseRequests);
 router.get('/purchase-requests/:id/screenshot', authenticateToken, getMcqPurchaseRequestScreenshot);
 router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackMcqTelegramNotification);

@@ -26,11 +26,11 @@ if (!URI) {
   const { default: Course } = await import('../models/Course.js');
   const { default: DownloadLog } = await import('../models/DownloadLog.js');
   const { default: UPSCQA } = await import('../models/UPSCQA.js');
-  const { default: McqSubjectPricing } = await import('../models/McqSubjectPricing.js');
   const { default: McqPurchaseRequest } = await import('../models/McqPurchaseRequest.js');
   const { default: PurchaseRequest } = await import('../models/PurchaseRequest.js');
   const { default: DownloadRequest } = await import('../models/DownloadRequest.js');
   const { default: ComboOffer } = await import('../models/ComboOffer.js');
+  const { default: Payment } = await import('../models/Payment.js');
   const { openPeopleDb, closePeopleDb, peopleConn, PEOPLE_COLLECTIONS } = await import('../config/peopleDb.js');
   const { isPrivateAddress } = await import('../utils/safeFetch.js');
   const { sanitizePersonName, sanitizeMobile, escapeRegExp } = await import('../utils/sanitize.js');
@@ -90,8 +90,8 @@ if (!URI) {
   });
 
   // ---------- people / purchase data lives in its own database ----------
-  test('users, purchases, download requests/logs, combo offers and UPSC QAs are stored only in the people database', async () => {
-    await Promise.all([User, PurchaseRequest, McqPurchaseRequest, DownloadRequest, ComboOffer, UPSCQA, DownloadLog].map((m) => m.init()));
+  test('users, purchases, payments, download requests/logs, combo offers and UPSC QAs are stored only in the people database', async () => {
+    await Promise.all([User, PurchaseRequest, McqPurchaseRequest, DownloadRequest, ComboOffer, UPSCQA, DownloadLog, Payment].map((m) => m.init()));
     const names = async (conn) => (await conn.db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name);
     const main = await names(mongoose.connection);
     const people = await names(peopleConn);
@@ -330,22 +330,5 @@ if (!URI) {
     assert.equal(r.data.logs[0].userEmail, 'buyer@test.dev');
     // regex characters in the search box are treated literally
     assert.equal((await call('GET', '/api/courses/admin/download-logs?q=.*', 'admin')).data.logs.length, 0);
-  });
-
-  // ---------- UPI transaction id ----------
-  test('UPI transaction ids are matched literally (no regex injection)', async () => {
-    await McqSubjectPricing.create({ subject: 'GS-1', price: 100 });
-    await McqPurchaseRequest.create({ userId: users.admin._id, userEmail: 'a@a.a', userName: 'a', purchaseType: 'subject', subject: 'GS-1', price: 100, screenshotUrl: '/x', upiTxnId: 'ABC123456', status: 'rejected' });
-
-    const submit = async (txn) => {
-      const form = new FormData();
-      form.append('subject', 'GS-1');
-      form.append('upiTxnId', txn);
-      form.append('screenshot', new Blob([Buffer.from('fake')], { type: 'image/png' }), 's.png');
-      return call('POST', '/api/mcq/purchase-requests', 'buyer', form);
-    };
-    assert.equal((await submit('.*')).status, 200, '".*" must NOT match the existing "ABC123456"');
-    await McqPurchaseRequest.deleteMany({ userId: users.buyer._id });
-    assert.equal((await submit('abc123456')).status, 400, 'a real duplicate (case-insensitive) is still caught');
   });
 }

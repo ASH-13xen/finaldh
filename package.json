@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec \"node --max-old-space-size=4096\" index.js",
-    "test": "node --test tests/pdfStamp.test.mjs tests/courseAccess.test.mjs tests/mcq.integration.test.mjs tests/security.integration.test.mjs tests/peopleSplit.integration.test.mjs"
+    "test": "node --test tests/pdfStamp.test.mjs tests/courseAccess.test.mjs tests/mcq.integration.test.mjs tests/security.integration.test.mjs tests/payments.integration.test.mjs tests/peopleSplit.integration.test.mjs"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +28,7 @@
     "mongoose": "^9.6.3",
     "multer": "^2.1.1",
     "pdf-lib": "^1.17.1",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "razorpay": "^2.9.8"
   }
 }
