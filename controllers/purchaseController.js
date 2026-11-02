@@ -5,8 +5,9 @@ import Course from '../models/Course.js';
 // Registers the model the comboOffer populate() calls below resolve against
 import '../models/ComboOffer.js';
 
-// Legacy manual-UPI purchase requests. New purchases go through Razorpay (paymentController.js); students
-// can no longer submit these, but requests already submitted stay reviewable here until the queue is clear.
+// Course purchase requests the admin verifies. New ones are created by paymentController.js once a Razorpay
+// payment is confirmed (paymentMethod 'razorpay'); older ones came from the manual UPI-screenshot flow
+// (paymentMethod 'upi_manual'). Either way, approving grants the course and rejecting does not.
 
 // Retrieve purchase requests for the logged-in student
 export const getStudentPurchaseRequests = async (req, res) => {
@@ -158,6 +159,7 @@ export const rejectPurchaseRequest = async (req, res) => {
     }
 
     request.status = 'rejected';
+    request.rejectedAt = new Date();
     await request.save();
 
     res.json({

@@ -98,8 +98,8 @@ router.post('/github-callback', githubCallback);
 router.get('/site-content/:key', getSiteContent);
 router.put('/site-content/:key', authenticateToken, updateSiteContent);
 
-// Legacy manual-UPI course purchase requests. New purchases are paid through Razorpay (/api/payments);
-// students can no longer submit these, but existing ones stay visible and reviewable.
+// Course purchase requests: created by a confirmed Razorpay payment (/api/payments), verified here by the
+// admin. (Students used to submit these directly with a UPI screenshot; that endpoint is gone.)
 router.get('/purchase-requests', authenticateToken, getStudentPurchaseRequests);
 router.get('/purchase-requests/:id/screenshot', authenticateToken, getPurchaseRequestScreenshot);
 router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackTelegramNotification);

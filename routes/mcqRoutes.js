@@ -100,8 +100,8 @@ router.delete('/flags/:questionId', authenticateToken, unflagQuestion);
 router.post('/questions/:questionId/report', authenticateToken, submitReport);
 router.get('/reports/mine', authenticateToken, myReports);
 
-// Legacy manual-UPI MCQ purchase requests. New subject purchases are paid through Razorpay (/api/payments);
-// students can no longer submit these, but existing ones stay visible and reviewable.
+// MCQ purchase requests: created by a confirmed Razorpay payment (/api/payments), verified here by the
+// admin. (Students used to submit these directly with a UPI screenshot; that endpoint is gone.)
 router.get('/purchase-requests', authenticateToken, getStudentMcqPurchaseRequests);
 router.get('/purchase-requests/:id/screenshot', authenticateToken, getMcqPurchaseRequestScreenshot);
 router.post('/purchase-requests/:id/notify-telegram', authenticateToken, trackMcqTelegramNotification);

@@ -11,8 +11,8 @@ const isAdminEmail = (email) => {
     .includes((email || '').toLowerCase());
 };
 
-// Legacy manual-UPI MCQ purchase requests. New subject purchases go through Razorpay (paymentController.js);
-// students can no longer submit these, but requests already submitted stay reviewable until the queue is clear.
+// MCQ purchase requests the admin verifies. New ones are created by paymentController.js once a Razorpay
+// payment is confirmed (paymentMethod 'razorpay'); older ones came from the manual UPI-screenshot flow.
 
 // Retrieve purchase requests for the logged-in student
 export const getStudentMcqPurchaseRequests = async (req, res) => {
@@ -140,6 +140,7 @@ export const rejectMcqPurchaseRequest = async (req, res) => {
     }
 
     request.status = 'rejected';
+    request.rejectedAt = new Date();
     await request.save();
 
     res.json({

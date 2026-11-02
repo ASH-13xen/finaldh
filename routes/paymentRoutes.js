@@ -4,7 +4,9 @@ import {
   verifyPayment,
   getPaymentStatus,
   razorpayWebhook,
-  listPaymentsAdmin
+  listPaymentsAdmin,
+  listMyRejections,
+  acknowledgeRejection
 } from '../controllers/paymentController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -22,6 +24,8 @@ router.use(express.json());
 router.post('/order', authenticateToken, createOrder);
 router.post('/verify', authenticateToken, verifyPayment);
 router.get('/orders/:orderId/status', authenticateToken, getPaymentStatus);
+router.get('/rejections', authenticateToken, listMyRejections);
+router.post('/rejections/:kind/:id/acknowledge', authenticateToken, acknowledgeRejection);
 router.get('/admin', authenticateToken, requireAdmin, listPaymentsAdmin);
 
 export default router;

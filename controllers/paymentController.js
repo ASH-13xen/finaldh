@@ -7,7 +7,6 @@ import PurchaseRequest from '../models/PurchaseRequest.js';
 import McqPurchaseRequest from '../models/McqPurchaseRequest.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { userHasCourseAccess } from '../utils/courseAccess.js';
-import { grantCourseAccess, grantMcqSubjectAccess } from '../utils/purchaseFulfillment.js';
 import {
   getRazorpay,
   razorpayKeyId,
@@ -20,13 +19,15 @@ import {
 //   1. POST /order   - we decide what is being bought and its price (never the browser), create a
 //                      Razorpay order and a Payment record (status 'created').
 //   2. Checkout      - the student pays in Razorpay's popup.
-//   3. POST /verify  - the browser sends back Razorpay's signed result; we check the signature, confirm the
-//                      payment with Razorpay and grant access.
+//   3. POST /verify  - the browser sends back Razorpay's signed result; we check the signature and confirm
+//                      the payment with Razorpay.
 //   Safety nets for when step 3 never arrives (tab closed, network drop):
 //   - POST /razorpay/webhook - Razorpay tells us server-to-server.
 //   - GET /orders/:orderId/status - asks Razorpay directly (also what makes local testing work, where
 //                      webhooks can't reach localhost).
-// All three paths end in settlePayment(), which grants access exactly once.
+// All three paths end in settlePayment(), which hands the paid order to the admin as exactly one pending
+// purchase request. Access is granted only when the admin presses Verify (purchaseController.js /
+// mcqPurchaseController.js); on Reject the student is shown a refund notice (see listMyRejections).
 
 const RAZORPAY_MIN_AMOUNT = 100; // paise - Razorpay rejects orders below ₹1
 
@@ -49,8 +50,8 @@ async function resolvePurchase(user, body) {
     if (!course) throw new PurchaseError(404, 'Course not found');
     if (userHasCourseAccess(user, course)) throw new PurchaseError(400, 'You have already purchased this course');
 
-    const pendingUpi = await PurchaseRequest.exists({ userId: user._id, courseId: course.courseId, status: 'pending' });
-    if (pendingUpi) throw new PurchaseError(400, 'Your earlier UPI payment for this course is still being verified');
+    const pending = await PurchaseRequest.exists({ userId: user._id, courseId: course.courseId, status: 'pending' });
+    if (pending) throw new PurchaseError(400, 'You already have a payment for this course waiting for verification');
 
     return { kind, itemLabel: course.name, price: effectivePrice(course), courses: [course], courseIds: [course.courseId] };
   }
@@ -77,8 +78,8 @@ async function resolvePurchase(user, body) {
       throw new PurchaseError(400, 'You already have access to one or more courses in this combo');
     }
 
-    const pendingUpi = await PurchaseRequest.exists({ userId: user._id, comboOffer: comboOffer._id, status: 'pending' });
-    if (pendingUpi) throw new PurchaseError(400, 'Your earlier UPI payment for this combo is still being verified');
+    const pending = await PurchaseRequest.exists({ userId: user._id, comboOffer: comboOffer._id, status: 'pending' });
+    if (pending) throw new PurchaseError(400, 'You already have a payment for this combo waiting for verification');
 
     return {
       kind,
@@ -98,8 +99,8 @@ async function resolvePurchase(user, body) {
     const pricing = await McqSubjectPricing.findOne({ subject });
     if (!pricing) throw new PurchaseError(400, 'Pricing is not configured for this subject yet. Please contact the admin.');
 
-    const pendingUpi = await McqPurchaseRequest.exists({ userId: user._id, purchaseType: 'subject', subject, status: 'pending' });
-    if (pendingUpi) throw new PurchaseError(400, 'Your earlier UPI payment for this subject is still being verified');
+    const pending = await McqPurchaseRequest.exists({ userId: user._id, purchaseType: 'subject', subject, status: 'pending' });
+    if (pending) throw new PurchaseError(400, 'You already have a payment for this subject waiting for verification');
 
     return { kind, itemLabel: `MCQ Test Series — ${subject} (all tests)`, price: effectivePrice(pricing), subject };
   }
@@ -107,31 +108,80 @@ async function resolvePurchase(user, body) {
   throw new PurchaseError(400, 'Unknown purchase type');
 }
 
-async function grantPaymentAccess(payment) {
-  if (payment.kind === 'mcq_subject') {
-    await grantMcqSubjectAccess(payment.userId, payment.subject);
-    return;
+const requestModelFor = (payment) => (payment.kind === 'mcq_subject' ? McqPurchaseRequest : PurchaseRequest);
+
+// The pending purchase request the admin verifies, shaped exactly like the requests the old UPI flow
+// created, so the admin screens and the student's "Pending Verification" states work unchanged. Upserted on
+// the order id (unique), so concurrent confirmations still produce a single request.
+async function createVerificationRequest(payment) {
+  const common = {
+    userId: payment.userId,
+    userEmail: payment.userEmail,
+    userName: payment.userName,
+    price: payment.amount / 100,
+    paymentMethod: 'razorpay',
+    razorpayOrderId: payment.razorpayOrderId,
+    razorpayPaymentId: payment.razorpayPaymentId,
+    payerContact: payment.payerContact,
+    payerEmail: payment.payerEmail,
+    payerMethod: payment.method,
+    status: 'pending'
+  };
+  const fields = payment.kind === 'mcq_subject'
+    ? { ...common, purchaseType: 'subject', subject: payment.subject }
+    : {
+        ...common,
+        courseObjectId: payment.courses[0],
+        courseId: payment.courseIds.join(','),
+        courseName: payment.itemLabel,
+        courses: payment.courses,
+        comboOffer: payment.comboOffer
+      };
+
+  const Model = requestModelFor(payment);
+  try {
+    return await Model.findOneAndUpdate(
+      { razorpayOrderId: payment.razorpayOrderId },
+      { $setOnInsert: fields },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (err) {
+    // Two upserts raced and the unique index kept the second one out - the request exists, use it
+    if (err?.code === 11000) return Model.findOne({ razorpayOrderId: payment.razorpayOrderId });
+    throw err;
   }
-  const courses = await Course.find({ _id: { $in: payment.courses } });
-  await grantCourseAccess(payment.userId, courses);
 }
 
-// Marks the order paid (first caller wins) and makes sure access is granted. Safe to call any number of
-// times from any of the three confirmation paths.
-async function settlePayment(orderId, { paymentId, method, via }) {
+// Marks the order paid (first caller wins) and makes sure it has been handed to the admin as a pending
+// request. Safe to call any number of times from any of the three confirmation paths.
+async function settlePayment(orderId, { paymentId, method, contact, email, via }) {
   await Payment.updateOne(
     { razorpayOrderId: orderId, status: { $ne: 'paid' } },
-    { $set: { status: 'paid', razorpayPaymentId: paymentId, method, paidAt: new Date(), confirmedVia: via }, $unset: { failureReason: 1 } }
+    {
+      $set: { status: 'paid', razorpayPaymentId: paymentId, method, payerContact: contact, payerEmail: email, paidAt: new Date(), confirmedVia: via },
+      $unset: { failureReason: 1 }
+    }
   );
   const payment = await Payment.findOne({ razorpayOrderId: orderId });
   if (payment && !payment.fulfilledAt) {
-    await grantPaymentAccess(payment);
+    const request = await createVerificationRequest(payment);
+    payment.purchaseRequestId = request._id;
     payment.fulfilledAt = new Date();
     await payment.save();
-    console.log(`[Payments] ${payment.razorpayOrderId} paid via ${via}: ${payment.userEmail} unlocked "${payment.itemLabel}"`);
+    console.log(`[Payments] ${payment.razorpayOrderId} paid via ${via}: "${payment.itemLabel}" for ${payment.userEmail} is waiting for admin verification`);
   }
   return payment;
 }
+
+// Settles from a Razorpay payment entity (API response or webhook payload)
+const settleFromEntity = (orderId, entity, via) =>
+  settlePayment(orderId, { paymentId: entity.id, method: entity.method, contact: entity.contact, email: entity.email, via });
+
+// Re-runs settle for an order already marked paid (repairs a missed hand-off), using what was stored
+const resettle = (payment, via) =>
+  settlePayment(payment.razorpayOrderId, {
+    paymentId: payment.razorpayPaymentId, method: payment.method, contact: payment.payerContact, email: payment.payerEmail, via
+  });
 
 // Makes sure Razorpay actually holds the money for this order. A payment that is only 'authorized' (when
 // the account's auto-capture is off) is captured here - otherwise Razorpay refunds it after a few days
@@ -163,6 +213,19 @@ const paymentSummary = (p) => ({
   courseIds: p.courseIds,
   subject: p.subject
 });
+
+// Response for a paid order: the payment plus the pending request it created (the browser needs the
+// request id for "Notify Admin on Telegram", which is tracked per request)
+const paidResponse = async (payment) => {
+  const request = payment.purchaseRequestId
+    ? await requestModelFor(payment).findById(payment.purchaseRequestId).select('status telegramNotificationCount')
+    : null;
+  return {
+    status: 'paid',
+    payment: paymentSummary(payment),
+    request: request ? { _id: request._id, status: request.status, telegramNotificationCount: request.telegramNotificationCount } : null
+  };
+};
 
 const loadOwnPayment = async (req, orderId) => {
   if (typeof orderId !== 'string' || !orderId) throw new PurchaseError(400, 'Order ID is required');
@@ -237,8 +300,7 @@ export const verifyPayment = async (req, res) => {
   try {
     const payment = await loadOwnPayment(req, orderId);
     if (payment.status === 'paid') {
-      const settled = await settlePayment(orderId, { paymentId: payment.razorpayPaymentId, method: payment.method, via: 'verify' });
-      return res.json({ status: 'paid', payment: paymentSummary(settled) });
+      return res.json(await paidResponse(await resettle(payment, 'verify')));
     }
 
     if (typeof paymentId !== 'string' || !isValidPaymentSignature(orderId, paymentId, signature)) {
@@ -251,8 +313,7 @@ export const verifyPayment = async (req, res) => {
       return res.status(202).json({ status: 'processing' });
     }
 
-    const settled = await settlePayment(orderId, { paymentId, method: rzpPayment.method, via: 'verify' });
-    res.json({ status: 'paid', payment: paymentSummary(settled) });
+    res.json(await paidResponse(await settleFromEntity(orderId, rzpPayment, 'verify')));
   } catch (err) {
     sendError(res, err, 'Could not verify the payment. Please refresh in a minute.');
   }
@@ -263,15 +324,13 @@ export const getPaymentStatus = async (req, res) => {
   try {
     const payment = await loadOwnPayment(req, req.params.orderId);
     if (payment.status === 'paid') {
-      const settled = await settlePayment(payment.razorpayOrderId, { paymentId: payment.razorpayPaymentId, method: payment.method, via: 'status-check' });
-      return res.json({ status: 'paid', payment: paymentSummary(settled) });
+      return res.json(await paidResponse(await resettle(payment, 'status-check')));
     }
 
     const { items = [] } = await getRazorpay().orders.fetchPayments(payment.razorpayOrderId);
     for (const rzpPayment of items) {
       if (await ensureCaptured(rzpPayment, payment)) {
-        const settled = await settlePayment(payment.razorpayOrderId, { paymentId: rzpPayment.id, method: rzpPayment.method, via: 'status-check' });
-        return res.json({ status: 'paid', payment: paymentSummary(settled) });
+        return res.json(await paidResponse(await settleFromEntity(payment.razorpayOrderId, rzpPayment, 'status-check')));
       }
     }
 
@@ -307,9 +366,9 @@ export const razorpayWebhook = async (req, res) => {
 
     if (event.event === 'payment.captured' || event.event === 'order.paid') {
       if (await ensureCaptured(entity, payment)) {
-        await settlePayment(orderId, { paymentId: entity.id, method: entity.method, via: 'webhook' });
+        await settleFromEntity(orderId, entity, 'webhook');
       } else {
-        console.warn(`[Payments] Webhook ${event.event} for ${orderId} did not match the order (amount/currency/status) - not granted`);
+        console.warn(`[Payments] Webhook ${event.event} for ${orderId} did not match the order (amount/currency/status) - ignored`);
       }
     } else if (event.event === 'payment.failed') {
       await Payment.updateOne(
@@ -326,12 +385,67 @@ export const razorpayWebhook = async (req, res) => {
   }
 };
 
-// GET /api/payments/admin - every Razorpay order, newest first
+// GET /api/payments/admin - every Razorpay order, newest first, with the admin's verification status
+// ('pending' / 'approved' / 'rejected') of the purchase request each paid order created
 export const listPaymentsAdmin = async (req, res) => {
   try {
     const payments = await Payment.find({}).sort({ createdAt: -1 }).limit(1000).lean();
-    res.json({ payments });
+
+    const idsFor = (isMcq) => payments
+      .filter((p) => p.purchaseRequestId && (p.kind === 'mcq_subject') === isMcq)
+      .map((p) => p.purchaseRequestId);
+    const [courseReqs, mcqReqs] = await Promise.all([
+      PurchaseRequest.find({ _id: { $in: idsFor(false) } }).select('status').lean(),
+      McqPurchaseRequest.find({ _id: { $in: idsFor(true) } }).select('status').lean()
+    ]);
+    const statusById = new Map([...courseReqs, ...mcqReqs].map((r) => [String(r._id), r.status]));
+
+    res.json({
+      payments: payments.map((p) => ({
+        ...p,
+        verificationStatus: p.purchaseRequestId ? statusById.get(String(p.purchaseRequestId)) || null : null
+      }))
+    });
   } catch (err) {
     sendError(res, err, 'Could not load payments');
+  }
+};
+
+// Razorpay payments the admin rejected that the student hasn't acknowledged yet. The site shows each as a
+// full-screen refund notice until the student presses "I understand". Legacy UPI rejections are left out:
+// they predate this notice and were handled by hand.
+const REJECTION_KINDS = { course: PurchaseRequest, mcq: McqPurchaseRequest };
+
+// GET /api/payments/rejections
+export const listMyRejections = async (req, res) => {
+  try {
+    const filter = { userId: req.userId, paymentMethod: 'razorpay', status: 'rejected', rejectionAcknowledgedAt: null };
+    const [courseReqs, mcqReqs] = await Promise.all([
+      PurchaseRequest.find(filter).select('courseName price createdAt rejectedAt').lean(),
+      McqPurchaseRequest.find(filter).select('subject price createdAt rejectedAt').lean()
+    ]);
+    const rejections = [
+      ...courseReqs.map((r) => ({ kind: 'course', id: r._id, itemLabel: r.courseName, amount: r.price, paidAt: r.createdAt, rejectedAt: r.rejectedAt })),
+      ...mcqReqs.map((r) => ({ kind: 'mcq', id: r._id, itemLabel: `MCQ Test Series — ${r.subject}`, amount: r.price, paidAt: r.createdAt, rejectedAt: r.rejectedAt }))
+    ].sort((a, b) => new Date(a.paidAt) - new Date(b.paidAt));
+    res.json({ rejections });
+  } catch (err) {
+    sendError(res, err, 'Could not load payment notices');
+  }
+};
+
+// POST /api/payments/rejections/:kind/:id/acknowledge
+export const acknowledgeRejection = async (req, res) => {
+  const Model = REJECTION_KINDS[req.params.kind];
+  if (!Model) return res.status(400).json({ error: 'Unknown request type' });
+  try {
+    const result = await Model.updateOne(
+      { _id: req.params.id, userId: req.userId, status: 'rejected' },
+      { $set: { rejectionAcknowledgedAt: new Date() } }
+    ).catch(() => null);
+    if (!result || result.matchedCount === 0) return res.status(404).json({ error: 'Notice not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    sendError(res, err, 'Could not update the notice');
   }
 };
