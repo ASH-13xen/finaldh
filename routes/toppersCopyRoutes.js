@@ -51,6 +51,7 @@ import {
   deleteValueAddition,
   streamValueAdditionPdf,
   getValueAdditionBank,
+  streamValueAdditionImage,
 } from '../controllers/toppersValueAdditionController.js';
 
 // Ingestion PDFs can be large scans — write them to a temp dir on disk, not memory.
@@ -73,9 +74,10 @@ const uploadValueFiles = multer({
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'docx') return cb(isDocx(file) ? null : new Error('Only Word (.docx) files'), true);
+    if (file.fieldname === 'images') return cb(/^image\/(png|jpe?g|webp|gif)$/i.test(file.mimetype) ? null : new Error('Only PNG/JPG/WebP/GIF images'), true);
     cb(file.mimetype === 'application/pdf' ? null : new Error('Only PDF files'), true);
   },
-}).fields([{ name: 'pdf', maxCount: 1 }, { name: 'docx', maxCount: 1 }]);
+}).fields([{ name: 'pdf', maxCount: 1 }, { name: 'docx', maxCount: 1 }, { name: 'images', maxCount: 12 }]);
 const uploadImage = multer({
   storage,
   limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
@@ -135,6 +137,7 @@ router.get('/pyqs/:id/answer/image/:imageId', authenticateToken, streamToppersPy
 router.get('/best-parts/:bid/image', authenticateToken, streamBestPartImage);
 router.get('/value-additions/:vid/pdf', authenticateToken, streamValueAdditionPdf);
 router.get('/value-additions/:vid/bank', authenticateToken, getValueAdditionBank);
+router.get('/value-additions/:vid/images/:imageId', authenticateToken, streamValueAdditionImage);
 router.get('/:id', authenticateToken, getToppersCopy);
 router.get('/:id/pdf', authenticateToken, streamToppersCopyPdf);
 
