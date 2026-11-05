@@ -40,6 +40,16 @@ const mcqQuestionSchema = new mongoose.Schema({
   examSource: { type: String, default: '' }, // real exam/year this question is attributed to, e.g. "UPSC IES 2023"
   questionType: { type: String, enum: ['conceptual', 'factual'], default: 'conceptual' },
 
+  // Where this question sits in the subject's syllabus (models/SubjectSyllabus.js). Placed by AI
+  // (utils/syllabusTagging.js) or an admin; `by === 'admin'` is never overwritten by the AI.
+  syllabusTag: {
+    chapter: { type: String, default: '' },         // SubjectSyllabus chapter key; '' = not placed
+    subtopic: { type: String, default: '' },
+    by: { type: String, enum: ['ai', 'admin', null], default: null },
+    confidence: { type: Number, default: null },
+    at: { type: Date, default: null },
+  },
+
   // false = retired: no longer used in new attempts, but kept because past attempts, flags and reports
   // still point at it. (Hard-deleting a question that has attempts would orphan all of them.)
   isActive: { type: Boolean, default: true },

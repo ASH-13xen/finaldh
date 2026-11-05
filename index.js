@@ -20,6 +20,7 @@ import questionBankRoutes from './routes/questionBankRoutes.js';
 import toppersCopyRoutes from './routes/toppersCopyRoutes.js';
 import studyRoutes from './routes/studyRoutes.js';
 import economyRoutes from './routes/economyRoutes.js';
+import syllabusRoutes from './routes/syllabusRoutes.js';
 
 dotenv.config();
 
@@ -92,6 +93,7 @@ app.use('/api/question-banks', questionBankRoutes);
 app.use('/api/toppers-copy', toppersCopyRoutes);
 app.use('/api/study', studyRoutes);
 app.use('/api/economy', economyRoutes);
+app.use('/api/syllabus', syllabusRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
