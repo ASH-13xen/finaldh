@@ -31,6 +31,10 @@ node_modules/
 temp/
 dist/
 
+# Interview-transcript pipeline working data (page texts, parses, Gemini caches, corpus.json) -
+# rebuilt locally by scripts/interview/pipeline.mjs and loaded into Mongo by its `seed` step.
+data/interview/
+
 # One-off DB migration backups (contain user PII - emails, course access) - local safety
 # net only, never meant to be pushed.
 migration-backups/
