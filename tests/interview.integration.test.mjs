@@ -267,6 +267,19 @@ if (!URI) {
     assert.equal((await InterviewSession.findById(a.data.session.id)).status, 'abandoned');
   });
 
+  test('board voice: only for the owner\'s own questions, and refused (so the browser falls back) when AI is off', async () => {
+    const start = await api('POST', '/sessions', 's1', { minutes: 10, inputMode: 'voice' });
+    const id = start.data.session.id;
+    const res = await fetch(`${base}/api/interview/sessions/${id}/speech?turn=0`, { headers: { Authorization: `Bearer ${tokens.s1}` } });
+    assert.equal(res.status, 503);
+    assert.equal((await res.json()).aiUnavailable, true);
+    const other = await fetch(`${base}/api/interview/sessions/${id}/speech?turn=0`, { headers: { Authorization: `Bearer ${tokens.s2}` } });
+    assert.equal(other.status, 404, 'another student cannot have this session spoken');
+    const sample = await fetch(`${base}/api/interview/voice-sample?asker=m1`, { headers: { Authorization: `Bearer ${tokens.s1}` } });
+    assert.equal(sample.status, 503);
+    await api('POST', `/sessions/${id}/end`, 's1');
+  });
+
   test('DAF upload and voice transcription explain that AI is off', async () => {
     const form = new FormData();
     form.append('file', new Blob([Buffer.from('%PDF-1.4 test')], { type: 'application/pdf' }), 'daf.pdf');

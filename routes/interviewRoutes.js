@@ -18,7 +18,9 @@ import {
   endSession,
   listSessions,
   deleteSession,
-  transcribe
+  transcribe,
+  speakTurn,
+  voiceSample
 } from '../controllers/interviewController.js';
 import {
   getOverview,
@@ -77,6 +79,8 @@ router.post('/sessions/:id/answer', authenticateToken, sectionAccess, answerSess
 router.post('/sessions/:id/end', authenticateToken, sectionAccess, endSession);
 router.delete('/sessions/:id', authenticateToken, sectionAccess, deleteSession);
 router.post('/transcribe', authenticateToken, sectionAccess, audioUpload.single('audio'), transcribe);
+router.get('/sessions/:id/speech', authenticateToken, sectionAccess, speakTurn);
+router.get('/voice-sample', authenticateToken, sectionAccess, voiceSample);
 
 // Admin: corpus review
 router.get('/admin/overview', authenticateToken, requireAdmin, getOverview);

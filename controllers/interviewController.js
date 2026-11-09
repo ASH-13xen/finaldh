@@ -8,6 +8,7 @@ import { buildPredictions, profileHash, profileItems } from '../lib/interview/pr
 import { planSession, openSession, answerCurrent, buildReport, sessionPayload, closingLine, PANEL, TRAITS } from '../lib/interview/interviewer.js';
 import { cleanProfileInput, extractDaf, transcribeAnswer, isProfileEmpty, SERVICES } from '../lib/interview/daf.js';
 import { geminiStatus, checkGemini, embedTexts } from '../lib/interview/gemini.js';
+import { streamSpeech, SAMPLE_LINES } from '../lib/interview/voice.js';
 import { TOPIC_LABELS, HOOK_TYPES, QTYPES } from '../lib/interview/taxonomy.js';
 
 // Free for now; the caps only stop one account from running up the Gemini bill.
@@ -472,4 +473,40 @@ export const transcribe = async (req, res) => {
     console.error('[interview] transcribe error:', err);
     fail(res, 502, 'Could not understand that recording. Please try again or type your answer.');
   }
+};
+
+// ------------------------------------------------------------------ the board's voice
+
+// Speaks a question of the student's own interview (?turn=<idx>, or ?turn=closing) as streamed PCM.
+// Only text the session already holds can be spoken, so this can't be used as a general TTS service.
+// Any failure answers 503 before audio starts and the browser falls back to its built-in voice.
+const sendSpeech = async (res, text, asker) => {
+  try {
+    await streamSpeech(text, asker, res);
+  } catch (err) {
+    if (res.headersSent) { res.end(); return; }
+    if (err.name !== 'GeminiUnavailableError') console.warn('[interview] speech failed:', String(err.message).slice(0, 200));
+    fail(res, 503, 'AI voice is not available right now.', { aiUnavailable: true });
+  }
+};
+
+export const speakTurn = async (req, res) => {
+  try {
+    const s = await loadOwnSession(req, res);
+    if (!s) return;
+    if (!(await checkGemini())) return fail(res, 503, 'AI voice is not available right now.', { aiUnavailable: true });
+    if (req.query.turn === 'closing') return sendSpeech(res, closingLine(), 'chairman');
+    const turn = s.turns.find((t) => t.idx === Number(req.query.turn));
+    if (!turn) return fail(res, 404, 'Question not found.');
+    return sendSpeech(res, turn.question, turn.asker);
+  } catch (err) {
+    console.error('[interview] speakTurn error:', err);
+    if (!res.headersSent) fail(res, 500, 'Could not play the question.');
+  }
+};
+
+export const voiceSample = async (req, res) => {
+  const asker = SAMPLE_LINES[req.query.asker] ? req.query.asker : 'chairman';
+  if (!(await checkGemini())) return fail(res, 503, 'AI voice is not available right now.', { aiUnavailable: true });
+  return sendSpeech(res, SAMPLE_LINES[asker], asker);
 };
