@@ -56,7 +56,7 @@ import {
 import { makeChunkPdfBase64 } from '../utils/pdfChunk.js';
 import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis.js';
 import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
-import { buildChatPrompt, parseChatAnalysis, fileToText } from '../utils/toppersChatImport.js';
+import { buildChatPrompt, parseChatAnalysis, fileToText, extractJson, formatWithAi, fixWithAi } from '../utils/toppersChatImport.js';
 import { formatPyqAnswerText, rewordPyqAnswerText } from '../utils/pyqAnswerFormat.js';
 import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
 
@@ -1833,7 +1833,13 @@ export const getChatPrompt = async (req, res) => {
 
 // POST /admin/:id/questions/:qid/import-analysis
 //   multipart: file (.json/.txt/.md/.pdf) OR field `text` (pasted reply)
-//   fields:    preview=1 → parse only, nothing saved; label → aiModel shown in admin
+//   fields:
+//     mode    = direct (default) — find our JSON in it, no AI
+//             | format — reply is NOT our JSON: one text-only AI call rearranges it
+//             | fix    — `text` is a previewed analysis JSON: AI fixes only its warnings
+//     preview = 1 → return it without saving. format / fix ALWAYS preview, so the
+//               admin checks the AI's work and Save re-sends that JSON (mode direct).
+//     label   → aiModel shown in admin
 export const importChatAnalysis = async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -1852,16 +1858,40 @@ export const importChatAnalysis = async (req, res) => {
       }
     }
 
+    const mode = ['format', 'fix'].includes(req.body?.mode) ? req.body.mode : 'direct';
+    const opts = { label: req.body?.label, question: question.questionText };
+    let preview = ['1', 'true', 'yes'].includes(String(req.body?.preview || req.query.preview || '').toLowerCase());
+
     let result;
     try {
-      result = parseChatAnalysis(raw, { label: req.body?.label });
+      if (mode === 'direct') {
+        result = parseChatAnalysis(raw, opts);
+      } else {
+        try {
+          assertAiConfigured();
+        } catch (e) {
+          return res.status(500).json({ error: e.message });
+        }
+        preview = true;
+        result = mode === 'format'
+          ? await formatWithAi(raw, opts)
+          : await fixWithAi(extractJson(raw), opts);
+      }
     } catch (e) {
-      if (['EMPTY', 'BAD_JSON', 'NO_CONTENT'].includes(e.code)) return res.status(400).json({ error: e.message });
+      if (['EMPTY', 'BAD_JSON', 'NO_CONTENT', 'TOO_LONG'].includes(e.code)) {
+        return res.status(400).json({
+          error: e.message,
+          code: e.code,
+          // Not our JSON but there is text — the admin can ask the AI to arrange it.
+          canFormat: mode === 'direct' && ['BAD_JSON', 'NO_CONTENT'].includes(e.code),
+        });
+      }
       throw e;
     }
 
-    const preview = ['1', 'true', 'yes'].includes(String(req.body?.preview || req.query.preview || '').toLowerCase());
-    if (preview) return res.json({ preview: true, aiAnalysis: result.analysis, warnings: result.warnings });
+    if (preview) {
+      return res.json({ preview: true, mode, aiAnalysis: result.analysis, warnings: result.warnings, nothingToFix: !!result.nothingToFix });
+    }
 
     question.aiAnalysis = result.analysis;
     doc.markModified('questions');
