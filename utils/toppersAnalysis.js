@@ -163,7 +163,7 @@ export const shapeAnalysis = (parsed) => {
 // ---------------------------------------------------------------------------
 // Prompt
 // ---------------------------------------------------------------------------
-const buildPrompt = ({ subject, topic, question, answerLines }) => `
+export const buildPrompt = ({ subject, topic, question, answerLines }) => `
 You are a UPSC Mains answer coach. You are given ONE question and a SMALL SET (usually 2-3) of hand-picked topper copies answering it, attached as PDF pages. Produce THREE things:
 
 A. A fresh 150-200-word MODEL ANSWER that is sharper, more current and more original than the copies.
@@ -330,7 +330,7 @@ export const MAX_ANSWER_WORDS = 200;
 
 export const countWords = (s) => asStr(s).split(/\s+/).filter(Boolean).length;
 
-const withRealCounts = (ma) => {
+export const withRealCounts = (ma) => {
   const intro = countWords(ma.introduction.text);
   const body = ma.body.reduce((sum, part) => sum + part.points.reduce((t, p) => t + countWords(p.heading) + countWords(p.text), 0), 0);
   const wf = countWords(ma.wayForward.text);

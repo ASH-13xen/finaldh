@@ -24,6 +24,8 @@
 //     PATCH  /api/toppers-copy/admin/:id                       edit a ToppersCopy (questions, order, published…)
 //     DELETE /api/toppers-copy/admin/:id
 //     POST   /api/toppers-copy/admin/:id/questions/:qid/analyze  (re)generate that question's aiAnalysis
+//     GET    /api/toppers-copy/admin/:id/questions/:qid/chat-prompt        prompt for a Claude chat session
+//     POST   /api/toppers-copy/admin/:id/questions/:qid/import-analysis    paste / upload the chat's JSON reply
 //   Student / admin
 //     GET    /api/toppers-copy/subjects                        subjects that have published content
 //     GET    /api/toppers-copy/topics?subject=GS-1             published topics for a subject
@@ -54,6 +56,7 @@ import {
 import { makeChunkPdfBase64 } from '../utils/pdfChunk.js';
 import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis.js';
 import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
+import { buildChatPrompt, parseChatAnalysis, fileToText } from '../utils/toppersChatImport.js';
 import { formatPyqAnswerText, rewordPyqAnswerText } from '../utils/pyqAnswerFormat.js';
 import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
 
@@ -1804,5 +1807,68 @@ export const exportQuestionPages = async (req, res) => {
   } catch (err) {
     console.error('exportQuestionPages error:', err);
     res.status(500).json({ error: 'Server error preparing the pages' });
+  }
+};
+
+// ===========================================================================
+// ADMIN — analysis made in a Claude CHAT session (no API), pasted / uploaded
+// ===========================================================================
+
+// GET /admin/:id/questions/:qid/chat-prompt — the prompt to paste into Claude chat
+// (attach the PDF from …/export-pages alongside it).
+export const getChatPrompt = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const doc = await ToppersCopy.findById(req.params.id).select('subject topic questions').lean();
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    const question = (doc.questions || []).find((q) => String(q._id) === req.params.qid);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    res.json({ prompt: buildChatPrompt(doc, question) });
+  } catch (err) {
+    console.error('getChatPrompt error:', err);
+    res.status(500).json({ error: 'Server error building the prompt' });
+  }
+};
+
+// POST /admin/:id/questions/:qid/import-analysis
+//   multipart: file (.json/.txt/.md/.pdf) OR field `text` (pasted reply)
+//   fields:    preview=1 → parse only, nothing saved; label → aiModel shown in admin
+export const importChatAnalysis = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const doc = await ToppersCopy.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    const question = doc.questions.id(req.params.qid);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+
+    let raw = req.body?.text || '';
+    if (req.file) {
+      try {
+        raw = await fileToText(req.file);
+      } catch (e) {
+        return res.status(400).json({ error: `Could not read the file: ${e.message}` });
+      }
+    }
+
+    let result;
+    try {
+      result = parseChatAnalysis(raw, { label: req.body?.label });
+    } catch (e) {
+      if (['EMPTY', 'BAD_JSON', 'NO_CONTENT'].includes(e.code)) return res.status(400).json({ error: e.message });
+      throw e;
+    }
+
+    const preview = ['1', 'true', 'yes'].includes(String(req.body?.preview || req.query.preview || '').toLowerCase());
+    if (preview) return res.json({ preview: true, aiAnalysis: result.analysis, warnings: result.warnings });
+
+    question.aiAnalysis = result.analysis;
+    doc.markModified('questions');
+    await doc.save();
+    res.json({ message: 'Analysis imported.', aiAnalysis: question.aiAnalysis, warnings: result.warnings });
+  } catch (err) {
+    console.error('importChatAnalysis error:', err);
+    res.status(500).json({ error: err.message || 'Import failed' });
   }
 };
