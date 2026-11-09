@@ -30,6 +30,8 @@ import {
   getToppersCopy,
   streamToppersCopyPdf,
   exportQuestionPages,
+  getChatPrompt,
+  importChatAnalysis,
 } from '../controllers/toppersCopyController.js';
 import {
   enhanceAnswer,
@@ -78,6 +80,14 @@ const uploadImage = multer({
     cb(/^image\/(png|jpe?g|webp|gif)$/i.test(file.mimetype) ? null : new Error('Only PNG/JPG/WebP/GIF images'), true),
 });
 
+// A Claude-chat reply: pasted JSON saved as .json/.txt/.md, or the chat printed to PDF.
+const uploadChatReply = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) =>
+    cb(/\.(json|txt|md|pdf)$/i.test(file.originalname) ? null : new Error('Only .json, .txt, .md or .pdf files'), true),
+});
+
 const router = express.Router();
 
 // -------- Admin: AI ingestion + review/commit --------
@@ -122,6 +132,8 @@ router.put('/admin/:id/structure', authenticateToken, updateToppersCopyStructure
 router.delete('/admin/:id', authenticateToken, deleteToppersCopy);
 router.post('/admin/:id/questions/:qid/analyze', authenticateToken, analyzeQuestion);
 router.get('/admin/:id/questions/:qid/export-pages', authenticateToken, exportQuestionPages);
+router.get('/admin/:id/questions/:qid/chat-prompt', authenticateToken, getChatPrompt);
+router.post('/admin/:id/questions/:qid/import-analysis', authenticateToken, uploadChatReply.single('file'), importChatAnalysis);
 
 // -------- Student / admin: read + stream --------
 router.get('/subjects', authenticateToken, listSubjects);

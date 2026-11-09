@@ -24,6 +24,8 @@
 //     PATCH  /api/toppers-copy/admin/:id                       edit a ToppersCopy (questions, order, published…)
 //     DELETE /api/toppers-copy/admin/:id
 //     POST   /api/toppers-copy/admin/:id/questions/:qid/analyze  (re)generate that question's aiAnalysis
+//     GET    /api/toppers-copy/admin/:id/questions/:qid/chat-prompt        prompt for a Claude chat session
+//     POST   /api/toppers-copy/admin/:id/questions/:qid/import-analysis    paste / upload the chat's JSON reply
 //   Student / admin
 //     GET    /api/toppers-copy/subjects                        subjects that have published content
 //     GET    /api/toppers-copy/topics?subject=GS-1             published topics for a subject
@@ -54,6 +56,7 @@ import {
 import { makeChunkPdfBase64 } from '../utils/pdfChunk.js';
 import { generateQuestionAnalysis, shapeDiagram } from '../utils/toppersAnalysis.js';
 import { generatePyqAnswer, shapePyqAnswer } from '../utils/pyqAnswer.js';
+import { buildChatPrompt, parseChatAnalysis, fileToText, extractJson, formatWithAi, fixWithAi } from '../utils/toppersChatImport.js';
 import { formatPyqAnswerText, rewordPyqAnswerText } from '../utils/pyqAnswerFormat.js';
 import { cleanPyqJsonRows } from '../utils/pyqJsonImport.js';
 
@@ -1804,5 +1807,98 @@ export const exportQuestionPages = async (req, res) => {
   } catch (err) {
     console.error('exportQuestionPages error:', err);
     res.status(500).json({ error: 'Server error preparing the pages' });
+  }
+};
+
+// ===========================================================================
+// ADMIN — analysis made in a Claude CHAT session (no API), pasted / uploaded
+// ===========================================================================
+
+// GET /admin/:id/questions/:qid/chat-prompt — the prompt to paste into Claude chat
+// (attach the PDF from …/export-pages alongside it).
+export const getChatPrompt = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const doc = await ToppersCopy.findById(req.params.id).select('subject topic questions').lean();
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    const question = (doc.questions || []).find((q) => String(q._id) === req.params.qid);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    res.json({ prompt: buildChatPrompt(doc, question) });
+  } catch (err) {
+    console.error('getChatPrompt error:', err);
+    res.status(500).json({ error: 'Server error building the prompt' });
+  }
+};
+
+// POST /admin/:id/questions/:qid/import-analysis
+//   multipart: file (.json/.txt/.md/.pdf) OR field `text` (pasted reply)
+//   fields:
+//     mode    = direct (default) — find our JSON in it, no AI
+//             | format — reply is NOT our JSON: one text-only AI call rearranges it
+//             | fix    — `text` is a previewed analysis JSON: AI fixes only its warnings
+//     preview = 1 → return it without saving. format / fix ALWAYS preview, so the
+//               admin checks the AI's work and Save re-sends that JSON (mode direct).
+//     label   → aiModel shown in admin
+export const importChatAnalysis = async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const doc = await ToppersCopy.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    const question = doc.questions.id(req.params.qid);
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+
+    let raw = req.body?.text || '';
+    if (req.file) {
+      try {
+        raw = await fileToText(req.file);
+      } catch (e) {
+        return res.status(400).json({ error: `Could not read the file: ${e.message}` });
+      }
+    }
+
+    const mode = ['format', 'fix'].includes(req.body?.mode) ? req.body.mode : 'direct';
+    const opts = { label: req.body?.label, question: question.questionText };
+    let preview = ['1', 'true', 'yes'].includes(String(req.body?.preview || req.query.preview || '').toLowerCase());
+
+    let result;
+    try {
+      if (mode === 'direct') {
+        result = parseChatAnalysis(raw, opts);
+      } else {
+        try {
+          assertAiConfigured();
+        } catch (e) {
+          return res.status(500).json({ error: e.message });
+        }
+        preview = true;
+        result = mode === 'format'
+          ? await formatWithAi(raw, opts)
+          : await fixWithAi(extractJson(raw), opts);
+      }
+    } catch (e) {
+      if (['EMPTY', 'BAD_JSON', 'NO_CONTENT', 'TOO_LONG'].includes(e.code)) {
+        return res.status(400).json({
+          error: e.message,
+          code: e.code,
+          // Not our JSON but there is text — the admin can ask the AI to arrange it.
+          canFormat: mode === 'direct' && ['BAD_JSON', 'NO_CONTENT'].includes(e.code),
+        });
+      }
+      throw e;
+    }
+
+    if (preview) {
+      return res.json({ preview: true, mode, aiAnalysis: result.analysis, warnings: result.warnings, nothingToFix: !!result.nothingToFix });
+    }
+
+    question.aiAnalysis = result.analysis;
+    doc.markModified('questions');
+    await doc.save();
+    res.json({ message: 'Analysis imported.', aiAnalysis: question.aiAnalysis, warnings: result.warnings });
+  } catch (err) {
+    console.error('importChatAnalysis error:', err);
+    res.status(500).json({ error: err.message || 'Import failed' });
   }
 };
