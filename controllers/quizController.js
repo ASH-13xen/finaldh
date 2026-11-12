@@ -12,6 +12,7 @@
 // never sent with the question list — only from POST /answer (on Check) and the /complete review.
 
 import mongoose from 'mongoose';
+import SubjectSyllabus from '../models/SubjectSyllabus.js';
 import QuizQuestion from '../models/QuizQuestion.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import QuizReport from '../models/QuizReport.js';
@@ -71,12 +72,16 @@ export const listTopics = async (req, res) => {
       }
     ]);
 
+    // Topics that are chapters of the subject's syllabus come first, in syllabus order.
+    const syllabus = await SubjectSyllabus.findOne({ subject }).select('chapters.title').lean();
+    const chapterPos = new Map((syllabus?.chapters || []).map((c, i) => [c.title, i]));
+    const rank = (topic) => (chapterPos.has(topic) ? chapterPos.get(topic) : chapterPos.size);
     const topics = agg
       .map((t) => ({ topic: t._id || MISC_TOPIC, total: t.total, ready: t.ready }))
       .sort((a, b) => {
         const am = a.topic === MISC_TOPIC ? 1 : 0;
         const bm = b.topic === MISC_TOPIC ? 1 : 0;
-        return am - bm || a.topic.localeCompare(b.topic);
+        return am - bm || rank(a.topic) - rank(b.topic) || a.topic.localeCompare(b.topic);
       });
 
     res.json({

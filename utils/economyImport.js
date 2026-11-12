@@ -7,7 +7,7 @@
 
 import EconomyTopic, { SOURCES } from '../models/EconomyTopic.js';
 import EconomyTheme from '../models/EconomyTheme.js';
-import { ECONOMY_THEMES } from './economyThemes.js';
+import { ECONOMY_THEMES, chapterForTopic } from './economyThemes.js';
 
 const MAX_TOPICS = 5000;
 const clip = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
@@ -47,9 +47,11 @@ export const normaliseParsed = (parsed) => {
     const title = clip(t?.title, 300).trim();
     if (!title) return errors.push(`#${i}: missing title`);
     if (!SOURCES.includes(t.source)) return errors.push(`#${i} "${title}": bad source "${t.source}"`);
-    if (!themeKeys.has(t.themeKey)) return errors.push(`#${i} "${title}": unknown theme "${t.themeKey}"`);
+    // Older parse files carry the previous theme keys, so the chapter is always worked out here.
+    const themeKey = chapterForTopic({ title, sourceTheme: t.sourceTheme }) || t.themeKey;
+    if (!themeKeys.has(themeKey)) return errors.push(`#${i} "${title}": unknown theme "${t.themeKey}"`);
     const doc = {
-      themeKey: t.themeKey,
+      themeKey,
       source: t.source,
       sourceTheme: clip(t.sourceTheme, 200),
       number: Number.isInteger(t.number) ? t.number : null,

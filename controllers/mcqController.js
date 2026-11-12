@@ -9,6 +9,7 @@ import McqReport from '../models/McqReport.js';
 import McqSubjectPricing from '../models/McqSubjectPricing.js';
 import User from '../models/User.js';
 import { resolveTagsCell } from '../utils/syllabusTagMatcher.js';
+import { autoPlaceTest, syllabusFor } from '../utils/syllabusTagging.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { round2 } from '../utils/mcqScoring.js';
 import { correctAnswerKey } from '../utils/mcqAnswerKey.js';
@@ -239,6 +240,8 @@ export const uploadQuestionsCsv = async (req, res) => {
     for (const d of docs) {
       const existing = byOrder.get(d.order);
       if (existing) {
+        // A rewritten question has to be placed again (an admin's own placement stays).
+        if (existing.questionText !== d.questionText && existing.syllabusTag?.by !== 'admin') existing.syllabusTag = {};
         existing.questionText = d.questionText;
         existing.options = d.options;
         existing.difficulty = d.difficulty;
@@ -298,7 +301,9 @@ export const uploadQuestionsCsv = async (req, res) => {
     const parts = [`${updated} updated`, `${added} added`];
     if (removed) parts.push(`${removed} removed`);
     if (retired) parts.push(`${retired} retired (students already have attempts on them)`);
+    const syllabus = await autoPlaceTest(test._id);
     res.json({
+      syllabus,
       message: `Questions synced: ${parts.join(', ')}. The test now has ${fresh.questionCount} question(s).`,
       insertedCount: fresh.questionCount,
       addedCount: added,
@@ -452,6 +457,7 @@ export const createQuestion = async (req, res) => {
     });
 
     await recomputeTestTotals(testId);
+    autoPlaceTest(testId);
     res.json({ question });
   } catch (err) {
     console.error('Error creating MCQ question:', err);
@@ -473,6 +479,10 @@ export const updateQuestion = async (req, res) => {
       correctOption: req.body.correctOption ?? question.correctOption
     });
     if (validationError) return res.status(400).json({ error: validationError });
+
+    // A rewritten question has to be placed again (an admin's own placement stays).
+    const textChanged = req.body.questionText !== undefined && req.body.questionText !== question.questionText;
+    if (textChanged && question.syllabusTag?.by !== 'admin') question.syllabusTag = {};
 
     const plainFields = ['questionText', 'options', 'difficulty', 'marks', 'examSource', 'questionType', 'isActive'];
     for (const field of plainFields) {
@@ -497,6 +507,7 @@ export const updateQuestion = async (req, res) => {
       rescore: req.body.rescore !== false
     });
 
+    if (textChanged) autoPlaceTest(testId);
     await recomputeTestTotals(testId);
     res.json({ question, rescoredAttempts: result.rescoredAttempts, answerChanged: result.optionChanged });
   } catch (err) {
@@ -1365,6 +1376,10 @@ export const getAttemptResult = async (req, res) => {
       totalUnattempted: attempt.totalUnattempted
     };
 
+    // Chapter order for reading the solutions syllabus-wise.
+    const syllabus = await syllabusFor(test?.subject || attempt.subject);
+    const syllabusOutline = (syllabus?.chapters || []).map(({ key, number, title, subtopics }) => ({ key, number, title, subtopics }));
+
     // --- Question-by-question review ---
     const questionReview = responses.map(r => {
       const q = questionById[r.question.toString()];
@@ -1382,6 +1397,7 @@ export const getAttemptResult = async (req, res) => {
         explanation: q?.explanation ?? '',
         difficulty: r.difficulty,
         tags: r.tags,
+        syllabus: q?.syllabusTag?.chapter ? { chapter: q.syllabusTag.chapter, subtopic: q.syllabusTag.subtopic } : null,
         examSource: q?.examSource ?? '',
         questionType: q?.questionType ?? '',
         timeSpentSeconds: r.timeSpentSeconds,
@@ -1574,6 +1590,7 @@ export const getAttemptResult = async (req, res) => {
       quadrantAnalysis,
       negativeMarkingImpact,
       questionReview,
+      syllabusOutline,
       bonusInsights: { markedFollowThrough, indecisiveQuestions },
       confidenceBreakdown: confidenceStats,
       confidenceImpact,

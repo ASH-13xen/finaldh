@@ -58,7 +58,18 @@ const quizQuestionSchema = new mongoose.Schema({
     by: { type: String, enum: ['ai', 'admin', null], default: null },
     confidence: { type: Number, default: null },  // AI's 0–1 score for its best match
     at: { type: Date, default: null },
-  }
+  },
+
+  // Where this question sits in the subject's syllabus (models/SubjectSyllabus.js). Placed by AI
+  // (utils/syllabusTagging.js) or an admin; `by === 'admin'` is never overwritten by the AI.
+  syllabusTag: {
+    chapter: { type: String, default: '' },         // SubjectSyllabus chapter key; '' = not placed
+    subtopic: { type: String, default: '' },
+    by: { type: String, enum: ['ai', 'admin', null], default: null },
+    confidence: { type: Number, default: null },
+    at: { type: Date, default: null },
+  },
+  sourceTopic: { type: String, default: '' },       // the imported topic, once placing has changed `topic`
 }, { timestamps: true });
 
 quizQuestionSchema.index({ subject: 1, topic: 1, seq: 1 });
