@@ -186,6 +186,65 @@ export const listThemes = async (req, res) => {
   }
 };
 
+// The bank's original sections that clearly belong to one syllabus chapter. "Miscellaneous",
+// "Important Concepts In Economy" and "Important Index And Reports" span several chapters, so
+// they count as unplaced until the AI (Admin → MCQ Test Data → Syllabus) places them.
+const SECTION_CHAPTER = {
+  'banking sector in india': 'money-and-banking',
+  'banking & financial inclusion': 'money-and-banking',
+  'money market': 'financial-markets',
+  'security market in india': 'financial-markets',
+  'external sector of india': 'external-sector',
+  industry: 'industry-and-infrastructure',
+  agriculture: 'agriculture',
+  'economic growth': 'growth-development-and-welfare',
+  'public finance': 'public-finance-and-fiscal-policy',
+  taxation: 'taxation',
+  inflation: 'inflation',
+};
+
+// GET /pyq-stats — how many Economy PYQs each syllabus chapter got, all years and per year.
+// A question's chapter: its syllabus placement, else its Master File topic's chapter, else its
+// bank section when that maps cleanly (SECTION_CHAPTER), else unplaced.
+export const pyqStats = async (req, res) => {
+  try {
+    const { themes } = await visibleThemeKeys(req.userId);
+    const visible = new Set(themes.map((t) => t.key));
+    const qs = await QuizQuestion.find({ subject: ECONOMY_PYQ_SUBJECT })
+      .select('examSource syllabusTag econTopics sourceTopic topic').lean();
+    const topicIds = [...new Set(qs.flatMap((q) => (q.econTopics || []).slice(0, 1).map(String)))];
+    const topics = await EconomyTopic.find({ _id: { $in: topicIds } }).select('themeKey').lean();
+    const themeOfTopic = new Map(topics.map((t) => [String(t._id), t.themeKey]));
+    const valid = new Set(ECONOMY_THEMES.map((t) => t.key));
+
+    const rows = qs.map((q) => {
+      let chapter = q.syllabusTag?.chapter || '';
+      let by = chapter ? 'syllabus' : '';
+      if (!chapter && q.econTopics?.length) { chapter = themeOfTopic.get(String(q.econTopics[0])) || ''; by = chapter ? 'topic' : ''; }
+      if (!chapter) { chapter = SECTION_CHAPTER[String(q.sourceTopic || q.topic || '').trim().toLowerCase()] || ''; by = chapter ? 'section' : ''; }
+      if (!valid.has(chapter)) { chapter = ''; by = ''; }
+      return { chapter, by, year: Number(String(q.examSource || '').match(/\b(19|20)\d{2}\b/)?.[0]) || null };
+    });
+
+    const years = rows.map((r) => r.year).filter(Boolean);
+    res.json({
+      total: rows.length,
+      firstYear: years.length ? Math.min(...years) : null,
+      lastYear: years.length ? Math.max(...years) : null,
+      placedBy: rows.reduce((a, r) => ({ ...a, [r.by || 'none']: (a[r.by || 'none'] || 0) + 1 }), {}),
+      // [{ key, title, visible, years: { 2023: 2, … }, unknownYear }]; key '' = not yet placed
+      chapters: [...ECONOMY_THEMES.map((t) => ({ key: t.key, title: t.title })), { key: '', title: 'Not yet placed' }].map((c) => {
+        const mine = rows.filter((r) => r.chapter === c.key);
+        const byYear = {};
+        for (const r of mine) if (r.year) byYear[r.year] = (byYear[r.year] || 0) + 1;
+        return { key: c.key, title: c.title, visible: !!c.key && visible.has(c.key), total: mine.length, years: byYear };
+      }),
+    });
+  } catch (err) {
+    sendError(res, err, 'Failed to load PYQ stats');
+  }
+};
+
 const loadVisibleTheme = async (userId, key) => {
   const { admin, themes } = await visibleThemeKeys(userId);
   const theme = themes.find((t) => t.key === key);

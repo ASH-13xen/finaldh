@@ -10,6 +10,7 @@ import {
   getThemePyqs,
   getTopic,
   getTopicPyqs,
+  pyqStats,
   checkPyq,
   searchTopics,
   revisionQueue,
@@ -49,6 +50,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 router.get('/themes', listThemes);
+router.get('/pyq-stats', pyqStats);
 router.get('/themes/:key', getTheme);
 router.get('/themes/:key/pyqs', getThemePyqs);
 router.get('/topics/:id', getTopic);
