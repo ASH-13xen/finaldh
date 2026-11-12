@@ -25,6 +25,12 @@ const toppersValueAdditionSchema = new mongoose.Schema({
     pyqs: { type: Number, default: 0 },
     sections: { type: Number, default: 0 },
   },
+  // 'bestPart' entries are listed under "Best part of answer" at the top of the student's tab.
+  kind: { type: String, enum: ['note', 'bestPart'], default: 'note' },
+  images: [{
+    key: { type: String, required: true },            // 'r2://tc-value-addition/…'
+    caption: { type: String, default: '', trim: true },
+  }],
   published: { type: Boolean, default: true },        // hide a half-ready entry from students
   order: { type: Number, default: 0 },
 }, { timestamps: true });
