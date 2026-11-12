@@ -32,7 +32,16 @@ const userId = input('userId', 'PDF_USER_ID');
 const userName = input('userName', 'PDF_USER_NAME');
 const userEmail = input('userEmail', 'PDF_USER_EMAIL');
 const userMobile = input('userMobile', 'PDF_USER_MOBILE');
-const sourceKey = input('sourceKey', 'PDF_SOURCE_KEY'); // comma separated list of keys in R2
+const sourceKey = input('sourceKey', 'PDF_SOURCE_KEY'); // R2 key of the source PDF, or a JSON array of keys to merge
+
+// The backend sends one key per run. It used to be split on commas, which broke every file whose name
+// contains one ("GS-3_-_Science_and_tech,_Environment,_Security_(Vol-2).pdf" was fetched as three missing
+// keys); several keys to merge can still be passed as a JSON array.
+function parseSourceKeys(value) {
+  const raw = String(value || '').trim();
+  if (raw.startsWith('[')) return JSON.parse(raw).map((k) => String(k).trim()).filter(Boolean);
+  return raw ? [raw] : [];
+}
 const destinationKey = input('destinationKey', 'PDF_DESTINATION_KEY');
 const callbackUrl = input('callbackUrl', 'PDF_CALLBACK_URL');
 const licenseId = input('licenseId', 'PDF_LICENSE_ID');
@@ -106,7 +115,7 @@ function openingPassword() {
 
 async function run() {
   try {
-    const keys = sourceKey.split(',').map((k) => k.trim()).filter(Boolean);
+    const keys = parseSourceKeys(sourceKey);
     if (keys.length === 0 || !userId || !userEmail || !licenseId || !destinationKey || !callbackUrl) {
       throw new Error('Missing required inputs');
     }
