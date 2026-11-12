@@ -50,6 +50,7 @@ import {
   updateValueAddition,
   deleteValueAddition,
   streamValueAdditionPdf,
+  getValueAdditionBank,
 } from '../controllers/toppersValueAdditionController.js';
 
 // Ingestion PDFs can be large scans — write them to a temp dir on disk, not memory.
@@ -65,12 +66,16 @@ const storage = multer.diskStorage({
   },
 });
 const uploadPdf = multer({ storage, limits: { fileSize: 300 * 1024 * 1024 } }); // 300MB
-const uploadValuePdf = multer({
+const isDocx = (file) => /\.docx$/i.test(file.originalname)
+  || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const uploadValueFiles = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
-  fileFilter: (req, file, cb) =>
-    cb(file.mimetype === 'application/pdf' ? null : new Error('Only PDF files'), true),
-});
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'docx') return cb(isDocx(file) ? null : new Error('Only Word (.docx) files'), true);
+    cb(file.mimetype === 'application/pdf' ? null : new Error('Only PDF files'), true);
+  },
+}).fields([{ name: 'pdf', maxCount: 1 }, { name: 'docx', maxCount: 1 }]);
 const uploadImage = multer({
   storage,
   limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
@@ -109,10 +114,10 @@ router.patch('/admin/best-parts/:bid', authenticateToken, updateBestPart);
 router.delete('/admin/best-parts/:bid', authenticateToken, deleteBestPart);
 router.get('/admin/:id/best-parts', authenticateToken, listBestParts);
 router.post('/admin/:id/best-parts', authenticateToken, uploadImage.single('image'), createBestPart);
-router.patch('/admin/value-additions/:vid', authenticateToken, uploadValuePdf.single('pdf'), updateValueAddition);
+router.patch('/admin/value-additions/:vid', authenticateToken, uploadValueFiles, updateValueAddition);
 router.delete('/admin/value-additions/:vid', authenticateToken, deleteValueAddition);
 router.get('/admin/:id/value-additions', authenticateToken, listValueAdditions);
-router.post('/admin/:id/value-additions', authenticateToken, uploadValuePdf.single('pdf'), createValueAddition);
+router.post('/admin/:id/value-additions', authenticateToken, uploadValueFiles, createValueAddition);
 router.post('/admin/:id/questions/:qid/answers/:aidx/enhance', authenticateToken, enhanceAnswer);
 
 
@@ -129,6 +134,7 @@ router.get('/topics', authenticateToken, listTopics);
 router.get('/pyqs/:id/answer/image/:imageId', authenticateToken, streamToppersPyqAnswerImage);
 router.get('/best-parts/:bid/image', authenticateToken, streamBestPartImage);
 router.get('/value-additions/:vid/pdf', authenticateToken, streamValueAdditionPdf);
+router.get('/value-additions/:vid/bank', authenticateToken, getValueAdditionBank);
 router.get('/:id', authenticateToken, getToppersCopy);
 router.get('/:id/pdf', authenticateToken, streamToppersCopyPdf);
 
