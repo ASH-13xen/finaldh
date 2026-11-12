@@ -5,7 +5,10 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import User from '../models/User.js';
+import Course from '../models/Course.js';
 import { openPeopleDb, closePeopleDb } from '../config/peopleDb.js';
+import { canonicalCourseTag, coursesMatchingTags } from '../utils/courseAccess.js';
+import { grantCourseAccess } from '../utils/purchaseFulfillment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,7 +117,14 @@ async function importData() {
     const telegramIdx = header.findIndex(h => h.toLowerCase().includes("telegram"));
     const coursesIdx = header.findIndex(h => h.toLowerCase().includes("interested choice") || h.toLowerCase().includes("interested course") || h.toLowerCase().includes("select your interested choice"));
 
-    console.log(`Column Mapping indices -> Email: ${emailIdx}, Name: ${nameIdx}, Mobile: ${mobileIdx}, Telegram: ${telegramIdx}, Courses: ${coursesIdx}`);
+    // Course access is granted only for rows the sheet marks Verified (payment checked); other rows just get
+    // their labels, as before.
+    const verifiedIdx = header.findIndex(h => h.toLowerCase().includes("verified"));
+    console.log(`Column Mapping indices -> Email: ${emailIdx}, Name: ${nameIdx}, Mobile: ${mobileIdx}, Telegram: ${telegramIdx}, Courses: ${coursesIdx}, Verified: ${verifiedIdx}`);
+    if (verifiedIdx === -1) {
+      console.warn("No 'Verified' column found - labels will be imported, but no course access is granted.");
+    }
+    const allCourses = await Course.find({});
 
     if (emailIdx === -1) {
       throw new Error("Could not find 'Email address' column in spreadsheet header.");
@@ -123,6 +133,7 @@ async function importData() {
     let createdCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
+    let grantedCount = 0;
 
     // Process rows starting from index 1 (skipping header)
     for (let i = 1; i < parsedRows.length; i++) {
@@ -144,11 +155,13 @@ async function importData() {
       const mobileNumber = mobileIdx !== -1 && row[mobileIdx] ? row[mobileIdx].trim() : "";
       const telegramUsername = telegramIdx !== -1 && row[telegramIdx] ? row[telegramIdx].trim() : "";
       
-      // Parse interested courses (split by comma and trim)
+      // Parse interested courses (split by comma and trim). Old labels such as "GS3" are stored as the real
+      // courseId ("General Studies - 3") so they match the course - see COURSE_TAG_ALIASES.
       const rawCourses = coursesIdx !== -1 && row[coursesIdx] ? row[coursesIdx] : "";
       const interestedCourses = rawCourses
-        ? rawCourses.split(",").map(c => c.trim()).filter(c => c.length > 0)
+        ? [...new Set(rawCourses.split(",").map(c => c.trim()).filter(c => c.length > 0).map(canonicalCourseTag))]
         : [];
+      const isVerified = verifiedIdx !== -1 && ["TRUE", "YES"].includes((row[verifiedIdx] || "").trim().toUpperCase());
 
       // Find if user already exists
       let user = await User.findOne({ email });
@@ -169,7 +182,7 @@ async function importData() {
       } else {
         // Create new user with placeholder googleId
         const googleId = `imported_${email}`;
-        await User.create({
+        user = await User.create({
           googleId,
           email,
           name,
@@ -180,6 +193,13 @@ async function importData() {
         });
         createdCount++;
       }
+
+      // A verified row gets the courses it names, exactly like a verified purchase (download limits included)
+      const coursesToGrant = isVerified ? coursesMatchingTags(interestedCourses, allCourses) : [];
+      if (coursesToGrant.length > 0) {
+        await grantCourseAccess(user._id, coursesToGrant);
+        grantedCount++;
+      }
     }
 
     console.log("\n====================================");
@@ -187,6 +207,7 @@ async function importData() {
     console.log(`- Created new users: ${createdCount}`);
     console.log(`- Updated existing users: ${updatedCount}`);
     console.log(`- Skipped rows: ${skippedCount}`);
+    console.log(`- Verified rows granted course access: ${grantedCount}`);
     console.log("====================================");
 
   } catch (err) {

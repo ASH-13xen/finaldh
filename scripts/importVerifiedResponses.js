@@ -5,7 +5,10 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import User from '../models/User.js';
+import Course from '../models/Course.js';
 import { openPeopleDb, closePeopleDb } from '../config/peopleDb.js';
+import { canonicalCourseTag, coursesMatchingTags } from '../utils/courseAccess.js';
+import { grantCourseAccess } from '../utils/purchaseFulfillment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -122,6 +125,7 @@ async function importVerifiedData() {
     if (verifiedIdx === -1) {
       console.warn("Could not find 'Verified' column. Defaulting to importing all rows.");
     }
+    const allCourses = await Course.find({});
 
     let createdCount = 0;
     let existingCount = 0;
@@ -148,10 +152,11 @@ async function importVerifiedData() {
       const mobileNumber = mobileIdx !== -1 && row[mobileIdx] ? row[mobileIdx].trim() : "";
       const telegramUsername = telegramIdx !== -1 && row[telegramIdx] ? row[telegramIdx].trim() : "";
       
-      // Parse interested courses
+      // Parse interested courses. Old labels such as "GS3" are stored as the real courseId
+      // ("General Studies - 3") so they match the course - see COURSE_TAG_ALIASES.
       const rawCourses = coursesIdx !== -1 && row[coursesIdx] ? row[coursesIdx] : "";
       const interestedCourses = rawCourses
-        ? rawCourses.split(",").map(c => c.trim()).filter(c => c.length > 0)
+        ? [...new Set(rawCourses.split(",").map(c => c.trim()).filter(c => c.length > 0).map(canonicalCourseTag))]
         : [];
 
       // Find if user already exists
@@ -170,7 +175,7 @@ async function importVerifiedData() {
         if (isVerifiedStr === "TRUE" || isVerifiedStr === "YES") {
           // New entry is verified -> Add to database
           const googleId = `imported_${email}`;
-          await User.create({
+          const created = await User.create({
             googleId,
             email,
             name,
@@ -179,6 +184,8 @@ async function importVerifiedData() {
             telegramUsername,
             interestedCourses
           });
+          // ...with the courses the row names, exactly like a verified purchase (download limits included)
+          await grantCourseAccess(created._id, coursesMatchingTags(interestedCourses, allCourses));
           createdCount++;
           console.log(`Row ${i + 1}: Added new verified user to database: ${email}`);
         } else {

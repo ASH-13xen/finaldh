@@ -53,6 +53,12 @@ export async function grantCourseAccess(userId, courses) {
   await grantCoursesToUsers({ _id: userId }, await withAccessGroups(courses));
 }
 
+// Same grant for many students at once, in a handful of bulk writes (used by one-off backfills).
+export async function grantCourseAccessToUsers(userIds, courses) {
+  if (!userIds || userIds.length === 0) return;
+  await grantCoursesToUsers({ _id: { $in: userIds } }, await withAccessGroups(courses));
+}
+
 // Run when an admin gives a course a Shared access ID (or changes it): everyone who already owns any course
 // in that group gets the whole group, including courses linked to it after they bought. Returns how many
 // students gained access to something.

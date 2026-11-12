@@ -45,9 +45,26 @@ export async function ownedCourseIdsFor(user) {
   return ownedCourseIds(user, courses);
 }
 
+// Old enrollment labels that name a course by something other than its courseId. The TCC spreadsheet
+// imports wrote "GS1".."GS4" for the TCC-General Studies courses, whose courseIds are "General Studies - 1"
+// .."General Studies - 4", so those students were labelled but never matched to the course. Keys are the
+// label lowercased with spaces, dashes and underscores removed ("GS-3", "gs 3" and "GS3" are all "gs3").
+export const COURSE_TAG_ALIASES = {
+  gs1: 'General Studies - 1',
+  gs2: 'General Studies - 2',
+  gs3: 'General Studies - 3',
+  gs4: 'General Studies - 4'
+};
+
+const aliasKey = (tag) => String(tag).toLowerCase().replace(/[\s_-]+/g, '');
+
+// The courseId an enrollment label stands for: the alias target for an old label, otherwise the label itself.
+export const canonicalCourseTag = (tag) => COURSE_TAG_ALIASES[aliasKey(tag)] || String(tag).trim();
+
 // Courses named by a list of interestedCourses entries. Matched case-insensitively, like everywhere
-// else those entries are compared, so "Essay" and "ESSAY" both mean the ESSAY course.
+// else those entries are compared, so "Essay" and "ESSAY" both mean the ESSAY course; old aliases such
+// as "GS3" resolve to their course too (see COURSE_TAG_ALIASES).
 export function coursesMatchingTags(tags, courses) {
-  const wanted = (tags || []).map((t) => String(t).trim().toLowerCase());
+  const wanted = (tags || []).map((t) => canonicalCourseTag(t).toLowerCase());
   return (courses || []).filter((c) => wanted.includes(String(c.courseId).trim().toLowerCase()));
 }

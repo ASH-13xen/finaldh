@@ -11,7 +11,7 @@ delete process.env.ADMIN_EMAIL1;
 delete process.env.ADMIN_EMAIL2;
 delete process.env.LEGACY_INTERESTED_ACCESS;
 
-const { userOwnsCourse, userHasCourseAccess, ownedCourseIds, coursesMatchingTags } = await import('../utils/courseAccess.js');
+const { userOwnsCourse, userHasCourseAccess, ownedCourseIds, coursesMatchingTags, canonicalCourseTag } = await import('../utils/courseAccess.js');
 
 const PMF = { _id: 'c-pmf', courseId: 'Prelims Master File' };
 const ESSAY = { _id: 'c-essay', courseId: 'ESSAY' };
@@ -76,4 +76,18 @@ test('admin editor entries map to courses case-insensitively and ignore non-cour
   assert.deepEqual(coursesMatchingTags(['essay', ' MMF ', 'GS4', 'PYQ Analytics (PYQs Based Test Series)'], COURSES), [ESSAY, MMF]);
   assert.deepEqual(coursesMatchingTags([], COURSES), []);
   assert.deepEqual(coursesMatchingTags(undefined, COURSES), []);
+});
+
+test('old TCC labels GS1..GS4 stand for the TCC-General Studies courses; other labels are left as they are', () => {
+  const GS3 = { _id: 'c-gs3', courseId: 'General Studies - 3' };
+  const GS1 = { _id: 'c-gs1', courseId: 'General Studies - 1' };
+  assert.equal(canonicalCourseTag('GS3'), 'General Studies - 3');
+  assert.equal(canonicalCourseTag(' gs-3 '), 'General Studies - 3');
+  assert.equal(canonicalCourseTag('GS 1'), 'General Studies - 1');
+  assert.equal(canonicalCourseTag('GS4'), 'General Studies - 4');
+  assert.equal(canonicalCourseTag(' ESSAY '), 'ESSAY');
+  assert.equal(canonicalCourseTag('GS5'), 'GS5', 'only the four known aliases');
+  assert.equal(canonicalCourseTag('CURRENT AFFAIRS COMPASS - COMBO'), 'CURRENT AFFAIRS COMPASS - COMBO');
+  // the admin editor keeps a GS3-labelled student on the GS3 course instead of dropping it on save
+  assert.deepEqual(coursesMatchingTags(['GS3', 'essay'], [...COURSES, GS3, GS1]), [ESSAY, GS3]);
 });
