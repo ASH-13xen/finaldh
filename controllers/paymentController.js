@@ -7,6 +7,7 @@ import PurchaseRequest from '../models/PurchaseRequest.js';
 import McqPurchaseRequest from '../models/McqPurchaseRequest.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { userHasCourseAccess } from '../utils/courseAccess.js';
+import { withAccessGroups } from '../utils/purchaseFulfillment.js';
 import {
   getRazorpay,
   razorpayKeyId,
@@ -50,8 +51,15 @@ async function resolvePurchase(user, body) {
     if (!course) throw new PurchaseError(404, 'Course not found');
     if (userHasCourseAccess(user, course)) throw new PurchaseError(400, 'You have already purchased this course');
 
-    const pending = await PurchaseRequest.exists({ userId: user._id, courseId: course.courseId, status: 'pending' });
-    if (pending) throw new PurchaseError(400, 'You already have a payment for this course waiting for verification');
+    // A pending payment for this course - or for any course linked to it by a Shared access ID, which
+    // would unlock this one too once verified - means paying again would be paying twice
+    const covered = (await withAccessGroups([course])).map((c) => c._id);
+    const pending = await PurchaseRequest.exists({
+      userId: user._id,
+      status: 'pending',
+      $or: [{ courseId: course.courseId }, { courses: { $in: covered } }, { courseObjectId: { $in: covered } }]
+    });
+    if (pending) throw new PurchaseError(400, 'You already have a payment covering this course waiting for verification');
 
     return { kind, itemLabel: course.name, price: effectivePrice(course), courses: [course], courseIds: [course.courseId] };
   }

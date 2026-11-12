@@ -79,7 +79,7 @@ if (!URI) {
     const headers = { ...extraHeaders };
     if (who) headers.Authorization = `Bearer ${tokens[who]}`;
     let payload;
-    if (typeof body === 'string') payload = body;
+    if (typeof body === 'string' || body instanceof FormData) payload = body;
     else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
     const res = await fetch(`${base}${path}`, { method, headers, body: payload });
     let data = null;
@@ -347,5 +347,67 @@ if (!URI) {
     assert.ok(byStatus('approved') >= 3, 'SOC-1, MMF and GS-1 were verified');
     assert.ok(byStatus('rejected') >= 1, 'GEO-1 was rejected');
     assert.ok(r.data.payments.some((p) => p.status === 'created' && p.verificationStatus === null), 'unpaid orders have no request');
+  });
+
+  // ---------- Shared access ID (Course.accessGroup) ----------
+  const ownedIds = async (key) => (await reload(key)).purchasedCourses.map(String).sort();
+  const editCourse = (course, fields) => {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
+    return call('PUT', `/api/courses/${course._id}`, 'admin', form);
+  };
+  let ncA;
+  let ncB;
+  let ncC;
+
+  test('courses sharing a Shared access ID unlock together on Verify; other courses do not', async () => {
+    ncA = await Course.create({ courseId: 'NC-6', name: 'NCERT 6', subject: 'GS', price: 200, fileName: 'a.pdf', fileUrl: 'x', fileUrls: ['a', 'b'], accessGroup: 'NCERT' });
+    ncB = await Course.create({ courseId: 'NC-7', name: 'NCERT 7 (Prelims shelf)', subject: 'GS', price: 200, fileName: 'b.pdf', fileUrl: 'x', accessGroup: '  ncert ' });
+    ncC = await Course.create({ courseId: 'NC-8', name: 'Unrelated', subject: 'GS', price: 200, fileName: 'c.pdf', fileUrl: 'x' });
+    assert.equal(ncB.accessGroup, 'ncert', 'stored trimmed; matched ignoring case');
+    await makeUser('grouper', 'grouper@test.dev');
+
+    const order = await call('POST', '/api/payments/order', 'grouper', { kind: 'course', courseId: 'NC-6' });
+    const verified = await call('POST', '/api/payments/verify', 'grouper', payOrder(order.data.orderId));
+    assert.equal(verified.data.request.status, 'pending');
+
+    assert.equal((await call('POST', '/api/payments/order', 'grouper', { kind: 'course', courseId: 'NC-7' })).status, 400,
+      'a pending payment for NC-6 already covers its linked course NC-7 - no paying twice');
+    assert.equal((await call('POST', '/api/payments/order', 'grouper', { kind: 'course', courseId: 'NC-8' })).status, 200, 'unlinked courses are unaffected');
+    assert.deepEqual(await ownedIds('grouper'), [], 'nothing before Verify');
+
+    assert.equal((await verifyAs('admin', 'course', verified.data.request._id)).status, 200);
+    assert.deepEqual(await ownedIds('grouper'), [String(ncA._id), String(ncB._id)].sort(), 'bought NC-6, got NC-7 too, not NC-8');
+    const limits = (await reload('grouper')).downloadLimits.map((d) => d.courseId).sort();
+    assert.deepEqual(limits, ['NC-6_0', 'NC-6_1', 'NC-7'], 'each linked course gets its own download limit');
+    assert.equal((await call('POST', '/api/payments/order', 'grouper', { kind: 'course', courseId: 'NC-7' })).status, 400, 'already owned');
+
+    const profile = await reload('grouper');
+    assert.ok(profile.interestedCourses.includes('NC-7'));
+  });
+
+  test('linking a course into a group later gives it to everyone who already owns any course of the group', async () => {
+    await makeUser('oldOwner', 'oldowner@test.dev');
+    await User.updateOne({ _id: users.oldOwner._id }, { $set: { purchasedCourses: [ncA._id] } });
+    const ncD = await Course.create({ courseId: 'NC-9', name: 'NCERT 9', subject: 'GS', price: 200, fileName: 'd.pdf', fileUrl: 'x' });
+
+    const linked = await editCourse(ncD, { accessGroup: 'Ncert' });
+    assert.equal(linked.status, 200);
+    assert.equal(linked.data.linkedStudents, 2, 'grouper and oldOwner each gained something');
+    assert.deepEqual(await ownedIds('oldOwner'), [ncA, ncB, ncD].map((c) => String(c._id)).sort(), 'an earlier NC-6 buyer now has NC-7 and NC-9');
+    assert.ok((await ownedIds('grouper')).includes(String(ncD._id)), 'and so does the student who bought through Razorpay');
+    assert.ok(!(await ownedIds('buyer')).includes(String(ncD._id)), 'students outside the group get nothing');
+    assert.ok((await reload('oldOwner')).downloadLimits.some((d) => d.courseId === 'NC-9'));
+
+    // Re-saving with the same Shared access ID (any capitals) changes nothing, and an ordinary edit never
+    // hands back a linked course the admin removed from one student by hand
+    await User.updateOne({ _id: users.oldOwner._id }, { $pull: { purchasedCourses: ncB._id } });
+    const sameGroup = await editCourse(ncD, { accessGroup: 'NCERT' });
+    assert.equal(sameGroup.data.linkedStudents, 0);
+    await editCourse(ncD, { price: '250' });
+    assert.ok(!(await ownedIds('oldOwner')).includes(String(ncB._id)), 'manual removal is respected');
+
+    const created = await call('PUT', `/api/courses/${ncC._id}`, 'buyer', new FormData());
+    assert.equal(created.status, 403, 'only admins edit courses');
   });
 }

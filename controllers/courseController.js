@@ -19,6 +19,7 @@ import User from "../models/User.js";
 import DownloadSession from "../models/DownloadSession.js";
 import DownloadLog from "../models/DownloadLog.js";
 import { userHasCourseAccess } from "../utils/courseAccess.js";
+import { syncAccessGroup } from "../utils/purchaseFulfillment.js";
 import { escapeRegExp } from "../utils/sanitize.js";
 import { buildSecuredPdf, generateLicenseId, fingerprintOf } from "../lib/pdfStamp.js";
 import SiteContent from "../models/SiteContent.js";
@@ -201,6 +202,7 @@ export const uploadCourse = async (req, res) => {
     discountLimitTag,
     telegramGroupLink,
     examStage,
+    accessGroup,
   } = req.body;
   const files = req.files || [];
 
@@ -327,11 +329,16 @@ export const uploadCourse = async (req, res) => {
         discountLimitTag === "true" || discountLimitTag === true,
       telegramGroupLink: telegramGroupLink ? telegramGroupLink.trim() : "",
       examStage: examStage === "Prelims" ? "Prelims" : "Mains",
+      accessGroup: typeof accessGroup === "string" ? accessGroup.trim() : "",
     });
+
+    // A new course joining an existing Shared access ID goes straight to everyone who owns that group
+    const linkedStudents = newCourse.accessGroup ? await syncAccessGroup(newCourse) : 0;
 
     res.json({
       message: "Course PDF uploaded successfully!",
       course: newCourse,
+      linkedStudents,
     });
   } catch (err) {
     console.error("Error uploading course:", err);
@@ -368,6 +375,7 @@ export const updateCourse = async (req, res) => {
     progressEnabled,
     telegramGroupLink,
     examStage,
+    accessGroup,
   } = req.body;
   const files = req.files || [];
 
@@ -404,6 +412,8 @@ export const updateCourse = async (req, res) => {
       course.telegramGroupLink = telegramGroupLink.trim();
     if (examStage === "Prelims" || examStage === "Mains")
       course.examStage = examStage;
+    const previousAccessGroup = course.accessGroup || "";
+    if (typeof accessGroup === "string") course.accessGroup = accessGroup.trim();
 
     let filesConfig = [];
     if (req.body.filesConfig) {
@@ -576,9 +586,16 @@ export const updateCourse = async (req, res) => {
 
     await course.save();
 
+    // Only when the Shared access ID is set or changed - not on every edit - so a sibling the admin took
+    // away from one student by hand isn't silently handed back the next time the price is tweaked.
+    const accessGroupChanged =
+      course.accessGroup && course.accessGroup.toLowerCase() !== previousAccessGroup.toLowerCase();
+    const linkedStudents = accessGroupChanged ? await syncAccessGroup(course) : 0;
+
     res.json({
       message: "Course updated successfully!",
       course,
+      linkedStudents,
     });
   } catch (err) {
     console.error("Error updating course:", err);
