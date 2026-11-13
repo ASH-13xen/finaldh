@@ -34,7 +34,18 @@ const turnSchema = new mongoose.Schema({
   askedAt: { type: Date, default: Date.now },
   answeredAt: { type: Date, default: null },
   answerSeconds: { type: Number, default: 0 },
-  feedback: { type: feedbackSchema, default: undefined }
+  feedback: { type: feedbackSchema, default: undefined },
+  // Short lines spoken before the question: the greeting, the Chairperson bringing a member in.
+  lead: { type: [new mongoose.Schema({ asker: String, text: String, kind: String }, { _id: false })], default: [] },
+  // What the member said right after the answer, and how they took it (pleased | neutral | sceptical | displeased).
+  reaction: { type: new mongoose.Schema({ text: { type: String, default: '' }, mood: { type: String, default: 'neutral' } }, { _id: false }), default: undefined },
+  interruptLine: { type: String, default: '' }, // said if the board cuts a long answer short
+  interrupted: { type: Boolean, default: false },
+  // What the candidate's own camera and microphone measured during the answer: numbers only, never video.
+  behaviour: { type: mongoose.Schema.Types.Mixed, default: null },
+  presence: { type: Number, default: null }, // 0-10 from `behaviour`
+  presenceIssue: { type: String, default: '' }, // the one thing worth mentioning about this answer, if any
+  presenceRemarked: { type: Boolean, default: false } // the board was allowed to mention it
 }, { _id: false });
 
 // One planned question slot. The interviewer works through these in order, inserting follow-ups between.
@@ -59,6 +70,11 @@ const interviewSessionSchema = new mongoose.Schema({
   // 'practice' shows sources and per-answer feedback as you go; 'real' keeps everything for the report.
   mode: { type: String, enum: ['practice', 'real'], default: 'practice' },
   inputMode: { type: String, enum: ['text', 'voice'], default: 'text' },
+  // A fixed number of questions and follow-ups (lib/interview/board.js FORMATS). Empty on interviews
+  // from before formats existed, which ran on a clock.
+  format: { type: String, enum: ['quick', 'standard', 'full', ''], default: '' },
+  temperament: { type: String, enum: ['cordial', 'standard', 'strict'], default: 'standard' },
+  // With a format this is only a safety allowance for an interview left open.
   durationMinutes: { type: Number, default: 20 },
   focus: { type: [String], default: [] }, // DAF item keys the student asked to concentrate on
   profileSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
@@ -66,6 +82,10 @@ const interviewSessionSchema = new mongoose.Schema({
   aiUsed: { type: Boolean, default: false },
   startedAt: { type: Date, default: Date.now },
   endedAt: { type: Date, default: null },
+  // Pausing stops the interview clock: pausedAt is set while paused, pausedMs is the total paused so far.
+  pausedAt: { type: Date, default: null },
+  pausedMs: { type: Number, default: 0 },
+  pauseCount: { type: Number, default: 0 },
   plan: { type: [planItemSchema], default: [] },
   turns: { type: [turnSchema], default: [] },
   report: {
@@ -76,6 +96,10 @@ const interviewSessionSchema = new mongoose.Schema({
     strengths: { type: [String], default: [] },
     improvements: { type: [String], default: [] },
     dafGaps: { type: [String], default: [] },
+    // How the candidate carried themselves, summed up from each answer's `behaviour` (board.js presenceReport).
+    presence: { type: mongoose.Schema.Types.Mixed, default: null },
+    // The board's mock marks: { total, outOf: 275, basedOn, members: [{ id, label, marks, outOf: 55, questions }] }
+    marks: { type: mongoose.Schema.Types.Mixed, default: null },
     stats: { type: mongoose.Schema.Types.Mixed, default: null }
   }
 }, { timestamps: true });

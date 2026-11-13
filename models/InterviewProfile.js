@@ -14,9 +14,8 @@ const workSchema = new mongoose.Schema({
   duration: { type: String, default: '' }
 }, { _id: false });
 
-// The interview-relevant parts of a student's DAF (Detailed Application Form), entered by hand or read
-// from an uploaded DAF by Gemini. The uploaded file itself is never stored. Lives in the people cluster
-// because it describes a real person.
+// The interview-relevant parts of a student's DAF (Detailed Application Form), entered by hand on the
+// website's form. Lives in the people cluster because it describes a real person.
 const interviewProfileSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   homeState: { type: String, default: '' },
@@ -31,7 +30,7 @@ const interviewProfileSchema = new mongoose.Schema({
   familyBackground: { type: String, default: '' },
   languages: { type: [String], default: [] },
   otherNotes: { type: String, default: '' },
-  source: { type: String, enum: ['manual', 'upload'], default: 'manual' },
+  source: { type: String, enum: ['manual', 'upload'], default: 'manual' }, // 'upload' only on profiles from when a DAF file could be read
 
   // Predictions are expensive with Gemini, so the last result is kept until the profile changes.
   predictionCache: {
@@ -44,7 +43,6 @@ const interviewProfileSchema = new mongoose.Schema({
   // Per-day counters for the Gemini-backed actions (reset when `day` changes).
   usage: {
     day: { type: String, default: '' },
-    extracts: { type: Number, default: 0 },
     predictionRuns: { type: Number, default: 0 },
     transcribes: { type: Number, default: 0 }
   }

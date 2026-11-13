@@ -28,6 +28,9 @@ if (!URI) {
   const { default: InterviewQuestion } = await import('../models/InterviewQuestion.js');
   const { default: InterviewTranscript } = await import('../models/InterviewTranscript.js');
   const { buildCorpus } = await import('../lib/interview/corpus.js');
+  const { boardMarks } = await import('../lib/interview/interviewer.js');
+  const board = await import('../lib/interview/board.js');
+  const { profileItems, familyItems } = await import('../lib/interview/predict.js');
   const { seedCorpus } = await import('../lib/interview/seed.js');
   const { openPeopleDb, closePeopleDb, peopleConn } = await import('../config/peopleDb.js');
 
@@ -239,6 +242,7 @@ if (!URI) {
     assert.equal(report.generatedBy, 'basic');
     assert.equal(report.traits.length, 7);
     assert.ok(report.stats.answered > 0 && report.stats.skipped > 0);
+    assert.equal(report.marks, null, 'no marks without scored answers (AI is off here)');
 
     const list = await api('GET', '/sessions', 's1');
     assert.equal(list.data.sessions[0].status, 'completed');
@@ -258,6 +262,212 @@ if (!URI) {
     assert.ok(end.data.session.turns[1].source.label !== undefined);
     const late = await api('POST', `/sessions/${s.id}/answer`, 's2', { answer: 'x' });
     assert.equal(late.status, 409);
+  });
+
+  test('pausing stops the interview clock; the hold before Begin is not counted as a pause', async () => {
+    const ALLOWANCE = board.FORMATS.quick.minutes * 60; // the safety allowance; the format decides when the interview ends
+    const start = await api('POST', '/sessions', 's2', { format: 'quick' });
+    const id = start.data.session.id;
+    assert.equal(start.data.session.paused, false);
+    assert.ok(Math.abs(start.data.session.secondsLeft - ALLOWANCE) <= 2);
+
+    const hold = await api('POST', `/sessions/${id}/pause`, 's2', { reason: 'begin' });
+    assert.equal(hold.status, 200);
+    assert.equal(hold.data.session.paused, true);
+    // Pretend the candidate sat on the welcome screen for two minutes.
+    await InterviewSession.updateOne({ _id: id }, { $set: { pausedAt: new Date(Date.now() - 120000) } });
+    const waiting = await api('GET', `/sessions/${id}`, 's2');
+    assert.ok(Math.abs(waiting.data.session.secondsLeft - ALLOWANCE) <= 2, 'no time is lost while paused');
+    const go = await api('POST', `/sessions/${id}/resume`, 's2');
+    assert.equal(go.data.session.paused, false);
+    assert.ok(Math.abs(go.data.session.secondsLeft - ALLOWANCE) <= 2, 'the clock carries on from where it stopped');
+    assert.equal((await api('POST', `/sessions/${id}/resume`, 's2')).status, 200, 'resuming twice is harmless');
+
+    await api('POST', `/sessions/${id}/pause`, 's2', { reason: 'notes' });
+    await api('POST', `/sessions/${id}/resume`, 's2');
+    const p1 = await api('POST', `/sessions/${id}/pause`, 's2');
+    assert.equal(p1.data.session.paused, true);
+    assert.equal((await api('POST', `/sessions/${id}/pause`, 's2')).data.session.paused, true, 'pausing twice is harmless');
+    assert.equal((await api('POST', `/sessions/${id}/pause`, 's1')).status, 404, 'another student cannot pause it');
+
+    // Answering restarts the clock by itself.
+    const s = p1.data.session;
+    const r = await api('POST', `/sessions/${id}/answer`, 's2', { turnIdx: s.current.idx, answer: 'My answer, sir.' });
+    assert.equal(r.status, 200);
+    assert.equal(r.data.session.paused, false);
+
+    const end = await api('POST', `/sessions/${id}/end`, 's2');
+    assert.equal(end.data.session.report.stats.pauses, 1, 'only the pause the candidate took is counted');
+    assert.equal(end.data.session.report.stats.minutes, 1, 'paused time is not interview time');
+    assert.equal((await api('POST', `/sessions/${id}/pause`, 's2')).status, 409, 'a finished interview cannot be paused');
+  });
+
+  test('board marks: five members out of 55 each, 275 in all, from the scored answers', () => {
+    const turn = (asker, score, skipped = false) => ({ asker, skipped, answeredAt: new Date(), feedback: score == null ? {} : { score } });
+    assert.equal(boardMarks({ turns: [turn('chairman', null), turn('m1', null)] }, null), null, 'nothing scored -> no marks');
+
+    const average = boardMarks({ turns: ['chairman', 'm1', 'm2', 'm3', 'm4'].map((a) => turn(a, 5)) }, 5);
+    assert.equal(average.outOf, 275);
+    assert.deepEqual(average.members.map((m) => m.marks), [32, 32, 32, 32, 32], 'an average answer is about 57%');
+    assert.equal(average.total, 160);
+    assert.equal(average.basedOn, 5);
+
+    const mixed = boardMarks({ turns: [turn('chairman', 9), turn('m1', 2), turn('m1', null, true), turn('m2', 7)] }, 6);
+    const by = Object.fromEntries(mixed.members.map((m) => [m.id, m]));
+    assert.ok(by.chairman.marks > by.m2.marks && by.m2.marks > by.m1.marks, 'each member marks the answers they heard');
+    assert.equal(by.m3.marks, by.m4.marks, 'members who asked nothing go by the overall impression');
+    assert.equal(by.m1.questions, 2);
+    assert.equal(mixed.total, mixed.members.reduce((n, m) => n + m.marks, 0));
+    for (const m of mixed.members) assert.ok(m.marks >= 14 && m.marks <= 50 && m.outOf === 55);
+    assert.ok(boardMarks({ turns: [turn('m1', 10)] }, 10).total <= 250, 'even a perfect interview stays inside what real boards award');
+  });
+
+  test('formats fix the number of questions and follow-ups', async () => {
+    const status = await api('GET', '/status', 's1');
+    assert.deepEqual(status.data.formats.map((f) => [f.key, f.questions, f.followUps]), [['quick', 8, 4], ['standard', 14, 7], ['full', 20, 10]]);
+    assert.deepEqual(status.data.temperaments.map((t) => t.key), ['cordial', 'standard', 'strict']);
+
+    const start = await api('POST', '/sessions', 's1', { format: 'quick', temperament: 'strict', inputMode: 'voice' });
+    assert.equal(start.status, 201);
+    let s = start.data.session;
+    assert.equal(s.format, 'quick');
+    assert.equal(s.formatLabel, 'Quick drill');
+    assert.equal(s.temperament, 'strict');
+    assert.equal(s.interruptAfter, 100);
+    assert.deepEqual([s.progress.mainTotal, s.progress.followUpBudget, s.progress.mainAsked, s.progress.followUpsUsed], [8, 4, 1, 0]);
+    assert.equal(s.current.lead[0].kind, 'greeting');
+    assert.match(s.current.lead[0].text, /^Good (morning|afternoon|evening)\. Please take your seat\.$/);
+    assert.ok(s.current.interruptLine, 'the line for cutting a long answer short is ready');
+
+    let done = false;
+    const handovers = [];
+    for (let i = 0; i < 30 && !done; i++) {
+      const r = await api('POST', `/sessions/${s.id}/answer`, 's1', { turnIdx: s.current.idx, answer: 'Sir, there are two sides to it. The state has acted, but delivery on the ground is uneven, as I saw in my own district.', answerSeconds: 30 });
+      done = r.data.done;
+      s = r.data.session;
+      if (!done) handovers.push(...s.current.lead.filter((l) => l.kind === 'handover'));
+    }
+    assert.ok(done);
+    assert.equal(s.progress.mainAsked, 8, 'every planned question is asked');
+    assert.ok(s.progress.followUpsUsed <= 4, 'never more follow-ups than the format allows');
+    assert.equal(s.turns.length, 8 + s.progress.followUpsUsed);
+    assert.equal(handovers.length, 4, 'the Chairperson brings in each of the four members once');
+    assert.ok(handovers.every((l) => l.asker === 'chairman' && /Member [1-4]/.test(l.text)));
+    assert.ok(s.turns.every((t) => t.reaction && typeof t.reaction.text === 'string'), 'the member says something after every answer');
+    await api('POST', `/sessions/${s.id}/end`, 's1');
+
+    const old = await api('POST', '/sessions', 's1', { minutes: 30 });
+    assert.equal(old.data.session.format, 'full', 'the old "minutes" choice still maps to a format');
+    // A full board is 20 questions; this test library holds fewer distinct ones, and the plan never repeats.
+    assert.ok(old.data.session.progress.mainTotal > 14 && old.data.session.progress.mainTotal <= 20);
+    assert.equal(old.data.session.progress.followUpBudget, 10);
+    await api('POST', `/sessions/${old.data.session.id}/end`, 's1');
+  });
+
+  test('a pass draws a remark that depends on the temperament of the board', async () => {
+    const said = {};
+    for (const temperament of ['cordial', 'strict']) {
+      const start = await api('POST', '/sessions', 's2', { format: 'quick', temperament });
+      const s = start.data.session;
+      const r = await api('POST', `/sessions/${s.id}/answer`, 's2', { turnIdx: s.current.idx, skipped: true });
+      said[temperament] = r.data.session.turns[0].reaction;
+      await api('POST', `/sessions/${s.id}/end`, 's2');
+    }
+    assert.match(said.cordial.text, /alright|No problem/i);
+    assert.match(said.strict.text, /should know|basic question/i);
+    assert.notEqual(said.cordial.text, said.strict.text);
+
+    const line = (o) => board.cannedReaction({ words: 0, n: 0, ...o });
+    assert.equal(line({ temperament: 'strict', skipped: true, daf: true, passes: 1 }).kind, 'passDaf');
+    assert.equal(line({ temperament: 'strict', skipped: true, daf: true, passes: 1 }).mood, 'displeased');
+    assert.equal(line({ temperament: 'standard', skipped: true, daf: false, passes: 3 }).kind, 'passAgain');
+    assert.equal(line({ temperament: 'standard', skipped: false, words: 8 }).kind, 'brief');
+    assert.equal(line({ temperament: 'standard', skipped: false, words: 300 }).kind, 'long');
+    assert.equal(line({ temperament: 'standard', skipped: false, words: 80 }).mood, 'neutral');
+  });
+
+  test('what the camera saw: scored, mentioned now and then, and summed up in the report', async () => {
+    const start = await api('POST', '/sessions', 's2', { format: 'quick', temperament: 'standard', mode: 'practice' });
+    let s = start.data.session;
+    const answer = 'Sir, I believe this needs a balanced view. On one hand the government has launched several schemes, but on the ground gaps remain, as I saw in my own district during my field visit last year.';
+    const poor = { tracked: true, seconds: 40, absent: 0.02, eyeContact: 0.22, lookAways: 4, longestAway: 12, down: 0.1, lean: 0.1, slump: 0.1, near: 0, restless: 0.2, smile: 0.05, wpm: 150, fillers: 1, junk: 'x'.repeat(5000) };
+    const good = { ...poor, eyeContact: 0.93, lookAways: 0, longestAway: 0 };
+
+    let r = await api('POST', `/sessions/${s.id}/answer`, 's2', { turnIdx: s.current.idx, answer, answerSeconds: 40, behaviour: poor });
+    s = r.data.session;
+    assert.equal(s.turns[0].presenceIssue, 'eyeContact');
+    assert.ok(s.turns[0].presence < 6, `little eye contact scores low (${s.turns[0].presence})`);
+    assert.match(s.turns[0].reaction.text, /look at the board/i, 'the member asks for eye contact');
+
+    r = await api('POST', `/sessions/${s.id}/answer`, 's2', { turnIdx: s.current.idx, answer, answerSeconds: 40, behaviour: poor });
+    s = r.data.session;
+    assert.doesNotMatch(s.turns[1].reaction.text, /look at the board/i, 'not on two answers running');
+
+    r = await api('POST', `/sessions/${s.id}/answer`, 's2', { turnIdx: s.current.idx, answer, answerSeconds: 40, behaviour: good, interrupted: true });
+    s = r.data.session;
+    assert.equal(s.turns[2].presence, 10);
+    assert.equal(s.turns[2].interrupted, true);
+    assert.equal(s.turns[2].reaction.text, '', 'after cutting an answer short the member has already spoken');
+
+    r = await api('POST', `/sessions/${s.id}/answer`, 's2', { turnIdx: s.current.idx, answer, answerSeconds: 40, behaviour: { tracked: false, wpm: 150, fillers: 0 } });
+    s = r.data.session;
+    assert.equal(s.turns[3].presence, null, 'no camera, no score');
+
+    const saved = await InterviewSession.findById(s.id);
+    assert.equal(saved.turns[0].behaviour.junk, undefined, 'only the known numbers are kept');
+    assert.equal(saved.turns[0].behaviour.eyeContact, 0.22);
+
+    const end = await api('POST', `/sessions/${s.id}/end`, 's2');
+    const p = end.data.session.report.presence;
+    assert.equal(p.tracked, 3);
+    assert.ok(p.eyeContact > 0.4 && p.eyeContact < 0.5);
+    assert.equal(p.longestAway, 12);
+    assert.equal(p.wpm, 150);
+    assert.ok(p.tips.some((t) => /look/i.test(t)));
+    assert.equal(p.perQuestion.length, 4);
+    assert.equal(end.data.session.report.stats.interrupted, 1);
+
+    // Real mode keeps the scores for the report, but the spoken reaction is still there.
+    const real = await api('POST', '/sessions', 's2', { format: 'quick', mode: 'real' });
+    const rr = await api('POST', `/sessions/${real.data.session.id}/answer`, 's2', { turnIdx: 0, answer, behaviour: poor });
+    assert.equal(rr.data.session.turns[0].presence, null);
+    assert.equal(rr.data.session.turns[0].presenceIssue, '');
+    assert.ok(rr.data.session.turns[0].reaction.text);
+    await api('POST', `/sessions/${real.data.session.id}/end`, 's2');
+  });
+
+  test('behaviour scoring and marks: forgiving, and a tenth of each mark', () => {
+    const b = (o) => board.cleanBehaviour({ tracked: true, seconds: 40, absent: 0, eyeContact: 0.9, lookAways: 0, longestAway: 0, down: 0, lean: 0, slump: 0, near: 0, restless: 0, smile: 0.1, wpm: 150, fillers: 0, ...o });
+    assert.equal(board.presenceScore(b({}), 80), 10);
+    assert.equal(board.presenceIssue(b({}), { words: 80 }), null);
+    assert.equal(board.presenceIssue(b({ down: 0.6 }), { words: 80 }), 'reading');
+    assert.equal(board.presenceIssue(b({ absent: 0.5 }), { words: 80 }), 'absent');
+    assert.equal(board.presenceIssue(b({ slump: 0.7 }), { words: 80 }), 'posture');
+    assert.equal(board.presenceIssue(b({ restless: 0.7 }), { words: 80 }), 'restless');
+    assert.equal(board.presenceIssue(b({ eyeContact: 0.55 }), { words: 80 }), null, 'a little short of ideal is not worth a remark');
+    assert.equal(board.presenceIssue(b({ eyeContact: 0.1, seconds: 4 }), { words: 5 }), null, 'too short to judge');
+    assert.equal(board.presenceScore(board.cleanBehaviour({ tracked: false }), 80), null);
+    assert.equal(board.cleanBehaviour('nonsense'), null);
+    assert.equal(board.cleanBehaviour({ tracked: true, eyeContact: 7, wpm: -3 }).eyeContact, 1, 'numbers are kept in range');
+    assert.ok(board.presenceScore(b({ eyeContact: 0, down: 0.5, absent: 0.5, slump: 0.8, restless: 0.8, longestAway: 30 }), 80) >= 0);
+
+    const turn = (asker, score, presence) => ({ asker, skipped: false, answeredAt: new Date(), feedback: { score }, presence });
+    const all = ['chairman', 'm1', 'm2', 'm3', 'm4'];
+    const plain = boardMarks({ turns: all.map((a) => turn(a, 6, null)) }, 6);
+    const poised = boardMarks({ turns: all.map((a) => turn(a, 6, 10)) }, 6);
+    const slumped = boardMarks({ turns: all.map((a) => turn(a, 6, 0)) }, 6);
+    assert.equal(plain.presenceCounted, false);
+    assert.ok(poised.total > plain.total && plain.total > slumped.total);
+    assert.ok(poised.total - slumped.total <= 20, 'how you sit cannot outweigh what you say');
+  });
+
+  test('family background and other languages become DAF items', () => {
+    assert.deepEqual(familyItems('Father: farmer; Mother is a teacher').map((f) => f.value), ['farmer', 'teacher']);
+    assert.deepEqual(familyItems('').length, 0);
+    const keys = profileItems({ homeState: 'Bihar', familyBackground: 'Father: farmer', languages: ['Hindi', 'English', 'Maithili'] }).map((i) => i.key);
+    assert.ok(keys.includes('family:farmer'));
+    assert.ok(keys.includes('language:maithili'));
+    assert.ok(!keys.some((k) => /language:(hindi|english)/.test(k)), 'everyone lists Hindi and English');
   });
 
   test('starting a new interview abandons the unfinished one', async () => {
@@ -280,12 +490,11 @@ if (!URI) {
     await api('POST', `/sessions/${id}/end`, 's1');
   });
 
-  test('DAF upload and voice transcription explain that AI is off', async () => {
+  test('the DAF is filled in on the form only; voice transcription explains that AI is off', async () => {
     const form = new FormData();
     form.append('file', new Blob([Buffer.from('%PDF-1.4 test')], { type: 'application/pdf' }), 'daf.pdf');
     const res = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: form });
-    assert.equal(res.status, 503);
-    assert.equal((await res.json()).aiUnavailable, true);
+    assert.equal(res.status, 404, 'there is no DAF file upload any more');
 
     const audio = new FormData();
     audio.append('audio', new Blob([Buffer.from([1, 2, 3])], { type: 'audio/webm' }), 'a.webm');
@@ -328,6 +537,31 @@ if (!URI) {
     if (/online gaming/i.test(q.text)) {
       const gone = await api('GET', '/bank/search?q=online%20gaming%20regulated', 's1');
       assert.ok(!gone.data.items.some((f) => /online gaming be regulated/i.test(f.text)));
+    }
+  });
+
+  test('search index: shared lists are read-only, and a bank loaded by another process is picked up', async () => {
+    const { getCorpusIndex, searchFamilies } = await import('../lib/interview/corpusIndex.js');
+    const idx = await getCorpusIndex();
+    const fam = idx.families.find((f) => f.years.length);
+    assert.throws(() => fam.years.push(1999), TypeError);
+
+    // A seed run elsewhere doesn't invalidate this process's index; the size check notices it.
+    const extra = await InterviewFamily.create({ key: 'test-zorbian', text: 'What is the Zorbian lighthouse treaty?', size: 1, transcriptCount: 1, years: [2024], yearCounts: { 2024: 1 }, firstYear: 2024, lastYear: 2024, boards: [], boardCounts: [], topics: ['ir'], hookTypes: [], hookValues: [], askers: { chairman: 1 }, qtype: 'factual', shelfLife: 'evergreen' });
+    try {
+      assert.equal((await getCorpusIndex()).families.length, idx.families.length, 'still the same index before the check is due');
+      idx.checkedAt = 0;
+      await getCorpusIndex(); // starts the check in the background, answers from the current index
+      let fresh = idx;
+      for (let i = 0; i < 50 && fresh === idx; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+        fresh = await getCorpusIndex();
+      }
+      assert.notEqual(fresh, idx, 'rebuilt after the collections changed');
+      assert.ok(searchFamilies(fresh, { q: 'zorbian lighthouse' }).items.some((f) => f.id === String(extra._id)));
+    } finally {
+      await InterviewFamily.deleteOne({ _id: extra._id });
+      (await import('../lib/interview/corpusIndex.js')).invalidateCorpusIndex();
     }
   });
 }

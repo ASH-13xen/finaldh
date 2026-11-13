@@ -5,7 +5,6 @@ import {
   getProfile,
   saveProfile,
   deleteProfile,
-  extractProfile,
   getPredictions,
   searchBank,
   getFacets,
@@ -16,6 +15,8 @@ import {
   getSession,
   answerSession,
   endSession,
+  pauseSessionNow,
+  resumeSessionNow,
   listSessions,
   deleteSession,
   transcribe,
@@ -36,12 +37,7 @@ import {
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
 
-// Uploads stay in memory and are dropped when the request ends - a DAF is read, never stored.
-const dafUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, /^(application\/pdf|image\/(png|jpe?g|webp|heic|heif))$/.test(file.mimetype))
-});
+// Recorded answers stay in memory and are dropped when the request ends.
 const audioUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 },
@@ -61,7 +57,6 @@ router.get('/status', authenticateToken, sectionAccess, getStatus);
 router.get('/profile', authenticateToken, sectionAccess, getProfile);
 router.put('/profile', authenticateToken, sectionAccess, saveProfile);
 router.delete('/profile', authenticateToken, sectionAccess, deleteProfile);
-router.post('/profile/extract', authenticateToken, sectionAccess, dafUpload.single('file'), extractProfile);
 router.get('/predictions', authenticateToken, sectionAccess, getPredictions);
 
 // Question bank (built from the community transcript compilations)
@@ -77,6 +72,8 @@ router.post('/sessions', authenticateToken, sectionAccess, startSession);
 router.get('/sessions/:id', authenticateToken, sectionAccess, getSession);
 router.post('/sessions/:id/answer', authenticateToken, sectionAccess, answerSession);
 router.post('/sessions/:id/end', authenticateToken, sectionAccess, endSession);
+router.post('/sessions/:id/pause', authenticateToken, sectionAccess, pauseSessionNow);
+router.post('/sessions/:id/resume', authenticateToken, sectionAccess, resumeSessionNow);
 router.delete('/sessions/:id', authenticateToken, sectionAccess, deleteSession);
 router.post('/transcribe', authenticateToken, sectionAccess, audioUpload.single('audio'), transcribe);
 router.get('/sessions/:id/speech', authenticateToken, sectionAccess, speakTurn);

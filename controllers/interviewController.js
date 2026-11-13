@@ -5,14 +5,15 @@ import InterviewQuestion from '../models/InterviewQuestion.js';
 import InterviewTranscript from '../models/InterviewTranscript.js';
 import { getCorpusIndex, searchFamilies, familyById, relatedFamilies, summarizeFamily } from '../lib/interview/corpusIndex.js';
 import { buildPredictions, profileHash, profileItems } from '../lib/interview/predict.js';
-import { planSession, openSession, answerCurrent, buildReport, sessionPayload, closingLine, PANEL, TRAITS } from '../lib/interview/interviewer.js';
-import { cleanProfileInput, extractDaf, transcribeAnswer, isProfileEmpty, SERVICES } from '../lib/interview/daf.js';
+import { planSession, openSession, answerCurrent, buildReport, sessionPayload, closingLine, pauseSession, resumeSession, PANEL, TRAITS } from '../lib/interview/interviewer.js';
+import { FORMATS, DEFAULT_FORMAT, formatOf, formatFromMinutes, TEMPERAMENTS, DEFAULT_TEMPERAMENT } from '../lib/interview/board.js';
+import { cleanProfileInput, transcribeAnswer, isProfileEmpty, SERVICES } from '../lib/interview/daf.js';
 import { geminiStatus, checkGemini, embedTexts } from '../lib/interview/gemini.js';
 import { streamSpeech, SAMPLE_LINES } from '../lib/interview/voice.js';
 import { TOPIC_LABELS, HOOK_TYPES, QTYPES } from '../lib/interview/taxonomy.js';
 
 // Free for now; the caps only stop one account from running up the Gemini bill.
-const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, extractsPerDay: 8, transcribesPerDay: 400 };
+const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400 };
 
 // The compilations the corpus is built from. Shown on every page that shows transcript data.
 const SOURCES = [
@@ -36,7 +37,7 @@ const useAllowance = async (userId, field, limit) => {
   await ensureProfile(userId);
   await InterviewProfile.updateOne(
     { user: userId, 'usage.day': { $ne: day } },
-    { $set: { 'usage.day': day, 'usage.extracts': 0, 'usage.predictionRuns': 0, 'usage.transcribes': 0 } }
+    { $set: { 'usage.day': day, 'usage.predictionRuns': 0, 'usage.transcribes': 0 } }
   );
   const r = await InterviewProfile.updateOne(
     { user: userId, 'usage.day': day, [`usage.${field}`]: { $lt: limit } },
@@ -71,6 +72,10 @@ export const getStatus = async (req, res) => {
       topics: TOPIC_LABELS,
       qtypes: QTYPES,
       services: SERVICES,
+      formats: Object.entries(FORMATS).map(([key, f]) => ({ key, label: f.label, questions: f.questions, followUps: f.followUps, about: f.about })),
+      defaultFormat: DEFAULT_FORMAT,
+      temperaments: Object.entries(TEMPERAMENTS).map(([key, t]) => ({ key, label: t.label, blurb: t.blurb })),
+      defaultTemperament: DEFAULT_TEMPERAMENT,
       limits: LIMITS
     });
   } catch (err) {
@@ -92,13 +97,14 @@ export const getProfile = async (req, res) => {
 export const saveProfile = async (req, res) => {
   try {
     const fields = cleanProfileInput(req.body || {});
-    const source = req.body?.source === 'upload' ? 'upload' : 'manual';
     const p = await InterviewProfile.findOneAndUpdate(
       { user: req.userId },
-      { $set: { ...fields, source }, $setOnInsert: { user: req.userId } },
+      { $set: { ...fields, source: 'manual' }, $setOnInsert: { user: req.userId } },
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
     res.json({ profile: publicProfile(p), items: profileItems(p.toObject()), empty: isProfileEmpty(p) });
+    // Have the tailored predictions ready by the time the student opens them or starts an interview.
+    warmPredictions(p).catch(() => {});
   } catch (err) {
     console.error('[interview] saveProfile error:', err);
     fail(res, 500, 'Could not save your DAF details.');
@@ -115,23 +121,43 @@ export const deleteProfile = async (req, res) => {
   }
 };
 
-// Reads an uploaded DAF (PDF or photo) with Gemini and returns the fields for the student to check.
-// Nothing is saved here and the file is dropped as soon as the request ends.
-export const extractProfile = async (req, res) => {
-  if (!req.file) return fail(res, 400, 'Choose your DAF file (PDF or image).');
-  if (!(await checkGemini())) return fail(res, 503, 'Reading a DAF automatically needs AI, which is not switched on yet. Please fill in the form below — it takes about two minutes.', { aiUnavailable: true });
-  try {
-    if (!(await useAllowance(req.userId, 'extracts', LIMITS.extractsPerDay))) return fail(res, 429, `You can read up to ${LIMITS.extractsPerDay} DAF files a day. Please edit the form by hand.`);
-    const fields = await extractDaf(req.file.buffer, req.file.mimetype);
-    res.json({ fields, empty: isProfileEmpty(fields) });
-  } catch (err) {
-    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI is not available right now. Please fill in the form by hand.', { aiUnavailable: true });
-    console.error('[interview] extractProfile error:', err);
-    fail(res, 502, 'Could not read that file. Try a clearer PDF or photo, or fill in the form by hand.');
-  }
+// ------------------------------------------------------------------ predictions
+
+// One Gemini prediction run per student at a time. Resolves to the predictions, or null when the run
+// was not allowed (daily limit) or failed; the result is saved only if the DAF has not changed meanwhile.
+const building = new Map();
+const buildTailored = (profile, idx, hash) => {
+  const key = String(profile.user);
+  if (building.has(key)) return building.get(key);
+  const run = (async () => {
+    try {
+      if (!(await useAllowance(profile.user, 'predictionRuns', LIMITS.predictionRunsPerDay))) return null;
+      const data = await buildPredictions(idx, profile.toObject(), { useAI: true });
+      const latest = await InterviewProfile.findById(profile._id);
+      if (latest && profileHash(latest.toObject(), idx) === hash) {
+        await InterviewProfile.updateOne({ _id: profile._id }, { $set: { predictionCache: { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data } } });
+      }
+      return data;
+    } catch (err) {
+      console.warn('[interview] building predictions failed:', String(err.message).slice(0, 200));
+      return null;
+    } finally {
+      building.delete(key);
+    }
+  })();
+  building.set(key, run);
+  return run;
 };
 
-// ------------------------------------------------------------------ predictions
+// Start a run after the DAF is saved, unless the saved predictions already match it.
+const warmPredictions = async (profile) => {
+  if (isProfileEmpty(profile) || !(await checkGemini())) return;
+  const idx = await getCorpusIndex();
+  if (!idx.stats.questions) return;
+  const hash = profileHash(profile.toObject(), idx);
+  if (profile.predictionCache?.hash === hash && profile.predictionCache.aiUsed) return;
+  buildTailored(profile, idx, hash);
+};
 
 export const getPredictions = async (req, res) => {
   try {
@@ -145,6 +171,11 @@ export const getPredictions = async (req, res) => {
     const wantAI = await checkGemini();
     const fresh = cache?.data && cache.hash === hash && (cache.aiUsed || !wantAI);
     if (fresh && req.query.refresh !== '1') return res.json({ ...cache.data, cached: true, ai: aiPayload() });
+    // A run started when the DAF was saved may still be going: wait for it rather than paying twice.
+    if (wantAI && req.query.refresh !== '1' && building.has(String(req.userId))) {
+      const ready = await building.get(String(req.userId));
+      if (ready) return res.json({ ...ready, cached: false, ai: aiPayload() });
+    }
 
     let useAI = wantAI;
     if (useAI && !(await useAllowance(req.userId, 'predictionRuns', LIMITS.predictionRunsPerDay))) {
@@ -334,11 +365,16 @@ const loadOwnSession = async (req, res) => {
   return s;
 };
 
+const PREDICTION_WAIT_MS = 20000;
+
 export const startSession = async (req, res) => {
   try {
     const mode = req.body?.mode === 'real' ? 'real' : 'practice';
     const inputMode = req.body?.inputMode === 'voice' ? 'voice' : 'text';
-    const minutes = [10, 20, 30].includes(Number(req.body?.minutes)) ? Number(req.body.minutes) : 20;
+    // A format fixes the number of questions and follow-ups. `minutes` is how interviews used to be chosen.
+    const formatKey = FORMATS[req.body?.format] ? req.body.format : req.body?.minutes !== undefined ? formatFromMinutes(req.body.minutes) : DEFAULT_FORMAT;
+    const format = formatOf(formatKey);
+    const temperament = TEMPERAMENTS[req.body?.temperament] ? req.body.temperament : DEFAULT_TEMPERAMENT;
     const focus = (Array.isArray(req.body?.focus) ? req.body.focus : []).map((f) => String(f).slice(0, 120)).slice(0, 8);
 
     const since = new Date(); since.setHours(0, 0, 0, 0);
@@ -351,18 +387,23 @@ export const startSession = async (req, res) => {
     const profile = await ensureProfile(req.userId);
     const plain = profile.toObject();
     const hash = profileHash(plain, idx);
-    // Reuse saved predictions when they match this DAF; otherwise build evidence-only ones (fast).
-    const predictions = profile.predictionCache?.data && profile.predictionCache.hash === hash
-      ? profile.predictionCache.data
-      : await buildPredictions(idx, plain, { useAI: false });
-
     const useAI = await checkGemini();
-    const plan = await planSession(idx, predictions, { minutes, focus, useAI });
+    // The board plans from predictions tailored to this DAF. If they are not ready (the DAF was just
+    // saved, or the student never opened the predictions page) the board "reads the DAF" now, for up to
+    // PREDICTION_WAIT_MS; past that it plans from the past questions themselves.
+    const cache = profile.predictionCache;
+    let predictions = cache?.data && cache.hash === hash && (cache.aiUsed || !useAI) ? cache.data : null;
+    if (!predictions && useAI && !isProfileEmpty(profile)) {
+      predictions = await Promise.race([buildTailored(profile, idx, hash), new Promise((resolve) => { setTimeout(() => resolve(null), PREDICTION_WAIT_MS); })]);
+    }
+    if (!predictions) predictions = cache?.data && cache.hash === hash ? cache.data : await buildPredictions(idx, plain, { useAI: false });
+
+    const plan = await planSession(idx, predictions, { questions: format.questions, focus });
 
     await InterviewSession.updateMany({ user: req.userId, status: 'in-progress' }, { $set: { status: 'abandoned', endedAt: new Date() } });
     const { _id, user, predictionCache, usage, __v, createdAt, updatedAt, ...snapshot } = plain;
     const session = new InterviewSession({
-      user: req.userId, mode, inputMode, durationMinutes: minutes, focus, profileSnapshot: snapshot,
+      user: req.userId, mode, inputMode, format: formatKey, temperament, durationMinutes: format.minutes, focus, profileSnapshot: snapshot,
       aiUsed: useAI, startedAt: new Date(), plan
     });
     openSession(session);
@@ -401,7 +442,9 @@ export const answerSession = async (req, res) => {
       answer: req.body?.answer,
       answerMode: req.body?.answerMode,
       answerSeconds: req.body?.answerSeconds,
-      skipped: !!req.body?.skipped
+      skipped: !!req.body?.skipped,
+      interrupted: !!req.body?.interrupted,
+      behaviour: req.body?.behaviour
     });
     await s.save();
     res.json({ done, closing: done ? closingLine() : null, session: sessionPayload(s) });
@@ -413,11 +456,30 @@ export const answerSession = async (req, res) => {
   }
 };
 
+// Pause / resume the interview clock. Both are safe to repeat.
+const setPaused = (paused) => async (req, res) => {
+  try {
+    const s = await loadOwnSession(req, res);
+    if (!s) return;
+    if (s.status !== 'in-progress') return fail(res, 409, 'This interview has already ended.', { session: sessionPayload(s) });
+    // Only a pause the candidate chose is counted: not the hold before Begin, nor time spent reading the board's notes.
+    const counted = !['begin', 'notes'].includes(req.body?.reason);
+    if (paused ? pauseSession(s, { counted }) : resumeSession(s)) await s.save();
+    res.json({ session: sessionPayload(s) });
+  } catch (err) {
+    console.error('[interview] pause/resume error:', err);
+    fail(res, 500, paused ? 'Could not pause the interview.' : 'Could not resume the interview.');
+  }
+};
+export const pauseSessionNow = setPaused(true);
+export const resumeSessionNow = setPaused(false);
+
 export const endSession = async (req, res) => {
   try {
     const s = await loadOwnSession(req, res);
     if (!s) return;
     if (s.status === 'in-progress') {
+      resumeSession(s);
       s.endedAt = new Date();
       s.report = await buildReport(s);
       s.status = 'completed';
@@ -433,10 +495,12 @@ export const endSession = async (req, res) => {
 export const listSessions = async (req, res) => {
   try {
     const sessions = await InterviewSession.find({ user: req.userId, status: { $ne: 'abandoned' } })
-      .sort({ createdAt: -1 }).limit(40).select('mode inputMode durationMinutes status startedAt endedAt aiUsed report.overall report.stats turns.idx').lean();
+      .sort({ createdAt: -1 }).limit(40).select('mode inputMode format temperament durationMinutes status startedAt endedAt aiUsed report.overall report.marks.total report.marks.outOf report.stats turns.idx').lean();
     res.json({
       sessions: sessions.map((s) => ({
         id: String(s._id), mode: s.mode, inputMode: s.inputMode, durationMinutes: s.durationMinutes, status: s.status,
+        format: s.format || '', formatLabel: s.format ? formatOf(s.format).label : '', temperament: s.temperament || DEFAULT_TEMPERAMENT,
+        marks: s.report?.marks?.total ?? null, marksOutOf: s.report?.marks?.outOf ?? null, minutes: s.report?.stats?.minutes ?? null,
         startedAt: s.startedAt, endedAt: s.endedAt, aiUsed: s.aiUsed,
         overall: s.report?.overall ?? null, questions: s.report?.stats?.questions ?? (s.turns || []).length, answered: s.report?.stats?.answered ?? null
       }))
@@ -477,7 +541,9 @@ export const transcribe = async (req, res) => {
 
 // ------------------------------------------------------------------ the board's voice
 
-// Speaks a question of the student's own interview (?turn=<idx>, or ?turn=closing) as streamed PCM.
+// Speaks a line of the student's own interview as streamed PCM: ?turn=<idx> is that question,
+// &part=lead&i=<n> a line said before it, &part=reaction what the member said after the answer,
+// &part=interrupt the line for cutting a long answer short, and ?turn=closing the closing words.
 // Only text the session already holds can be spoken, so this can't be used as a general TTS service.
 // Any failure answers 503 before audio starts and the browser falls back to its built-in voice.
 const sendSpeech = async (res, text, asker) => {
@@ -498,7 +564,13 @@ export const speakTurn = async (req, res) => {
     if (req.query.turn === 'closing') return sendSpeech(res, closingLine(), 'chairman');
     const turn = s.turns.find((t) => t.idx === Number(req.query.turn));
     if (!turn) return fail(res, 404, 'Question not found.');
-    return sendSpeech(res, turn.question, turn.asker);
+    const part = String(req.query.part || 'question');
+    const line = part === 'lead' ? (turn.lead || [])[Number(req.query.i) || 0]
+      : part === 'reaction' ? { text: turn.reaction?.text, asker: turn.asker }
+        : part === 'interrupt' ? { text: turn.interruptLine, asker: turn.asker }
+          : { text: turn.question, asker: turn.asker };
+    if (!line?.text) return fail(res, 404, 'Nothing to say there.');
+    return sendSpeech(res, line.text, line.asker);
   } catch (err) {
     console.error('[interview] speakTurn error:', err);
     if (!res.headersSent) fail(res, 500, 'Could not play the question.');

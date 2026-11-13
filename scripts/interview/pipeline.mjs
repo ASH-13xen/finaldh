@@ -21,7 +21,7 @@ import { parseYear } from '../../lib/interview/heuristicParser.js';
 import { buildCorpus, corpusStats } from '../../lib/interview/corpus.js';
 import { normalizeText } from '../../lib/interview/text.js';
 import { TOPICS, HOOK_TYPES, QTYPES } from '../../lib/interview/taxonomy.js';
-import { generateJson, embedTexts, aiAvailable, checkGemini, geminiStatus, EMBEDDING_MODEL, EMBEDDING_DIMS } from '../../lib/interview/gemini.js';
+import { generateJson, embedTexts, aiAvailable, checkGemini, geminiStatus, usageTotals, GEMINI_MODEL, EMBEDDING_MODEL, EMBEDDING_DIMS } from '../../lib/interview/gemini.js';
 
 dotenv.config({ quiet: true });
 
@@ -85,11 +85,10 @@ const GEMINI_SYSTEM = `You turn community-typed UPSC Civil Services interview (P
 The text was copied from Telegram posts and PDFs: it has typos, Hinglish, Hindi, broken punctuation, page footers, and the candidate's own notes mixed in.
 Rules:
 - Keep every question the board asked, in order. One entry per question; split run-on lines that contain several questions.
-- "text": the question as a clean, complete English sentence ending in "?". Translate Hindi/Hinglish to English. Fix spelling. Never invent content that is not in the source.
-- "originalText": the source wording only when you translated or substantially rewrote it.
-- "asker": "chairman", "m1".."m5" (member number as written), "member" (a member with no number), or "unknown".
-- "followUp": true when it follows up the previous question.
-- "note": what the candidate says they answered, or how the board reacted, in one short sentence ("" if none).
+- The question text: a clean, complete English sentence ending in "?". Translate Hindi/Hinglish to English. Fix spelling. Never invent content that is not in the source.
+- The asker: "chairman", "m1".."m5" (member number as written), "member" (a member with no number), or "unknown".
+- Follow-up: 1 when it follows up the previous question, else 0.
+- The note: what the candidate says they answered, or how the board reacted, in one short sentence ("" if none).
 - Remove the candidate's real name anywhere it appears; write [name].
 - Skip greetings, "thank you, your interview is over", and the candidate's commentary about mocks/coaching/experience (put a one-line summary of the experience in "experience").`;
 
@@ -101,15 +100,34 @@ Return JSON: {"transcripts":[{
  "block": n,
  "profile": {"board": "chairperson's name without Sir/Madam/Shri", "date": "", "session": "FN|AN|", "optional": "", "homeState": "Indian state", "homeDistrict": "", "education": ["degree, discipline, institution"], "work": ["role, organisation"], "hobbies": [""], "achievements": ["NCC, awards, papers, positions"], "keywords": ["other DAF keywords"], "servicePreference": ""},
  "experience": "",
- "questions": [{"asker": "", "text": "", "originalText": "", "followUp": false, "note": "",
-   "hooks": [{"type": "${Object.keys(HOOK_TYPES).join('|')}", "value": "the DAF item it targets, lower-case, e.g. 'cricket', 'iit bombay', 'meerut', 'psir'; '' if only the area"}],
-   "topics": ["up to two of: ${TOPIC_IDS.join(', ')}"],
-   "qtype": "${Object.keys(QTYPES).join('|')}",
-   "shelfLife": "event (tied to news of that year) | evergreen"}]
+ "q": [["asker", "question text", 0, "hooks", "topics", "note"]]
 }]}
-"hooks" lists what in the candidate's DAF (profile) the question was anchored to; [] for general/current-affairs questions.
+Each entry of "q" is one question, as an array of exactly six items, in this order:
+ 1. asker
+ 2. question text
+ 3. follow-up: 1 or 0
+ 4. hooks: what in the candidate's DAF (profile) the question was anchored to, as "type:value" pairs joined by "|", e.g. "hobby:cricket|home:meerut"; type is one of ${Object.keys(HOOK_TYPES).join(', ')}; value is the DAF item in lower case ('cricket', 'iit bombay', 'meerut', 'psir'), or empty for the area only ("optional:"); "" for general or current-affairs questions
+ 5. topics: up to two of ${TOPIC_IDS.join(', ')}, joined by ","
+ 6. note: "" if none
 
 ${blocks.map((b) => `=== BLOCK ${b.n} ===\n${b.text}`).join('\n\n')}`;
+
+// ["m2", "Why PSIR?", 1, "optional:psir|hobby:", "polity", "said..."] -> a question object.
+const fromRow = (row) => {
+  if (!Array.isArray(row)) return row && typeof row === 'object' ? row : null; // tolerate the old object form
+  const [asker, text, followUp, hooks, topics, note] = row;
+  return {
+    asker: String(asker || 'unknown'),
+    text: String(text || ''),
+    followUp: followUp === 1 || followUp === true || followUp === '1',
+    note: String(note || ''),
+    hooks: String(hooks || '').split('|').map((h) => h.trim()).filter(Boolean).map((h) => {
+      const k = h.indexOf(':');
+      return k < 0 ? { type: h.toLowerCase(), value: '' } : { type: h.slice(0, k).trim().toLowerCase(), value: h.slice(k + 1).trim().toLowerCase() };
+    }).filter((h) => HOOK_TYPES[h.type]),
+    topics: String(topics || '').split(',').map((t) => t.trim()).filter(Boolean)
+  };
+};
 
 const parseGemini = async (year) => {
   if (!(await checkGemini())) throw new Error(`Gemini is not available: ${geminiStatus().lastError || 'GEMINI_API_KEY is not set'}`);
@@ -168,7 +186,7 @@ const parseGemini = async (year) => {
     }
     for (const t of list) {
       const block = chunks[ci].find((b) => b.n === Number(t.block)) || chunks[ci][0];
-      const qs = (t.questions || []).filter((q) => q && q.text);
+      const qs = (t.q || t.questions || []).map(fromRow).filter((q) => q && q.text);
       if (qs.length < 2) continue;
       transcripts.push({
         pageStart: block.pageStart,
@@ -186,6 +204,7 @@ const parseGemini = async (year) => {
   const inChars = chunks.reduce((n, c) => n + c.reduce((m, b) => m + b.text.length, 0), 0);
   console.log(`${year}: ${transcripts.length} transcripts, ${transcripts.reduce((n, t) => n + t.questions.length, 0)} questions (gemini, ${failed} chunk(s) fell back) -> ${path.basename(out)}`);
   console.log(`  ${chunks.length} chunks in ${Math.round((Date.now() - started) / 1000)}s; ~${Math.round(inChars / 4 / 1000)}k input tokens of transcript text, ~${Math.round(outChars / 4 / 1000)}k output tokens (new chunks only)`);
+  if (usageTotals.calls) console.log(`  billed by ${GEMINI_MODEL} so far: ${usageTotals.calls} calls, ${usageTotals.input} input, ${usageTotals.output} output, ${usageTotals.thinking} thinking tokens`);
 };
 
 // ------------------------------------------------------------------ embeddings
@@ -198,7 +217,11 @@ const loadEmbeddings = async () => {
     if (!line) continue;
     try {
       const { k, v } = JSON.parse(line);
-      map.set(k, new Float32Array(Buffer.from(v, 'base64').buffer.slice(0)));
+      // Small Buffers are slices of Node's shared 8 KB pool: copy only this vector's bytes, not
+      // `.buffer` (the whole pool), or every vector comes back 2048 floats long and mostly other data.
+      const b = Buffer.from(v, 'base64');
+      if (b.byteLength !== EMBEDDING_DIMS * 4) continue;
+      map.set(k, new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)));
     } catch { /* partial last line of an interrupted run */ }
   }
   return map;
