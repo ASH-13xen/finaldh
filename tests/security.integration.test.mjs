@@ -22,6 +22,7 @@ if (!URI) {
   const { default: upscRoutes } = await import('../routes/upscRoutes.js');
   const { default: questionRoutes } = await import('../routes/questionRoutes.js');
   const { default: mcqRoutes } = await import('../routes/mcqRoutes.js');
+  const { default: authRoutes } = await import('../routes/authRoutes.js');
   const { default: User } = await import('../models/User.js');
   const { default: Course } = await import('../models/Course.js');
   const { default: DownloadLog } = await import('../models/DownloadLog.js');
@@ -79,6 +80,7 @@ if (!URI) {
     app.use('/api/upsc', upscRoutes);
     app.use('/api/questions', questionRoutes);
     app.use('/api/mcq', mcqRoutes);
+    app.use('/api/auth', authRoutes);
     await new Promise((resolve) => { server = app.listen(0, resolve); });
     base = `http://127.0.0.1:${server.address().port}`;
   });
@@ -143,6 +145,29 @@ if (!URI) {
   test('admins pass the gate', async () => {
     const r = await call('DELETE', `/api/courses/${new mongoose.Types.ObjectId()}`, 'admin');
     assert.equal(r.status, 404, 'reached the handler (course simply does not exist)');
+  });
+
+  test('the developer sign-in works only locally: never on Render or with NODE_ENV=production', async () => {
+    const saved = { RENDER: process.env.RENDER, NODE_ENV: process.env.NODE_ENV };
+    const restore = () => { for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } };
+    try {
+      process.env.RENDER = 'true';
+      delete process.env.NODE_ENV;
+      let r = await call('POST', '/api/auth/mock');
+      assert.equal(r.status, 404);
+      assert.equal(r.data?.token, undefined);
+      delete process.env.RENDER;
+      process.env.NODE_ENV = 'production';
+      r = await call('POST', '/api/auth/mock');
+      assert.equal(r.status, 404);
+      delete process.env.NODE_ENV;
+      r = await call('POST', '/api/auth/mock');
+      assert.equal(r.status, 200);
+      assert.ok(r.data.token);
+      assert.equal(r.data.user.isAdmin, false);
+    } finally {
+      restore();
+    }
   });
 
   test('the free "mock checkout" endpoint is gone', async () => {
