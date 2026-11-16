@@ -4,6 +4,7 @@
 //   node scripts/interview/pipeline.mjs parse                      no-AI parse of every year in data/interview/pages
 //   node scripts/interview/pipeline.mjs parse --engine gemini      Gemini parse (needs GEMINI_API_KEY; resumable)
 //   node scripts/interview/pipeline.mjs embed                      Gemini embeddings for every question (resumable)
+//   node scripts/interview/pipeline.mjs normalize                  Gemini: clean DAF keywords (hobbies, colleges, jobs, places; resumable)
 //   node scripts/interview/pipeline.mjs build                      tag + group into families -> data/interview/corpus.json
 //   node scripts/interview/pipeline.mjs seed                       load corpus.json into MONGODB_URI (replaces the corpus)
 //   node scripts/interview/pipeline.mjs all                        parse + build + seed with whatever is available
@@ -22,6 +23,7 @@ import { buildCorpus, corpusStats } from '../../lib/interview/corpus.js';
 import { normalizeText } from '../../lib/interview/text.js';
 import { TOPICS, HOOK_TYPES, QTYPES } from '../../lib/interview/taxonomy.js';
 import { generateJson, embedTexts, aiAvailable, checkGemini, geminiStatus, usageTotals, GEMINI_MODEL, EMBEDDING_MODEL, EMBEDDING_DIMS } from '../../lib/interview/gemini.js';
+import { keyOf, KEYWORD_TYPES } from '../../lib/interview/keywords.js';
 
 dotenv.config({ quiet: true });
 
@@ -32,6 +34,7 @@ const PARSED = path.join(DATA, 'parsed');
 const CACHE = path.join(DATA, 'cache');
 const EMB_FILE = path.join(DATA, 'embeddings', `${EMBEDDING_MODEL}-${EMBEDDING_DIMS}.jsonl`);
 const CORPUS = path.join(DATA, 'corpus.json');
+const KEYWORDS_FILE = path.join(DATA, 'normalize', 'keywords.json');
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -248,6 +251,114 @@ const embed = async () => {
   console.log('embeddings done');
 };
 
+// ------------------------------------------------------------------ normalize (DAF keywords)
+
+// Gemini maps each distinct raw string to clean keywords (see lib/interview/keywords.js). Answers are
+// compact rows [i, ...columns]; a fixed vocabulary in each prompt keeps labels consistent between batches.
+const NORMALIZE = {
+  hobby: {
+    batch: 150,
+    columns: 2,
+    prompt: `You clean up the hobbies and extracurricular interests UPSC candidates wrote in their DAF (Detailed Application Form), and the hobbies interview boards asked them about.
+For each numbered input return [i, "Label", "Group"].
+- Label: the activity as a short Title Case English name, the way a coaching institute would list it. Reuse these when they fit: Cricket, Football, Badminton, Chess, Kabaddi, Kho Kho, Hockey, Table Tennis, Tennis, Volleyball, Basketball, Athletics, Running, Marathon, Swimming, Cycling, Trekking, Mountaineering, Yoga, Meditation, Vipassana, Gym & Fitness, Martial Arts, Reading, Writing, Poetry, Blogging, Journaling, Quizzing, Debating, Public Speaking, Cooking, Baking, Gardening, Farming, Photography, Painting, Sketching, Calligraphy, Origami, Crafts, Classical Music, Hindustani Classical, Carnatic Music, Singing, Playing Guitar, Playing Flute, Music, Bharatanatyam, Kathak, Odissi, Folk Dance, Dance, Movies, Web Series, Theatre, Stand-up Comedy, Travelling, Bird Watching, Nature Walks, Animal Welfare, Teaching, Mentoring, Volunteering, Social Work, Blood Donation, Coding, Robotics, Astronomy, Gaming, Puzzles, Sudoku, Rubik's Cube, Learning Languages, History, Philosophy, Spirituality, Podcasts, Stamp Collection, Coin Collection, Embroidery, Knitting, Sewing, Pottery.
+- Drop words like "playing", "watching", "reading about", "learning", "listening to" unless they change the meaning: "watching cricket" -> Cricket, "reading novels" -> Reading, "Hindi poetry" -> Poetry, "listening to music" -> Music.
+- Stay specific when it matters: Bharatanatyam, not Dance; Kho Kho, not Sports.
+- Group: one of Sports, Fitness, Music, Dance, Arts & Crafts, Reading & Writing, Travel & Outdoors, Games & Quizzing, Cooking, Technology, Social Service, Nature & Animals, Spirituality, Film & Media, Languages, Other.
+- If it is not a hobby (a job, an award, a place, a person), Label is "".
+Return JSON: {"r":[[0,"Cricket","Sports"],[1,"","Other"]]} with one row for every input.`
+  },
+  education: {
+    batch: 120,
+    columns: 4,
+    prompt: `You clean up education entries from UPSC candidates' DAFs, and education topics interview boards asked them about.
+For each numbered input return [i, "Degree", "Discipline", "College", "CollegeGroup"].
+- Degree: one of B.Tech, B.Sc., B.A., B.Com, BBA, BCA, B.Arch, B.Pharm, B.Ed., MBBS, BDS, BAMS, BHMS, BVSc, LLB, M.Tech, M.Sc., M.A., M.Com, MBA, MCA, MD, MS, LLM, M.Phil, PhD, CA, CS, Diploma - or "" if none is stated. Use B.Tech for B.E./B.Tech engineering degrees and MBA for PGDM.
+- Discipline: the subject in Title Case, e.g. Computer Science, Information Technology, Electronics & Communication, Electrical Engineering, Mechanical Engineering, Civil Engineering, Chemical Engineering, Aerospace Engineering, Biotechnology, Medicine, Dentistry, Economics, History, Political Science, Sociology, Geography, Anthropology, English Literature, Hindi Literature, Physics, Chemistry, Mathematics, Statistics, Zoology, Botany, Commerce, Law, Agriculture, Forestry, Veterinary Science, Architecture, Psychology, Public Administration, Philosophy, Management, Finance - or "".
+- College: the institution's common short name, e.g. IIT Bombay, IIT Delhi, NIT Surat, NIT Trichy, IIIT Hyderabad, IIIT Naya Raipur, BITS Pilani, Delhi University, St. Stephen's College, Hindu College, Lady Shri Ram College, JNU, AIIMS Delhi, Jamia Millia Islamia, Banaras Hindu University, Aligarh Muslim University, Anna University, Jadavpur University, NLSIU Bangalore, IIM Ahmedabad, TISS Mumbai - or "" if no institution is named. A Delhi University college keeps its own name (Hindu College), not "Delhi University".
+- CollegeGroup: IIT, NIT, IIIT, IIM, AIIMS, BITS, NLU, Delhi University, JNU, Central University, State University, Medical College, Engineering College, Other - or "" when there is no college.
+Return JSON {"r":[[0,"B.Tech","Computer Science","NIT Surat","NIT"]]} with one row for every input.`
+  },
+  work: {
+    batch: 120,
+    columns: 2,
+    prompt: `You clean up work-experience entries from UPSC candidates' DAFs, and jobs interview boards asked them about.
+For each numbered input return [i, "Job", "Sector"].
+- Job: the job as candidates would be grouped, short Title Case. Reuse these when they fit: Software Engineer, Data Scientist, Product Manager, Analyst, Consultant, Chartered Accountant, Bank Officer, Insurance Officer, Doctor, Dentist, Nurse, Pharmacist, Teacher, Government Teacher, Professor, Researcher, Scientist (ISRO/DRDO), Lawyer, Judge, Journalist, Engineer (PSU), Civil Engineer, Mechanical Engineer, Electrical Engineer, Army Officer, Navy Officer, Air Force Officer, Police Officer, IPS, IRS (IT), IRS (C&IT), IRTS, IRAS, IRPS, Indian Forest Service, IAAS, IDAS, ICLS, IPoS, CAPF, State Civil Services, Tehsildar, Section Officer, Railway Employee, Entrepreneur, Startup Founder, Startup Employee, NGO Worker, Social Worker, Government Employee, Private Sector, Marketing, Sales, HR, Architect, Farmer.
+- Use the service name for central and state services (IPS, IRS (IT), State Civil Services).
+- Sector: IT & Software, Civil Services, Banking & Finance, Healthcare, Education, Defence & Police, PSU & Energy, Railways, Law & Judiciary, Consulting, Research & Science, Media, Business & Startups, Government, NGO & Social, Agriculture, Other.
+- If it is not a job, Job is "".
+Return JSON {"r":[[0,"Bank Officer","Banking & Finance"]]} with one row for every input.`
+  },
+  home: {
+    batch: 150,
+    columns: 2,
+    prompt: `You clean up home locations from UPSC candidates' DAFs (town, district and/or state) and places interview boards asked them about.
+For each numbered input return [i, "District", "State"].
+- District: the district or city in its common English spelling, or "" if only a state is given or it is unclear.
+- State: one of India's states and union territories in official spelling (Uttar Pradesh, Jammu and Kashmir, Delhi, Puducherry...), or "". Infer it from a well-known district or city (Nagpur -> Maharashtra).
+- If it is not an Indian place, both are "".
+Return JSON {"r":[[0,"Nagpur","Maharashtra"]]} with one row for every input.`
+  }
+};
+
+const normalizeKeywords = async () => {
+  if (!aiAvailable()) throw new Error(`Gemini is not available: ${geminiStatus().lastError || 'GEMINI_API_KEY is not set'}`);
+  const parsed = await loadParsed();
+  const raw = Object.fromEntries(KEYWORD_TYPES.map((t) => [t, new Set()]));
+  const add = (type, v) => { const k = keyOf(v); if (k.length >= 2) raw[type].add(k); };
+  for (const p of parsed) {
+    for (const t of p.transcripts) {
+      const pr = t.profile || {};
+      for (const h of pr.hobbies || []) add('hobby', h);
+      for (const e of pr.education || []) add('education', e);
+      for (const w of pr.work || []) add('work', w);
+      const home = [pr.home, pr.homeState].filter(Boolean).join(', ');
+      if (home) add('home', home);
+      for (const q of t.questions || []) {
+        for (const h of q.hooks || []) {
+          if (!h?.value) continue;
+          const type = h.type === 'eca' ? 'hobby' : h.type;
+          if (raw[type]) add(type, h.value);
+        }
+      }
+    }
+  }
+  await fs.mkdir(path.dirname(KEYWORDS_FILE), { recursive: true });
+  const table = exists(KEYWORDS_FILE) ? await readJson(KEYWORDS_FILE) : {};
+  for (const type of KEYWORD_TYPES) {
+    const spec = NORMALIZE[type];
+    table[type] = table[type] || {};
+    const todo = [...raw[type]].filter((k) => !table[type][k]);
+    console.log(`${type}: ${raw[type].size} distinct strings, ${todo.length} to clean`);
+    const batches = [];
+    for (let i = 0; i < todo.length; i += spec.batch) batches.push(todo.slice(i, i + spec.batch));
+    let done = 0;
+    await pool(batches, Number(opt('concurrency', 6)), async (batch) => {
+      const prompt = `${spec.prompt}\n\nInputs:\n${batch.map((s, i) => `${i}. ${s}`).join('\n')}`;
+      try {
+        const res = await generateJson({ prompt, temperature: 0.1, maxOutputTokens: 12000, thinking: 'low' });
+        for (const row of Array.isArray(res?.r) ? res.r : []) {
+          if (!Array.isArray(row)) continue;
+          const k = batch[Number(row[0])];
+          if (k === undefined) continue;
+          table[type][k] = Array.from({ length: spec.columns }, (_, c) => String(row[c + 1] || '').trim().slice(0, 80));
+        }
+      } catch (err) {
+        console.log(`  ${type} batch failed: ${String(err.message || err).slice(0, 120)}`);
+        if (err.name === 'GeminiUnavailableError') throw err;
+      }
+      done += batch.length;
+      await writeJson(KEYWORDS_FILE, table);
+      console.log(`  ${type}: ${done}/${todo.length}`);
+    });
+    const missing = [...raw[type]].filter((k) => !table[type][k]).length;
+    const labels = new Set(Object.values(table[type]).map((r) => r[0]).filter(Boolean));
+    console.log(`${type}: done, ${missing} still missing (re-run to retry), ${labels.size} distinct first-column values`);
+  }
+  console.log(`billed by ${GEMINI_MODEL}: ${usageTotals.calls} calls, ${usageTotals.input} input, ${usageTotals.output} output, ${usageTotals.thinking} thinking tokens`);
+};
+
 // ------------------------------------------------------------------ build
 
 // The best parse available for each year: Gemini when it exists, otherwise the heuristic one.
@@ -271,8 +382,10 @@ const build = async () => {
   const parsed = await loadParsed();
   if (!parsed.length) throw new Error('Nothing parsed yet - run `pipeline.mjs parse` first');
   const embeddings = await loadEmbeddings();
+  const keywords = exists(KEYWORDS_FILE) ? await readJson(KEYWORDS_FILE) : null;
+  if (!keywords) console.log('(no keyword table yet - run `pipeline.mjs normalize` for clean DAF keywords and per-item rates)');
   const t0 = Date.now();
-  const corpus = buildCorpus(parsed, { embeddings: embeddings.size ? embeddings : null });
+  const corpus = buildCorpus(parsed, { embeddings: embeddings.size ? embeddings : null, keywords });
   // Family vectors = mean of member vectors (re-normalised); seeded as int8 for the runtime search.
   if (embeddings.size) {
     const sums = new Map();
@@ -323,6 +436,7 @@ const main = async () => {
       }
       break;
     case 'embed': await embed(); break;
+    case 'normalize': await normalizeKeywords(); break;
     case 'build': await build(); break;
     case 'seed': await seed(); break;
     case 'all':

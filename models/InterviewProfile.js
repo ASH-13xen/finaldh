@@ -44,8 +44,14 @@ const interviewProfileSchema = new mongoose.Schema({
   usage: {
     day: { type: String, default: '' },
     predictionRuns: { type: Number, default: 0 },
-    transcribes: { type: Number, default: 0 }
-  }
+    transcribes: { type: Number, default: 0 },
+    extracts: { type: Number, default: 0 }, // DAF files read by AI
+    approaches: { type: Number, default: 0 }, // "how to approach" guides generated (cached ones are free)
+    practiceAI: { type: Number, default: 0 } // Practice Studio answers given AI feedback
+  },
+
+  // Predictions per language ({ en: { hash, generatedAt, aiUsed, data }, hi: {...} }); replaces predictionCache.
+  predictionCaches: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
 export default peopleConn.model('InterviewProfile', interviewProfileSchema);

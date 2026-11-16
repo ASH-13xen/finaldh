@@ -16,6 +16,7 @@ if (!URI) {
   process.env.ADMIN_EMAIL = 'admin@test.dev';
   process.env.GEMINI_API_KEY = ''; // set but empty, so dotenv in other modules can't load a real key
   process.env.INTERVIEW_SECTION_LIVE = 'true'; // students use the section in these tests; one test turns it off
+  process.env.INTERVIEW_MOCK_ENABLED = 'true'; // the mock room is off in production for now; its tests switch it on, one test turns it off
 
   const { default: express } = await import('express');
   const { default: mongoose } = await import('mongoose');
@@ -165,17 +166,22 @@ if (!URI) {
     assert.ok(trends.data.mostAsked.length > 0);
   });
 
-  test('a family shows where it was asked, how the board followed up, and the full transcript opens', async () => {
+  test('a family shows where it was asked and how the board followed up; full transcripts are admin-only', async () => {
     const s = await api('GET', '/bank/search?q=favourite%20cricket%20player', 's1');
     const fam = await api('GET', `/bank/families/${s.data.items[0].id}`, 's1');
     assert.equal(fam.status, 200);
     assert.equal(fam.data.asked.length, 2);
     assert.ok(fam.data.asked.some((a) => a.followedBy === 'Why him and not Kohli?'));
     assert.ok(fam.data.asked.some((a) => /Dhoni/.test(a.note)));
-    const t = await api('GET', `/bank/transcripts/${fam.data.asked[0].transcriptId}`, 's1');
+    assert.equal(fam.data.asked[0].transcriptId, undefined, 'students get no link to the full transcript');
+    const adminFam = await api('GET', `/bank/families/${s.data.items[0].id}`, 'admin');
+    const tid = adminFam.data.asked[0].transcriptId;
+    assert.ok(tid);
+    assert.equal((await api('GET', `/bank/transcripts/${tid}`, 's1')).status, 403);
+    const t = await api('GET', `/bank/transcripts/${tid}`, 'admin');
     assert.equal(t.status, 200);
     assert.ok(t.data.questions.length >= 7);
-    assert.equal(t.data.transcript.rawText, undefined, 'raw text is admin-only');
+    assert.equal(t.data.transcript.rawText, undefined, 'raw text stays in the admin review screens');
     const bad = await api('GET', '/bank/families/not-an-id', 's1');
     assert.equal(bad.status, 404);
   });
@@ -200,9 +206,18 @@ if (!URI) {
     const cricket = p.data.groups.find((g) => g.key === 'hobby:cricket');
     const direct = cricket.predictions.find((x) => x.kind === 'direct');
     assert.ok(direct, 'a question asked to past candidates with cricket in their DAF');
-    assert.ok(direct.evidence[0].timesAsked >= 2);
+    assert.ok(direct.evidence.timesAsked >= 2);
     assert.match(direct.basisNote, /Cricket/);
     assert.ok(['high', 'medium', 'low'].includes(direct.likelihood));
+    // What the screen needs: where the question comes from, a tier, and a key for tracking progress.
+    assert.equal(direct.source, 'past');
+    assert.ok(['certain', 'likely', 'worth'].includes(direct.tier));
+    assert.match(direct.key, /^q:[a-f0-9]{16}$/);
+    assert.ok(p.data.summary.questions >= p.data.summary.past);
+    const order = { certain: 0, likely: 1, worth: 2 };
+    for (const g of p.data.groups) {
+      for (let i = 1; i < g.predictions.length; i++) assert.ok(order[g.predictions[i - 1].tier] <= order[g.predictions[i].tier], 'surest first');
+    }
     const gaming = p.data.groups.find((g) => g.key === 'hobby:gaming');
     assert.ok(gaming.predictions.some((x) => /gaming/i.test(x.question)));
 
@@ -490,11 +505,18 @@ if (!URI) {
     await api('POST', `/sessions/${id}/end`, 's1');
   });
 
-  test('the DAF is filled in on the form only; voice transcription explains that AI is off', async () => {
+  test('DAF upload is read by AI for review (not saved); with AI off it says so; transcription likewise', async () => {
     const form = new FormData();
     form.append('file', new Blob([Buffer.from('%PDF-1.4 test')], { type: 'application/pdf' }), 'daf.pdf');
     const res = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: form });
-    assert.equal(res.status, 404, 'there is no DAF file upload any more');
+    assert.equal(res.status, 503);
+    assert.equal((await res.json()).aiUnavailable, true);
+    const noFile = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` } });
+    assert.equal(noFile.status, 400);
+    const exe = new FormData();
+    exe.append('file', new Blob([Buffer.from('MZ')], { type: 'application/x-msdownload' }), 'daf.exe');
+    const bad = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: exe });
+    assert.equal(bad.status, 400, 'only PDFs and photos are read');
 
     const audio = new FormData();
     audio.append('audio', new Blob([Buffer.from([1, 2, 3])], { type: 'audio/webm' }), 'a.webm');
@@ -525,7 +547,7 @@ if (!URI) {
 
     // Fixing a transcript's board updates the family statistics
     const hy = await api('GET', '/bank/search?q=green%20hydrogen', 's1');
-    const famBefore = await api('GET', `/bank/families/${hy.data.items[0].id}`, 's1');
+    const famBefore = await api('GET', `/bank/families/${hy.data.items[0].id}`, 'admin'); // transcript links are admin-only
     const swainTranscript = famBefore.data.asked.find((x) => x.board === 'B.B. Swain').transcriptId;
     assert.equal((await api('PATCH', `/admin/transcripts/${swainTranscript}`, 'admin', { board: 'Shri Dinesh Dasa sir', reviewed: true })).status, 200);
     const famAfter = await api('GET', `/bank/families/${hy.data.items[0].id}`, 's1');
@@ -538,6 +560,93 @@ if (!URI) {
       const gone = await api('GET', '/bank/search?q=online%20gaming%20regulated', 's1');
       assert.ok(!gone.data.items.some((f) => /online gaming be regulated/i.test(f.text)));
     }
+  });
+
+  test('bank filters: counts for each filter value, how-often bands, chairperson or members', async () => {
+    const all = await api('GET', '/bank/search?facets=1&limit=50', 's1');
+    assert.equal(all.status, 200);
+    const fc = all.data.facets;
+    for (const k of ['year', 'board', 'topic', 'hookType', 'qtype', 'often', 'asker', 'shelfLife']) assert.ok(fc[k], `facet ${k}`);
+    const oftenTotal = Object.values(fc.often).reduce((a, b) => a + b, 0);
+    assert.equal(oftenTotal, all.data.total, 'every question falls in one how-often band');
+    const year = Object.keys(fc.year)[0];
+    const byYear = await api('GET', `/bank/search?facets=1&year=${year}`, 's1');
+    assert.equal(byYear.data.total, fc.year[year], 'the count shown is the count you get');
+    assert.equal(Object.values(byYear.data.facets.year).reduce((a, b) => a + b, 0) >= byYear.data.total, true, 'other years still show their counts');
+    const repeated = await api('GET', '/bank/search?often=repeated', 's1');
+    assert.ok(repeated.data.items.every((f) => f.timesAsked >= 2 && f.timesAsked <= 4));
+    const members = await api('GET', '/bank/search?asker=members&limit=50', 's1');
+    assert.ok(members.data.items.every((f) => Object.keys(f.askers).some((k) => k !== 'chairman' && k !== 'unknown')));
+  });
+
+  test('prep tracker: statuses, saved questions and notes per question; the interview date', async () => {
+    const key = 'q:0123456789abcdef';
+    assert.equal((await api('PUT', '/prep/items/not-a-key', 's1', { status: 'drafted' })).status, 400);
+    assert.equal((await api('PUT', `/prep/items/${key}`, 's1', { status: 'flying' })).status, 400);
+    const a = await api('PUT', `/prep/items/${key}`, 's1', { status: 'drafted', saved: true, note: 'Start with Dhoni', text: 'Who is your favourite cricketer?', source: 'past' });
+    assert.equal(a.status, 200);
+    assert.equal(a.data.item.status, 'drafted');
+    const b = await api('PUT', `/prep/items/${key}`, 's1', { status: 'confident' });
+    assert.equal(b.data.item.note, 'Start with Dhoni', 'a partial update keeps the other fields');
+    assert.equal((await api('PUT', '/prep/settings', 's1', { interviewDate: '2027-02-15' })).status, 200);
+    const mine = await api('GET', '/prep', 's1');
+    assert.equal(mine.data.items.length, 1);
+    assert.equal(mine.data.items[0].status, 'confident');
+    assert.ok(mine.data.interviewDate.startsWith('2027-02-15'));
+    assert.equal((await api('GET', '/prep', 's2')).data.items.length, 0, 'each student sees only their own');
+    assert.equal((await api('DELETE', `/prep/items/${key}`, 's1')).status, 200);
+    assert.equal((await api('GET', '/prep', 's1')).data.items.length, 0);
+  });
+
+  test('question detail: follow-up ladders and the follow-ups boards use most; answer guides need AI', async () => {
+    const s = await api('GET', '/bank/search?q=favourite%20cricket%20player', 's1');
+    const fam = await api('GET', `/bank/families/${s.data.items[0].id}`, 's1');
+    assert.ok(Array.isArray(fam.data.followUps));
+    assert.ok(fam.data.followUps.some((f) => f.text === 'Why him and not Kohli?'));
+    assert.ok(fam.data.asked.some((a) => a.ladder?.[0]?.text === 'Why him and not Kohli?'));
+    assert.match(s.data.items[0].key, /^q:[a-f0-9]{16}$/, 'bank questions carry the same progress key as predictions');
+    const g = await api('GET', `/bank/families/${s.data.items[0].id}/approach`, 's1');
+    assert.equal(g.status, 503);
+    assert.equal(g.data.aiUnavailable, true);
+  });
+
+  test('practice studio: attempts keep numbers only; AI feedback needs AI and a recording', async () => {
+    const save = await api('POST', '/practice/attempts', 's1', {
+      questionKey: 'q:0123456789abcdef', question: 'Why civil services?', lang: 'en',
+      metrics: { durationSec: 62, wpm: 148, fillers: 4, fillersPerMin: 3.9, longPauses: 2, startDelaySec: 1.2, wpmIgnored: 9 },
+      scores: { pace: 9, fluency: 7, confidence: 6 }, audio: 'should be ignored'
+    });
+    assert.equal(save.status, 200);
+    await api('POST', '/practice/attempts', 's1', { question: 'Tell us about yourself', metrics: { wpm: 999 } });
+    const mine = await api('GET', '/practice/attempts', 's1');
+    assert.equal(mine.data.attempts.length, 2);
+    assert.equal(mine.data.attempts.find((a) => a.question === 'Tell us about yourself').metrics.wpm, 400, 'numbers are clamped');
+    assert.equal(mine.data.attempts[0].audio, undefined);
+    assert.equal(mine.data.aiPerDay, 3);
+    const byQ = await api('GET', '/practice/attempts?key=q:0123456789abcdef', 's1');
+    assert.equal(byQ.data.attempts.length, 1);
+    assert.equal((await api('GET', '/practice/attempts', 's2')).data.attempts.length, 0, 'only your own');
+    const noFile = await api('POST', '/practice/analyze', 's1', {});
+    assert.equal(noFile.status, 400);
+    const audio = new FormData();
+    audio.append('audio', new Blob([Buffer.from([1, 2, 3])], { type: 'audio/webm' }), 'a.webm');
+    const r = await fetch(`${base}/api/interview/practice/analyze`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: audio });
+    assert.equal(r.status, 503, 'AI is off in tests');
+  });
+
+  test('the mock interview room is off unless INTERVIEW_MOCK_ENABLED=true', async () => {
+    process.env.INTERVIEW_MOCK_ENABLED = '';
+    try {
+      const status = await api('GET', '/status', 's1');
+      assert.equal(status.data.features.mockInterview, false);
+      for (const [method, path] of [['GET', '/sessions'], ['POST', '/sessions'], ['GET', '/voice-sample']]) {
+        assert.equal((await api(method, path, 's1', method === 'POST' ? { mode: 'practice' } : undefined)).status, 404, `${method} ${path}`);
+      }
+      assert.equal((await api('GET', '/bank/search?q=cricket', 's1')).status, 200, 'the rest of the section still works');
+    } finally {
+      process.env.INTERVIEW_MOCK_ENABLED = 'true';
+    }
+    assert.equal((await api('GET', '/status', 's1')).data.features.mockInterview, true);
   });
 
   test('search index: shared lists are read-only, and a bank loaded by another process is picked up', async () => {
@@ -563,5 +672,71 @@ if (!URI) {
       await InterviewFamily.deleteOne({ _id: extra._id });
       (await import('../lib/interview/corpusIndex.js')).invalidateCorpusIndex();
     }
+  });
+
+  test('notes: admins draft from sources and publish; students see published notes, marked "for you" from the DAF', async () => {
+    const { default: InterviewNote } = await import('../models/InterviewNote.js');
+    assert.equal((await api('GET', '/admin/notes', 's1')).status, 403);
+    assert.equal((await api('POST', '/admin/notes', 's1', { topic: 'Green hydrogen', urls: ['https://pib.gov.in/x'] })).status, 403);
+    assert.equal((await api('POST', '/admin/notes', 'admin', { topic: 'Green hydrogen' })).status, 400, 'a draft needs links or pasted text');
+    const off = await api('POST', '/admin/notes', 'admin', { topic: 'Green hydrogen', urls: ['https://pib.gov.in/x'] });
+    assert.equal(off.status, 503);
+    assert.equal(off.data.aiUnavailable, true);
+
+    const body = (title, extra = {}) => ({ title, why: 'In the news.', sections: [{ heading: 'Background', points: ['A point.'] }], questions: [{ q: 'What is it?', type: 'factual', answer: 'An answer.' }], likelyFor: ['Engineers'], keywords: ['GH2'], ...extra });
+    const draft = await InterviewNote.create({ slug: 'green-hydrogen-2026-11', status: 'draft', topic: 'Green hydrogen', category: 'environment', tags: ['engineering', 'energy'], en: body('Green hydrogen'), hi: body('हरित हाइड्रोजन') });
+    await InterviewNote.create({ slug: 'monsoon-2026-11', status: 'published', publishedAt: new Date(), topic: 'Monsoon', category: 'environment', tags: ['agriculture'], en: body('Monsoon'), hi: body('मानसून') });
+
+    let list = await api('GET', '/notes', 's2');
+    assert.deepEqual(list.data.notes.map((n) => n.slug), ['monsoon-2026-11'], 'drafts stay hidden');
+    assert.equal((await api('GET', '/notes/green-hydrogen-2026-11', 's2')).status, 404);
+    assert.equal((await api('GET', '/notes/green-hydrogen-2026-11', 'admin')).status, 200, 'admins can preview drafts');
+    assert.equal((await api('GET', '/admin/notes', 'admin')).data.notes.length, 2);
+
+    const pub = await api('PATCH', `/admin/notes/${draft._id}`, 'admin', { status: 'published', en: body('Green hydrogen in India', { sections: [{ heading: 'Background', points: ['  Edited   point. '] }] }) });
+    assert.equal(pub.status, 200);
+    assert.equal(pub.data.note.en.sections[0].points[0], 'Edited point.');
+    assert.equal(pub.data.note.status, 'published');
+    assert.equal((await api('PUT', '/profile', 's2', { education: [{ degree: 'B.Tech', discipline: 'Mechanical', institution: 'NIT Trichy' }] })).status, 200);
+    list = await api('GET', '/notes', 's2');
+    const gh = list.data.notes.find((n) => n.slug === 'green-hydrogen-2026-11');
+    assert.equal(gh.title, 'Green hydrogen in India');
+    assert.equal(gh.forYou, true, 'B.Tech -> engineering');
+    assert.equal(list.data.notes.find((n) => n.slug === 'monsoon-2026-11').forYou, false);
+    const hi = await api('GET', '/notes/green-hydrogen-2026-11?lang=hi', 's2');
+    assert.equal(hi.data.note.title, 'हरित हाइड्रोजन');
+    assert.equal(hi.data.note.lang, 'hi');
+
+    assert.equal((await api('PATCH', `/admin/notes/${draft._id}`, 'admin', { en: { title: '' } })).status, 400);
+    assert.equal((await api('DELETE', `/admin/notes/${draft._id}`, 'admin')).status, 200);
+    assert.equal((await api('GET', '/notes/green-hydrogen-2026-11', 's2')).status, 404);
+  });
+
+  test('guide: students see the published copy without hidden questions; preparing one needs AI', async () => {
+    const { default: InterviewGuide } = await import('../models/InterviewGuide.js');
+    assert.equal((await api('GET', '/guide', 's1')).data.status, 'none');
+    assert.equal((await api('POST', '/admin/guide/generate', 's1')).status, 403);
+    assert.equal((await api('POST', '/admin/guide/generate', 'admin')).status, 503);
+    const entry = (key, text, extra = {}) => ({ key, text, qtype: 'personal', timesAsked: 10, years: [2023], en: { tests: 'Motivation.', structure: ['Start with a moment.'], dos: ['Be honest.'], donts: ['Cliches.'] }, hi: { tests: 'प्रेरणा।', structure: ['एक अनुभव से शुरू करें।'], dos: [], donts: [] }, ...extra });
+    await InterviewGuide.create({ key: 'top100', status: 'ready', corpus: { interviews: 3, years: [2023, 2024] }, entries: [entry('q:0000000000000001', 'Why civil services?', { textHi: 'सिविल सेवा क्यों?' }), entry('q:0000000000000002', 'Tell us about yourself.')] });
+    assert.equal((await api('GET', '/guide', 's1')).data.status, 'none', 'prepared but not published');
+    assert.equal((await api('GET', '/admin/guide', 'admin')).data.guide.entries.length, 2);
+
+    assert.equal((await api('PATCH', '/admin/guide', 'admin', { entries: [{ key: 'q:0000000000000002', hidden: true }], publish: true })).status, 200);
+    const en = await api('GET', '/guide', 's1');
+    assert.equal(en.data.status, 'published');
+    assert.deepEqual(en.data.entries.map((e) => e.text), ['Why civil services?']);
+    const hi = await api('GET', '/guide?lang=hi', 's1');
+    assert.equal(hi.data.entries[0].text, 'सिविल सेवा क्यों?');
+    assert.equal(hi.data.entries[0].guide.tests, 'प्रेरणा।');
+
+    // Edits change the working copy; students see them after the next publish.
+    assert.equal((await api('PATCH', '/admin/guide', 'admin', { entries: [{ key: 'q:0000000000000001', text: 'Why do you want to join the civil services?' }] })).status, 200);
+    assert.equal((await api('GET', '/guide', 's1')).data.entries[0].text, 'Why civil services?');
+    assert.equal((await api('PATCH', '/admin/guide', 'admin', { entries: [{ key: 'q:0000000000000001', en: { tests: '' } }] })).status, 400);
+    assert.equal((await api('PATCH', '/admin/guide', 'admin', { publish: true })).status, 200);
+    assert.equal((await api('GET', '/guide', 's1')).data.entries[0].text, 'Why do you want to join the civil services?');
+    assert.equal((await api('PATCH', '/admin/guide', 'admin', { publish: false })).status, 200);
+    assert.equal((await api('GET', '/guide', 's1')).data.status, 'none');
   });
 }

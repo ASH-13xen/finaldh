@@ -3,17 +3,26 @@ import InterviewProfile from '../models/InterviewProfile.js';
 import InterviewSession from '../models/InterviewSession.js';
 import InterviewQuestion from '../models/InterviewQuestion.js';
 import InterviewTranscript from '../models/InterviewTranscript.js';
-import { getCorpusIndex, searchFamilies, familyById, relatedFamilies, summarizeFamily } from '../lib/interview/corpusIndex.js';
+import { getCorpusIndex, searchFamilies, familyById, relatedFamilies, summarizeFamily, familiesByKeys, OFTEN } from '../lib/interview/corpusIndex.js';
 import { buildPredictions, profileHash, profileItems } from '../lib/interview/predict.js';
 import { planSession, openSession, answerCurrent, buildReport, sessionPayload, closingLine, pauseSession, resumeSession, PANEL, TRAITS } from '../lib/interview/interviewer.js';
 import { FORMATS, DEFAULT_FORMAT, formatOf, formatFromMinutes, TEMPERAMENTS, DEFAULT_TEMPERAMENT } from '../lib/interview/board.js';
-import { cleanProfileInput, transcribeAnswer, isProfileEmpty, SERVICES } from '../lib/interview/daf.js';
-import { geminiStatus, checkGemini, embedTexts } from '../lib/interview/gemini.js';
+import { cleanProfileInput, transcribeAnswer, isProfileEmpty, extractDaf, SERVICES } from '../lib/interview/daf.js';
+import { geminiStatus, checkGemini, embedTexts, generateJson } from '../lib/interview/gemini.js';
 import { streamSpeech, SAMPLE_LINES } from '../lib/interview/voice.js';
 import { TOPIC_LABELS, HOOK_TYPES, QTYPES } from '../lib/interview/taxonomy.js';
+import User from '../models/User.js';
+import InterviewPrep from '../models/InterviewPrep.js';
+import PracticeAttempt from '../models/PracticeAttempt.js';
+import { analyzeAnswer } from '../lib/interview/practice.js';
+import InterviewAiCache from '../models/InterviewAiCache.js';
+import { textHash } from '../lib/interview/translate.js';
+import { PREP_KEY_RE } from '../lib/interview/prepKey.js';
+import { isAdminEmail } from '../middlewares/adminMiddleware.js';
+import { mockInterviewEnabled } from '../lib/interview/features.js';
 
 // Free for now; the caps only stop one account from running up the Gemini bill.
-const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400 };
+const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400, extractsPerDay: 5, approachesPerDay: 40, practiceAIPerDay: 3 };
 
 // The compilations the corpus is built from. Shown on every page that shows transcript data.
 const SOURCES = [
@@ -37,7 +46,7 @@ const useAllowance = async (userId, field, limit) => {
   await ensureProfile(userId);
   await InterviewProfile.updateOne(
     { user: userId, 'usage.day': { $ne: day } },
-    { $set: { 'usage.day': day, 'usage.predictionRuns': 0, 'usage.transcribes': 0 } }
+    { $set: { 'usage.day': day, 'usage.predictionRuns': 0, 'usage.transcribes': 0, 'usage.extracts': 0, 'usage.approaches': 0, 'usage.practiceAI': 0 } }
   );
   const r = await InterviewProfile.updateOne(
     { user: userId, 'usage.day': day, [`usage.${field}`]: { $lt: limit } },
@@ -76,7 +85,11 @@ export const getStatus = async (req, res) => {
       defaultFormat: DEFAULT_FORMAT,
       temperaments: Object.entries(TEMPERAMENTS).map(([key, t]) => ({ key, label: t.label, blurb: t.blurb })),
       defaultTemperament: DEFAULT_TEMPERAMENT,
-      limits: LIMITS
+      limits: LIMITS,
+      features: { mockInterview: mockInterviewEnabled() },
+      // How often boards asked about each DAF area when candidates listed it (see lib/interview/meta.js).
+      calibration: idx.meta?.areas || null,
+      boardCount: idx.meta?.boards?.length || 0
     });
   } catch (err) {
     console.error('[interview] status error:', err);
@@ -111,6 +124,24 @@ export const saveProfile = async (req, res) => {
   }
 };
 
+// An uploaded DAF is read by AI and returned for the student to check - nothing is saved until they do,
+// and the file itself is never stored.
+export const extractProfile = async (req, res) => {
+  if (!req.file) return fail(res, 400, 'Choose your DAF file (PDF or a photo).');
+  if (!(await checkGemini())) return fail(res, 503, 'Reading a DAF automatically needs AI, which is not switched on right now. Please fill in the form - it takes about two minutes.', { aiUnavailable: true });
+  try {
+    if (!(await useAllowance(req.userId, 'extracts', LIMITS.extractsPerDay))) {
+      return fail(res, 429, `You can upload up to ${LIMITS.extractsPerDay} DAF files a day. Please fill in the form by hand.`, { limited: true });
+    }
+    const { fields, unsure } = await extractDaf(req.file.buffer, req.file.mimetype);
+    res.json({ fields, unsure, empty: isProfileEmpty(fields) });
+  } catch (err) {
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI is not available right now. Please fill in the form by hand.', { aiUnavailable: true });
+    console.error('[interview] extractProfile error:', err);
+    fail(res, 502, 'Could not read that file. Try a clearer PDF or photo, or fill in the form by hand.');
+  }
+};
+
 export const deleteProfile = async (req, res) => {
   try {
     await InterviewProfile.deleteOne({ user: req.userId });
@@ -125,17 +156,22 @@ export const deleteProfile = async (req, res) => {
 
 // One Gemini prediction run per student at a time. Resolves to the predictions, or null when the run
 // was not allowed (daily limit) or failed; the result is saved only if the DAF has not changed meanwhile.
+// Predictions are cached per language: English in predictionCache, others in predictionCaches.<lang>.
+const langOf = (req) => (req.query.lang === 'hi' ? 'hi' : 'en');
+const cacheOf = (profile, lang) => (lang === 'en' ? profile.predictionCache : profile.predictionCaches?.[lang]);
+const cacheSet = (lang, value) => (lang === 'en' ? { predictionCache: value } : { [`predictionCaches.${lang}`]: value });
+
 const building = new Map();
-const buildTailored = (profile, idx, hash) => {
-  const key = String(profile.user);
+const buildTailored = (profile, idx, hash, lang = 'en') => {
+  const key = `${profile.user}:${lang}`;
   if (building.has(key)) return building.get(key);
   const run = (async () => {
     try {
       if (!(await useAllowance(profile.user, 'predictionRuns', LIMITS.predictionRunsPerDay))) return null;
-      const data = await buildPredictions(idx, profile.toObject(), { useAI: true });
+      const data = await buildPredictions(idx, profile.toObject(), { useAI: true, lang });
       const latest = await InterviewProfile.findById(profile._id);
       if (latest && profileHash(latest.toObject(), idx) === hash) {
-        await InterviewProfile.updateOne({ _id: profile._id }, { $set: { predictionCache: { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data } } });
+        await InterviewProfile.updateOne({ _id: profile._id }, { $set: cacheSet(lang, { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data }) });
       }
       return data;
     } catch (err) {
@@ -161,19 +197,21 @@ const warmPredictions = async (profile) => {
 
 export const getPredictions = async (req, res) => {
   try {
+    const lang = langOf(req);
     const profile = await InterviewProfile.findOne({ user: req.userId });
     if (!profile || isProfileEmpty(profile)) return fail(res, 400, 'Add your DAF details first — predictions are built from them.', { needsProfile: true });
     const idx = await getCorpusIndex();
     if (!idx.stats.questions) return fail(res, 503, 'The transcript library is still being loaded. Please try again later.');
     const plain = profile.toObject();
     const hash = profileHash(plain, idx);
-    const cache = profile.predictionCache;
+    const cache = cacheOf(profile, lang);
     const wantAI = await checkGemini();
     const fresh = cache?.data && cache.hash === hash && (cache.aiUsed || !wantAI);
     if (fresh && req.query.refresh !== '1') return res.json({ ...cache.data, cached: true, ai: aiPayload() });
     // A run started when the DAF was saved may still be going: wait for it rather than paying twice.
-    if (wantAI && req.query.refresh !== '1' && building.has(String(req.userId))) {
-      const ready = await building.get(String(req.userId));
+    const runKey = `${req.userId}:${lang}`;
+    if (wantAI && req.query.refresh !== '1' && building.has(runKey)) {
+      const ready = await building.get(runKey);
       if (ready) return res.json({ ...ready, cached: false, ai: aiPayload() });
     }
 
@@ -182,8 +220,8 @@ export const getPredictions = async (req, res) => {
       if (cache?.data && cache.hash === hash) return res.json({ ...cache.data, cached: true, ai: aiPayload(), limited: true });
       useAI = false;
     }
-    const data = await buildPredictions(idx, plain, { useAI });
-    await InterviewProfile.updateOne({ _id: profile._id }, { $set: { predictionCache: { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data } } });
+    const data = await buildPredictions(idx, plain, { useAI, lang });
+    await InterviewProfile.updateOne({ _id: profile._id }, { $set: cacheSet(lang, { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data }) });
     res.json({ ...data, cached: false, ai: aiPayload() });
   } catch (err) {
     console.error('[interview] getPredictions error:', err);
@@ -215,10 +253,21 @@ const bankFilters = (q) => {
   if (q.board) f.board = String(q.board).slice(0, 80);
   if (q.topic && TOPIC_LABELS[q.topic]) f.topic = q.topic;
   if (q.hookType && HOOK_TYPES[q.hookType]) f.hookType = q.hookType;
-  if (q.asker && /^(chairman|m[1-5]|member)$/.test(q.asker)) f.asker = q.asker;
+  if (q.asker && /^(chairman|members|m[1-5]|member)$/.test(q.asker)) f.asker = q.asker;
   if (q.qtype && QTYPES[q.qtype]) f.qtype = q.qtype;
   if (q.shelfLife === 'event' || q.shelfLife === 'evergreen') f.shelfLife = q.shelfLife;
   if (q.minAsked && Number(q.minAsked) > 1) f.minAsked = Math.min(50, Number(q.minAsked));
+  if (q.often && OFTEN[q.often]) {
+    const [min, max] = OFTEN[q.often];
+    f.minAsked = min;
+    if (max) f.maxAsked = max;
+  }
+  // A DAF keyword from "browse by DAF": "hobby:Cricket" -> questions about it (hobby or achievement hooks).
+  const m = String(q.label || '').match(/^(hobby|college|discipline|job|state|optional):(.{1,80})$/);
+  if (m) {
+    const [, kind, label] = m;
+    f.labels = { hobby: [`hobby:${label}`, `eca:${label}`], college: [`education:${label}`], discipline: [`education:${label}`], job: [`work:${label}`], state: [`home:${label}`], optional: [`optional:${label}`] }[kind];
+  }
   return f;
 };
 
@@ -230,8 +279,8 @@ export const searchBank = async (req, res) => {
     const limit = Math.max(5, Math.min(50, Number(req.query.limit) || 20));
     const sort = ['relevance', 'asked', 'recent'].includes(req.query.sort) ? req.query.sort : 'relevance';
     const queryVec = q ? await queryVector(q, idx) : null;
-    const { total, items } = searchFamilies(idx, { q, filters: bankFilters(req.query), sort, offset: (page - 1) * limit, limit, queryVec });
-    res.json({ total, page, limit, items, semantic: !!queryVec });
+    const { total, items, facets } = searchFamilies(idx, { q, filters: bankFilters(req.query), sort, offset: (page - 1) * limit, limit, queryVec, facets: req.query.facets === '1' });
+    res.json({ total, page, limit, items, semantic: !!queryVec, ...(facets ? { facets } : {}) });
   } catch (err) {
     console.error('[interview] searchBank error:', err);
     fail(res, 500, 'Search failed. Please try again.');
@@ -255,6 +304,25 @@ export const getFacets = async (req, res) => {
   }
 };
 
+// The DAF keywords in the bank with interview and question counts (browse by DAF; form suggestions), and
+// each board's style.
+export const getKeywords = async (req, res) => {
+  try {
+    const idx = await getCorpusIndex();
+    const meta = idx.meta;
+    // Boards' favourite questions and openers come as keys; send them as questions the screen can open.
+    const boards = (meta?.boards || []).map(({ families, openers, ...b }) => ({
+      ...b,
+      favourites: familiesByKeys(idx, (families || []).map((f) => f.key)).slice(0, 8),
+      openers: familiesByKeys(idx, (openers || []).map((f) => f.key)).slice(0, 4)
+    }));
+    res.json({ keywords: meta?.keywords || {}, areas: meta?.areas || null, boards, interviews: meta?.interviews || idx.stats.transcripts });
+  } catch (err) {
+    console.error('[interview] getKeywords error:', err);
+    fail(res, 500, 'Could not load the DAF keywords.');
+  }
+};
+
 export const getTrends = async (req, res) => {
   try {
     const idx = await getCorpusIndex();
@@ -269,6 +337,11 @@ export const getTrends = async (req, res) => {
       topics,
       boards,
       mostAsked: searchFamilies(idx, { sort: 'asked', limit: 15 }).items,
+      // First asked in the latest year and already repeated: what the newest boards brought in.
+      latestYear: years.length ? Math.max(...years) : null,
+      newInLatest: years.length
+        ? idx.families.filter((f) => f.firstYear === Math.max(...years) && f.transcriptCount >= 2).sort((x, y) => y.transcriptCount - x.transcriptCount).slice(0, 12).map(summarizeFamily)
+        : [],
       templates: idx.templates.slice(0, 12).map((t) => ({ type: t.type, typeLabel: HOOK_TYPES[t.type], text: t.text, values: t.values.slice(0, 5), timesAsked: t.transcriptCount, years: t.years }))
     });
   } catch (err) {
@@ -285,9 +358,15 @@ const candidateSummary = (p = {}) => {
   return parts.join(' · ');
 };
 
+const isAdminRequest = async (req) => {
+  const u = await User.findById(req.userId).select('email').lean();
+  return !!u && isAdminEmail(u.email);
+};
+
 export const getFamily = async (req, res) => {
   if (!isId(req.params.id)) return fail(res, 404, 'Question not found.');
   try {
+    const admin = await isAdminRequest(req);
     const idx = await getCorpusIndex();
     const fam = familyById(idx, req.params.id);
     if (!fam) return fail(res, 404, 'Question not found.');
@@ -296,15 +375,36 @@ export const getFamily = async (req, res) => {
       .limit(80)
       .populate({ path: 'transcript', select: 'year seq profile hidden' })
       .lean();
-    // The question asked right after each one, to show how boards followed up.
+    // Up to three questions asked right after each one: the board's follow-up ladder.
     const nexts = members.length
-      ? await InterviewQuestion.find({ $or: members.map((m) => ({ transcript: m.transcript?._id, order: m.order + 1 })), hidden: { $ne: true } }).select('transcript order text followUp').lean()
+      ? await InterviewQuestion.find({ $or: members.flatMap((m) => [1, 2, 3].map((d) => ({ transcript: m.transcript?._id, order: m.order + d }))), hidden: { $ne: true } }).select('transcript order text followUp asker family').lean()
       : [];
     const nextBy = new Map(nexts.map((n) => [`${n.transcript}:${n.order}`, n]));
+    const ladderOf = (m) => {
+      const out = [];
+      for (let d = 1; d <= 3; d++) {
+        const n = nextBy.get(`${m.transcript?._id}:${m.order + d}`);
+        if (!n || !n.followUp) break;
+        out.push({ text: n.text, asker: n.asker, familyId: n.family ? String(n.family) : null });
+      }
+      return out;
+    };
+    const shown = members.filter((m) => m.transcript && !m.transcript.hidden);
+    const ladders = new Map(shown.map((m) => [String(m._id), ladderOf(m)]));
+    // The follow-ups boards reached for most often after this question.
+    const firstFollow = new Map();
+    for (const l of ladders.values()) {
+      const f = l[0];
+      if (!f) continue;
+      const k = f.familyId || f.text;
+      if (!firstFollow.has(k)) firstFollow.set(k, { text: f.text, familyId: f.familyId, n: 0 });
+      firstFollow.get(k).n += 1;
+    }
     res.json({
       family: summarizeFamily(fam),
-      asked: members.filter((m) => m.transcript && !m.transcript.hidden).map((m) => {
-        const n = nextBy.get(`${m.transcript._id}:${m.order + 1}`);
+      followUps: [...firstFollow.values()].sort((a, b) => b.n - a.n).slice(0, 6),
+      asked: shown.map((m) => {
+        const ladder = ladders.get(String(m._id)) || [];
         return {
           id: String(m._id),
           text: m.text,
@@ -313,9 +413,11 @@ export const getFamily = async (req, res) => {
           board: m.board,
           asker: m.asker,
           note: m.note,
-          transcriptId: String(m.transcript._id),
+          // Only admins can open a full transcript; students see the question in context.
+          transcriptId: admin ? String(m.transcript._id) : undefined,
           candidate: candidateSummary(m.transcript.profile),
-          followedBy: n && n.followUp ? n.text : ''
+          followedBy: ladder[0]?.text || '',
+          ladder
         };
       }),
       related: relatedFamilies(idx, fam.id, 6)
@@ -323,6 +425,193 @@ export const getFamily = async (req, res) => {
   } catch (err) {
     console.error('[interview] getFamily error:', err);
     fail(res, 500, 'Could not load that question.');
+  }
+};
+
+// How to approach a question: what the board is testing, a structure, points to cover, pitfalls, and a
+// sample answer for factual / opinion questions (never for personal ones - those must be the student's own).
+// Made once per wording and language and shared by everyone.
+const APPROACH_SYSTEM = `You coach UPSC Civil Services interview (Personality Test) candidates. Be concrete, balanced and calm, in the tone of an experienced mentor. Use only well-established facts; never invent statistics, dates or quotes.`;
+export const getApproach = async (req, res) => {
+  if (!isId(req.params.id)) return fail(res, 404, 'Question not found.');
+  try {
+    const lang = langOf(req);
+    const idx = await getCorpusIndex();
+    const fam = familyById(idx, req.params.id);
+    if (!fam) return fail(res, 404, 'Question not found.');
+    const key = `approach:${lang}:${textHash(fam.text)}`;
+    const hit = await InterviewAiCache.findOne({ key }).lean();
+    if (hit?.data) return res.json({ approach: hit.data, cached: true });
+    if (!(await checkGemini())) return fail(res, 503, 'Answer guidance needs AI, which is not switched on right now.', { aiUnavailable: true });
+    if (!(await useAllowance(req.userId, 'approaches', LIMITS.approachesPerDay))) return fail(res, 429, 'You have opened a lot of answer guides today. Try again tomorrow.', { limited: true });
+    const notes = (await InterviewQuestion.find({ family: fam.id, note: { $gt: '' }, hidden: { $ne: true } }).limit(8).select('note').lean()).map((n) => n.note).filter((n) => n.length > 10);
+    const personal = ['personal', 'daf'].includes(fam.qtype) || (fam.hookTypes || []).some((t) => ['intro', 'motivation', 'hobby', 'eca', 'home', 'education', 'work', 'family', 'name', 'service'].includes(t));
+    const prompt = `Interview question: "${fam.text}"
+Asked in ${fam.transcriptCount} past interviews (CSE ${fam.years.join(', ')}). Question type: ${fam.qtype}. Topics: ${(fam.topics || []).join(', ') || 'general'}.
+${notes.length ? `What past candidates say they answered, or how the board reacted:\n- ${notes.slice(0, 6).join('\n- ')}\n` : ''}
+Return JSON {"gist":"what the board is really testing, one sentence","structure":["3-4 steps of a strong answer"],"include":["3-5 points worth covering"],"avoid":["2-3 pitfalls"],"sample":"${personal ? '' : 'a 90-120 word sample answer in the first person'}"}.
+${personal ? 'This is a personal question: leave "sample" empty - the answer must be the candidate\'s own.' : ''}
+${lang === 'hi' ? 'Write every value in Hindi (Devanagari), simple and natural; keep acronyms and names as commonly written.' : 'Write in clear Indian English.'}`;
+    const raw = await generateJson({ system: APPROACH_SYSTEM, prompt, temperature: 0.4, maxOutputTokens: 2500, thinking: 'low' });
+    const list = (x, n) => (Array.isArray(x) ? x.map((v) => String(v || '').trim().slice(0, 400)).filter(Boolean).slice(0, n) : []);
+    const approach = { gist: String(raw?.gist || '').slice(0, 400), structure: list(raw?.structure, 5), include: list(raw?.include, 6), avoid: list(raw?.avoid, 4), sample: personal ? '' : String(raw?.sample || '').slice(0, 1400), personal };
+    await InterviewAiCache.updateOne({ key }, { $set: { key, data: approach } }, { upsert: true });
+    res.json({ approach, cached: false });
+  } catch (err) {
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI is not available right now.', { aiUnavailable: true });
+    console.error('[interview] getApproach error:', err);
+    fail(res, 500, 'Could not prepare the answer guide.');
+  }
+};
+
+// ------------------------------------------------------------------ the student's own prep
+
+const PREP_STATUSES = ['todo', 'drafted', 'practised', 'confident'];
+const MAX_PREP_ITEMS = 3000;
+
+export const getPrep = async (req, res) => {
+  try {
+    const p = await InterviewPrep.findOne({ user: req.userId }).lean();
+    res.json({ items: p?.items || [], interviewDate: p?.interviewDate || null });
+  } catch (err) {
+    console.error('[interview] getPrep error:', err);
+    fail(res, 500, 'Could not load your preparation.');
+  }
+};
+
+export const savePrepItem = async (req, res) => {
+  const key = String(req.params.key || '');
+  if (!PREP_KEY_RE.test(key)) return fail(res, 400, 'Unknown question.');
+  try {
+    const b = req.body || {};
+    const doc = (await InterviewPrep.findOne({ user: req.userId })) || new InterviewPrep({ user: req.userId, items: [] });
+    let item = doc.items.find((i) => i.key === key);
+    if (!item) {
+      if (doc.items.length >= MAX_PREP_ITEMS) return fail(res, 400, 'Your list is full. Remove a few questions first.');
+      doc.items.push({ key });
+      item = doc.items[doc.items.length - 1];
+    }
+    if (b.status !== undefined) {
+      if (!PREP_STATUSES.includes(b.status)) return fail(res, 400, 'Unknown status.');
+      item.status = b.status;
+    }
+    if (b.saved !== undefined) item.saved = !!b.saved;
+    if (b.note !== undefined) item.note = String(b.note || '').slice(0, 2000);
+    if (b.text) item.text = String(b.text).slice(0, 400);
+    if (b.familyId !== undefined) item.familyId = isId(b.familyId) ? String(b.familyId) : '';
+    if (b.source && ['past', 'tailored', 'new', 'bank'].includes(b.source)) item.source = b.source;
+    item.updatedAt = new Date();
+    await doc.save();
+    res.json({ item: doc.items.find((i) => i.key === key) });
+  } catch (err) {
+    console.error('[interview] savePrepItem error:', err);
+    fail(res, 500, 'Could not save that.');
+  }
+};
+
+export const deletePrepItem = async (req, res) => {
+  const key = String(req.params.key || '');
+  if (!PREP_KEY_RE.test(key)) return fail(res, 400, 'Unknown question.');
+  try {
+    await InterviewPrep.updateOne({ user: req.userId }, { $pull: { items: { key } } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[interview] deletePrepItem error:', err);
+    fail(res, 500, 'Could not remove that.');
+  }
+};
+
+export const savePrepSettings = async (req, res) => {
+  try {
+    const d = req.body?.interviewDate ? new Date(req.body.interviewDate) : null;
+    if (d && Number.isNaN(d.getTime())) return fail(res, 400, 'That date does not look right.');
+    await InterviewPrep.updateOne({ user: req.userId }, { $set: { interviewDate: d }, $setOnInsert: { user: req.userId } }, { upsert: true });
+    res.json({ interviewDate: d });
+  } catch (err) {
+    console.error('[interview] savePrepSettings error:', err);
+    fail(res, 500, 'Could not save that.');
+  }
+};
+
+// ------------------------------------------------------------------ Practice Studio
+
+// How many AI-feedback answers the student has left today.
+const aiLeftToday = async (userId) => {
+  const p = await InterviewProfile.findOne({ user: userId }).select('usage').lean();
+  const used = p?.usage?.day === today() ? p.usage.practiceAI || 0 : 0;
+  return Math.max(0, LIMITS.practiceAIPerDay - used);
+};
+
+export const analyzePractice = async (req, res) => {
+  if (!req.file) return fail(res, 400, 'No recording was received.');
+  if (!(await checkGemini())) return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
+  try {
+    if (!(await useAllowance(req.userId, 'practiceAI', LIMITS.practiceAIPerDay))) {
+      return fail(res, 429, `You have used today's ${LIMITS.practiceAIPerDay} AI feedback answers. The on-device report is unlimited.`, { limited: true, left: 0 });
+    }
+    let device = {};
+    try { device = JSON.parse(String(req.body?.device || '{}')); } catch { device = {}; }
+    const analysis = await analyzeAnswer({
+      // "audio/webm;codecs=opus" -> "audio/webm" (Gemini wants the bare type).
+      audio: { buffer: req.file.buffer, mimeType: req.file.mimetype.startsWith('video/') ? 'audio/webm' : req.file.mimetype.split(';')[0] },
+      question: String(req.body?.question || '').slice(0, 400),
+      lang: req.body?.lang === 'hi' ? 'hi' : 'en',
+      device
+    });
+    res.json({ analysis, left: await aiLeftToday(req.userId) });
+  } catch (err) {
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
+    console.error('[interview] analyzePractice error:', err);
+    fail(res, 502, 'Could not analyse that recording. Try again, a little closer to the microphone.');
+  }
+};
+
+const MAX_ATTEMPTS = 500;
+const num = (v, min, max) => (Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : undefined);
+
+export const savePracticeAttempt = async (req, res) => {
+  try {
+    const b = req.body || {};
+    const m = b.metrics || {};
+    const sc = b.scores || {};
+    const doc = await PracticeAttempt.create({
+      user: req.userId,
+      questionKey: PREP_KEY_RE.test(String(b.questionKey || '')) ? b.questionKey : '',
+      question: String(b.question || '').slice(0, 400),
+      lang: b.lang === 'hi' ? 'hi' : 'en',
+      metrics: {
+        durationSec: num(m.durationSec, 0, 900), speakingSec: num(m.speakingSec, 0, 900), words: num(m.words, 0, 5000),
+        wpm: num(m.wpm, 0, 400), fillers: num(m.fillers, 0, 500), fillersPerMin: num(m.fillersPerMin, 0, 100),
+        longPauses: num(m.longPauses, 0, 200), pauses: num(m.pauses, 0, 500), hedges: num(m.hedges, 0, 200),
+        startDelaySec: num(m.startDelaySec, 0, 120), pitchVariation: num(m.pitchVariation, 0, 5), trailingOff: !!m.trailingOff
+      },
+      scores: { pace: num(sc.pace, 0, 10), fluency: num(sc.fluency, 0, 10), confidence: num(sc.confidence, 0, 10), tone: num(sc.tone, 0, 10), content: num(sc.content, 0, 10) },
+      ai: !!b.ai,
+      toneLabel: String(b.toneLabel || '').slice(0, 30)
+    });
+    // Keep the most recent MAX_ATTEMPTS per student.
+    const extra = await PracticeAttempt.find({ user: req.userId }).sort({ createdAt: -1 }).skip(MAX_ATTEMPTS).select('_id').lean();
+    if (extra.length) await PracticeAttempt.deleteMany({ _id: { $in: extra.map((x) => x._id) } });
+    res.json({ attempt: { id: String(doc._id), createdAt: doc.createdAt } });
+  } catch (err) {
+    console.error('[interview] savePracticeAttempt error:', err);
+    fail(res, 500, 'Could not save this attempt.');
+  }
+};
+
+export const listPracticeAttempts = async (req, res) => {
+  try {
+    const filter = { user: req.userId };
+    if (PREP_KEY_RE.test(String(req.query.key || ''))) filter.questionKey = req.query.key;
+    const attempts = await PracticeAttempt.find(filter).sort({ createdAt: -1 }).limit(60).lean();
+    res.json({
+      attempts: attempts.map(({ _id, user, __v, updatedAt, ...a }) => ({ id: String(_id), ...a })),
+      aiLeft: await aiLeftToday(req.userId),
+      aiPerDay: LIMITS.practiceAIPerDay
+    });
+  } catch (err) {
+    console.error('[interview] listPracticeAttempts error:', err);
+    fail(res, 500, 'Could not load your practice history.');
   }
 };
 

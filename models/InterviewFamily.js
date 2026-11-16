@@ -17,6 +17,7 @@ const interviewFamilySchema = new mongoose.Schema({
   topics: { type: [String], default: [], index: true },
   hookTypes: { type: [String], default: [] },
   hookValues: { type: [String], default: [] },
+  hookLabels: { type: [String], default: [] }, // "hobby:Cricket", "education:IIT Bombay" - clean DAF keywords
   askers: { type: Map, of: Number, default: {} },
   qtype: { type: String, default: 'other' },
   shelfLife: { type: String, default: 'evergreen' },

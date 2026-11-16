@@ -16,7 +16,9 @@ const profileSchema = new mongoose.Schema({
   work: { type: [String], default: [] },
   achievements: { type: [String], default: [] },
   servicePreference: { type: String, default: '' },
-  duration: { type: String, default: '' }
+  duration: { type: String, default: '' },
+  // The DAF in clean keywords (hobbies, degrees, disciplines, colleges, jobs, sectors, district, state).
+  norm: { type: mongoose.Schema.Types.Mixed, default: undefined }
 }, { _id: false });
 
 const interviewTranscriptSchema = new mongoose.Schema({

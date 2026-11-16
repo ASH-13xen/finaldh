@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 const hookSchema = new mongoose.Schema({
   type: { type: String, required: true }, // see HOOK_TYPES in lib/interview/taxonomy.js
-  value: { type: String, default: '' } // the DAF item it targeted ('cricket', 'iit bombay'), '' for area-only
+  value: { type: String, default: '' }, // the DAF item it targeted ('cricket', 'iit bombay'), '' for area-only
+  label: { type: String, default: '' } // the clean keyword for it ('Cricket', 'IIT Bombay'), see lib/interview/keywords.js
 }, { _id: false });
 
 // A single question asked in one transcript. Denormalises year/board from the transcript so the bank's
