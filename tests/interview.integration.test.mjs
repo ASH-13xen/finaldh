@@ -674,6 +674,23 @@ if (!URI) {
     }
   });
 
+  test('search index: a re-seed elsewhere that leaves the sizes unchanged is still picked up', async () => {
+    const { getCorpusIndex } = await import('../lib/interview/corpusIndex.js');
+    const { default: InterviewMeta } = await import('../models/InterviewMeta.js');
+    const idx = await getCorpusIndex();
+    await new Promise((r) => setTimeout(r, 20)); // so the meta's updatedAt moves on
+    // What a seed from another process does to the meta (same number of transcripts, questions, families).
+    await InterviewMeta.updateOne({ key: 'corpus' }, { $set: { 'data.generatedAt': new Date().toISOString() } }, { upsert: true });
+    idx.checkedAt = 0;
+    await getCorpusIndex();
+    let fresh = idx;
+    for (let i = 0; i < 50 && fresh === idx; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      fresh = await getCorpusIndex();
+    }
+    assert.notEqual(fresh, idx, 'rebuilt after the meta was rewritten');
+  });
+
   test('notes: admins draft from sources and publish; students see published notes, marked "for you" from the DAF', async () => {
     const { default: InterviewNote } = await import('../models/InterviewNote.js');
     assert.equal((await api('GET', '/admin/notes', 's1')).status, 403);
