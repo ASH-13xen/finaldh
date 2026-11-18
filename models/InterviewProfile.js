@@ -47,7 +47,14 @@ const interviewProfileSchema = new mongoose.Schema({
     transcribes: { type: Number, default: 0 },
     extracts: { type: Number, default: 0 }, // DAF files read by AI
     approaches: { type: Number, default: 0 }, // "how to approach" guides generated (cached ones are free)
-    practiceAI: { type: Number, default: 0 } // Practice Studio answers given AI feedback
+    practiceAI: { type: Number, default: 0 }, // Practice Studio answers given AI feedback
+    aiUses: { type: Number, default: 0 } // credits spent today (lib/interview/credits.js caps the day)
+  },
+
+  // AI credits (lib/interview/credits.js): free ones used so far, and bought ones left.
+  credits: {
+    freeUsed: { type: Number, default: 0 },
+    paid: { type: Number, default: 0 }
   },
 
   // Predictions per language ({ en: { hash, generatedAt, aiUsed, data }, hi: {...} }); replaces predictionCache.

@@ -328,7 +328,7 @@ export const uploadCourse = async (req, res) => {
       discountLimitTag:
         discountLimitTag === "true" || discountLimitTag === true,
       telegramGroupLink: telegramGroupLink ? telegramGroupLink.trim() : "",
-      examStage: examStage === "Prelims" ? "Prelims" : "Mains",
+      examStage: ["Prelims", "Interview"].includes(examStage) ? examStage : "Mains",
       accessGroup: typeof accessGroup === "string" ? accessGroup.trim() : "",
     });
 
@@ -410,7 +410,7 @@ export const updateCourse = async (req, res) => {
         progressEnabled === "true" || progressEnabled === true;
     if (telegramGroupLink !== undefined)
       course.telegramGroupLink = telegramGroupLink.trim();
-    if (examStage === "Prelims" || examStage === "Mains")
+    if (["Prelims", "Mains", "Interview"].includes(examStage))
       course.examStage = examStage;
     const previousAccessGroup = course.accessGroup || "";
     if (typeof accessGroup === "string") course.accessGroup = accessGroup.trim();

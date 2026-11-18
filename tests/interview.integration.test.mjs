@@ -622,7 +622,7 @@ if (!URI) {
     assert.equal(mine.data.attempts.length, 2);
     assert.equal(mine.data.attempts.find((a) => a.question === 'Tell us about yourself').metrics.wpm, 400, 'numbers are clamped');
     assert.equal(mine.data.attempts[0].audio, undefined);
-    assert.equal(mine.data.aiPerDay, 3);
+    assert.equal(mine.data.credits.free, 15, 'AI feedback uses credits: 15 free');
     const byQ = await api('GET', '/practice/attempts?key=q:0123456789abcdef', 's1');
     assert.equal(byQ.data.attempts.length, 1);
     assert.equal((await api('GET', '/practice/attempts', 's2')).data.attempts.length, 0, 'only your own');
@@ -689,6 +689,31 @@ if (!URI) {
       fresh = await getCorpusIndex();
     }
     assert.notEqual(fresh, idx, 'rebuilt after the meta was rewritten');
+  });
+
+  test('AI credits: 15 free uses, then paid ones; none left answers 402; admins never spend', async () => {
+    const { spendCredit, refundCredit, addPaidCredits, getBalance, FREE_AI_USES } = await import('../lib/interview/credits.js');
+    const { default: User } = await import('../models/User.js');
+    const u = await User.findOne({ email: 's2@test.dev' });
+    const c = await api('GET', '/credits', 's2');
+    assert.equal(c.status, 200);
+    assert.equal(c.data.total, FREE_AI_USES);
+    assert.deepEqual(c.data.packs.map((p) => [p.credits, p.price]), [[40, 299], [60, 399]]);
+    for (let i = 0; i < FREE_AI_USES; i++) assert.equal((await spendCredit(u._id)).from, 'free');
+    assert.equal(await spendCredit(u._id), null, 'nothing left');
+    await addPaidCredits(u._id, 2);
+    const s1 = await spendCredit(u._id);
+    assert.equal(s1.from, 'paid');
+    await refundCredit(u._id, s1);
+    assert.equal((await getBalance(u._id)).paid, 2, 'a failed AI call gives the credit back');
+    await spendCredit(u._id);
+    await spendCredit(u._id);
+    // With no credits, the AI actions answer 402 before any AI call (AI is off here, so check the order:
+    // the credit check runs only once AI is available - drafting with AI off says AI is off).
+    const draft = await api('POST', '/answers/draft', 's2', { question: 'Why did you leave your job?' });
+    assert.equal(draft.status, 503);
+    assert.equal((await api('POST', '/answers/draft', 's2', { question: '' })).status, 400);
+    assert.equal((await api('GET', '/credits', 'admin')).data.admin, true);
   });
 
   test('notes: admins draft from sources and publish; students see published notes, marked "for you" from the DAF', async () => {

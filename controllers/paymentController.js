@@ -8,6 +8,7 @@ import McqPurchaseRequest from '../models/McqPurchaseRequest.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { userHasCourseAccess } from '../utils/courseAccess.js';
 import { withAccessGroups } from '../utils/purchaseFulfillment.js';
+import { CREDIT_PACKS, addPaidCredits } from '../lib/interview/credits.js';
 import {
   getRazorpay,
   razorpayKeyId,
@@ -113,6 +114,12 @@ async function resolvePurchase(user, body) {
     return { kind, itemLabel: `MCQ Test Series — ${subject} (all tests)`, price: effectivePrice(pricing), subject };
   }
 
+  if (kind === 'ai_credits') {
+    const pack = CREDIT_PACKS[String(body.pack || '')];
+    if (!pack) throw new PurchaseError(400, 'Unknown credit pack');
+    return { kind, itemLabel: `Interview Prep AI credits — ${pack.credits} uses`, price: pack.price, credits: pack.credits };
+  }
+
   throw new PurchaseError(400, 'Unknown purchase type');
 }
 
@@ -170,8 +177,20 @@ async function settlePayment(orderId, { paymentId, method, contact, email, via }
       $unset: { failureReason: 1 }
     }
   );
+  // AI credits go straight into the wallet. Claiming fulfilledAt first means two confirmations racing
+  // (browser verify + webhook) add the credits once.
+  const credited = await Payment.findOneAndUpdate(
+    { razorpayOrderId: orderId, kind: 'ai_credits', status: 'paid', fulfilledAt: { $exists: false } },
+    { $set: { fulfilledAt: new Date() } },
+    { new: true }
+  );
+  if (credited) {
+    await addPaidCredits(credited.userId, credited.credits || 0);
+    console.log(`[Payments] ${orderId} paid via ${via}: ${credited.credits} AI credits added for ${credited.userEmail}`);
+    return credited;
+  }
   const payment = await Payment.findOne({ razorpayOrderId: orderId });
-  if (payment && !payment.fulfilledAt) {
+  if (payment && payment.kind !== 'ai_credits' && !payment.fulfilledAt) {
     const request = await createVerificationRequest(payment);
     payment.purchaseRequestId = request._id;
     payment.fulfilledAt = new Date();
@@ -275,6 +294,7 @@ export const createOrder = async (req, res) => {
       courseIds: item.courseIds || [],
       comboOffer: item.comboOffer,
       subject: item.subject,
+      credits: item.credits,
       amount,
       currency: 'INR'
     });

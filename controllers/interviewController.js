@@ -20,9 +20,11 @@ import { textHash } from '../lib/interview/translate.js';
 import { PREP_KEY_RE } from '../lib/interview/prepKey.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
+import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, getBalance, spendCredit, refundCredit } from '../lib/interview/credits.js';
+import { draftAnswer } from '../lib/interview/answers.js';
 
 // Free for now; the caps only stop one account from running up the Gemini bill.
-const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400, extractsPerDay: 5, approachesPerDay: 40, practiceAIPerDay: 3 };
+const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400, extractsPerDay: 5, approachesPerDay: 40 };
 
 // The compilations the corpus is built from. Shown on every page that shows transcript data.
 const SOURCES = [
@@ -46,7 +48,7 @@ const useAllowance = async (userId, field, limit) => {
   await ensureProfile(userId);
   await InterviewProfile.updateOne(
     { user: userId, 'usage.day': { $ne: day } },
-    { $set: { 'usage.day': day, 'usage.predictionRuns': 0, 'usage.transcribes': 0, 'usage.extracts': 0, 'usage.approaches': 0, 'usage.practiceAI': 0 } }
+    { $set: { 'usage.day': day, 'usage.predictionRuns': 0, 'usage.transcribes': 0, 'usage.extracts': 0, 'usage.approaches': 0, 'usage.practiceAI': 0, 'usage.aiUses': 0 } }
   );
   const r = await InterviewProfile.updateOne(
     { user: userId, 'usage.day': day, [`usage.${field}`]: { $lt: limit } },
@@ -536,19 +538,79 @@ export const savePrepSettings = async (req, res) => {
 // ------------------------------------------------------------------ Practice Studio
 
 // How many AI-feedback answers the student has left today.
-const aiLeftToday = async (userId) => {
-  const p = await InterviewProfile.findOne({ user: userId }).select('usage').lean();
-  const used = p?.usage?.day === today() ? p.usage.practiceAI || 0 : 0;
-  return Math.max(0, LIMITS.practiceAIPerDay - used);
+// ------------------------------------------------------------------ AI credits
+
+// One AI credit, free ones first; admins never spend. null when the student has none left, so callers answer
+// 402 and the screen offers a pack.
+const takeCredit = async (req) => {
+  if (await isAdminRequest(req)) return { from: 'admin' };
+  return spendCredit(req.userId);
+};
+const noCredits = (res, spent) => (spent?.limited
+  ? fail(res, 429, `That's ${AI_USES_PER_DAY} AI actions today - the daily limit. Try again tomorrow.`, { limited: true })
+  : fail(res, 402, `You've used your ${FREE_AI_USES} free AI uses. Get more credits to continue.`, { needCredits: true }));
+
+export const getCredits = async (req, res) => {
+  try {
+    const admin = await isAdminRequest(req);
+    res.json({ ...(await getBalance(req.userId)), admin, packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY });
+  } catch (err) {
+    console.error('[interview] getCredits error:', err);
+    fail(res, 500, 'Could not load your AI credits.');
+  }
+};
+
+// POST /answers/draft { question, key?, familyId?, source? } - an answer drafted from the student's DAF,
+// saved on their prep item so it can be reopened for free.
+export const draftAnswerHandler = async (req, res) => {
+  const b = req.body || {};
+  const question = String(b.question || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  if (question.length < 5) return fail(res, 400, 'Which question?');
+  const key = PREP_KEY_RE.test(String(b.key || '')) ? b.key : null;
+  if (!(await checkGemini())) return fail(res, 503, 'AI answers are not available right now.', { aiUnavailable: true });
+  const spent = await takeCredit(req);
+  if (!spent?.from) return noCredits(res, spent);
+  try {
+    const profile = await InterviewProfile.findOne({ user: req.userId }).lean();
+    const familyId = isId(b.familyId) ? String(b.familyId) : '';
+    let approach = null;
+    if (familyId) {
+      const idx = await getCorpusIndex();
+      const fam = familyById(idx, familyId);
+      if (fam) approach = (await InterviewAiCache.findOne({ key: `approach:en:${textHash(fam.text)}` }).lean())?.data || null;
+    }
+    const draft = await draftAnswer({ question, profile: profile || {}, approach, lang: 'en' });
+    if (key) {
+      const doc = (await InterviewPrep.findOne({ user: req.userId })) || new InterviewPrep({ user: req.userId, items: [] });
+      let item = doc.items.find((i) => i.key === key);
+      if (!item && doc.items.length < MAX_PREP_ITEMS) {
+        doc.items.push({ key, text: question, familyId, source: ['past', 'tailored', 'new', 'bank'].includes(b.source) ? b.source : '' });
+        item = doc.items[doc.items.length - 1];
+      }
+      if (item) {
+        item.draft = draft;
+        item.status = item.status === 'todo' ? 'drafted' : item.status;
+        item.updatedAt = new Date();
+        doc.markModified('items');
+        await doc.save();
+      }
+    }
+    res.json({ draft, credits: await getBalance(req.userId) });
+  } catch (err) {
+    await refundCredit(req.userId, spent.from === 'admin' ? null : spent).catch(() => {});
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI answers are not available right now.', { aiUnavailable: true });
+    console.error('[interview] draftAnswer error:', err);
+    fail(res, 502, 'Could not write that answer. Your credit was not used - try again.');
+  }
 };
 
 export const analyzePractice = async (req, res) => {
   if (!req.file) return fail(res, 400, 'No recording was received.');
   if (!(await checkGemini())) return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
   try {
-    if (!(await useAllowance(req.userId, 'practiceAI', LIMITS.practiceAIPerDay))) {
-      return fail(res, 429, `You have used today's ${LIMITS.practiceAIPerDay} AI feedback answers. The on-device report is unlimited.`, { limited: true, left: 0 });
-    }
+    const spent = await takeCredit(req);
+    if (!spent?.from) return noCredits(res, spent);
+    req.spentCredit = spent.from === 'admin' ? null : spent;
     let device = {};
     try { device = JSON.parse(String(req.body?.device || '{}')); } catch { device = {}; }
     const analysis = await analyzeAnswer({
@@ -558,8 +620,10 @@ export const analyzePractice = async (req, res) => {
       lang: req.body?.lang === 'hi' ? 'hi' : 'en',
       device
     });
-    res.json({ analysis, left: await aiLeftToday(req.userId) });
+    const credits = await getBalance(req.userId);
+    res.json({ analysis, left: credits.total, credits });
   } catch (err) {
+    await refundCredit(req.userId, req.spentCredit).catch(() => {});
     if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
     console.error('[interview] analyzePractice error:', err);
     fail(res, 502, 'Could not analyse that recording. Try again, a little closer to the microphone.');
@@ -606,8 +670,8 @@ export const listPracticeAttempts = async (req, res) => {
     const attempts = await PracticeAttempt.find(filter).sort({ createdAt: -1 }).limit(60).lean();
     res.json({
       attempts: attempts.map(({ _id, user, __v, updatedAt, ...a }) => ({ id: String(_id), ...a })),
-      aiLeft: await aiLeftToday(req.userId),
-      aiPerDay: LIMITS.practiceAIPerDay
+      aiLeft: (await getBalance(req.userId)).total,
+      credits: await getBalance(req.userId)
     });
   } catch (err) {
     console.error('[interview] listPracticeAttempts error:', err);

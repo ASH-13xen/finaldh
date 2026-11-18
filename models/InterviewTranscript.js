@@ -33,6 +33,8 @@ const interviewTranscriptSchema = new mongoose.Schema({
   // The text as it appears in the compilation - admin review only, never sent to students.
   rawText: { type: String, default: '', select: false },
   questionCount: { type: Number, default: 0 },
+  // How the candidate described the board: cordial | neutral | tough ('' = not said). lib/interview/mood.js
+  mood: { type: String, default: '' },
   reviewed: { type: Boolean, default: false, index: true },
   hidden: { type: Boolean, default: false }
 }, { timestamps: true });

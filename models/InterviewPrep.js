@@ -12,6 +12,9 @@ const prepItemSchema = new mongoose.Schema({
   status: { type: String, enum: ['todo', 'drafted', 'practised', 'confident'], default: 'todo' },
   saved: { type: Boolean, default: false },
   note: { type: String, default: '' },
+  // An answer AI drafted from the student's DAF ({ text, pointers[], followUps[], at }), kept so opening it
+  // again costs nothing.
+  draft: { type: mongoose.Schema.Types.Mixed, default: null },
   updatedAt: { type: Date, default: Date.now }
 }, { _id: false });
 

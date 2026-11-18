@@ -21,6 +21,8 @@ import {
   analyzePractice,
   savePracticeAttempt,
   listPracticeAttempts,
+  getCredits,
+  draftAnswerHandler,
   startSession,
   getSession,
   answerSession,
@@ -113,6 +115,10 @@ router.put('/prep/settings', authenticateToken, sectionAccess, savePrepSettings)
 router.post('/practice/analyze', authenticateToken, sectionAccess, audioUpload.single('audio'), analyzePractice);
 router.post('/practice/attempts', authenticateToken, sectionAccess, savePracticeAttempt);
 router.get('/practice/attempts', authenticateToken, sectionAccess, listPracticeAttempts);
+// AI credits (15 free, then packs bought through /api/payments) and answers drafted from the DAF
+router.get('/credits', authenticateToken, sectionAccess, getCredits);
+router.post('/answers/draft', authenticateToken, sectionAccess, draftAnswerHandler);
+
 // Notes: published current-topic notes and the 100-question guide
 router.get('/notes', authenticateToken, sectionAccess, listNotes);
 router.get('/notes/:slug', authenticateToken, sectionAccess, getNote);

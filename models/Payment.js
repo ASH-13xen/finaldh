@@ -18,7 +18,10 @@ const paymentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   userEmail: { type: String, required: true },
   userName: { type: String, required: true },
-  kind: { type: String, enum: ['course', 'combo', 'mcq_subject'], required: true },
+  kind: { type: String, enum: ['course', 'combo', 'mcq_subject', 'ai_credits'], required: true },
+  // ai_credits: how many Interview Prep AI credits the order adds (straight to the wallet once paid - no
+  // admin verification).
+  credits: { type: Number },
   itemLabel: { type: String, required: true },
   courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
   courseIds: { type: [String], default: [] },

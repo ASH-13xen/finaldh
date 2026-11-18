@@ -24,6 +24,7 @@ import { normalizeText } from '../../lib/interview/text.js';
 import { TOPICS, HOOK_TYPES, QTYPES } from '../../lib/interview/taxonomy.js';
 import { generateJson, embedTexts, aiAvailable, checkGemini, geminiStatus, usageTotals, GEMINI_MODEL, EMBEDDING_MODEL, EMBEDDING_DIMS } from '../../lib/interview/gemini.js';
 import { keyOf, KEYWORD_TYPES } from '../../lib/interview/keywords.js';
+import { moodLines, moodPrompt, MOOD_SYSTEM, MOODS, moodByBoard } from '../../lib/interview/mood.js';
 
 dotenv.config({ quiet: true });
 
@@ -35,6 +36,7 @@ const CACHE = path.join(DATA, 'cache');
 const EMB_FILE = path.join(DATA, 'embeddings', `${EMBEDDING_MODEL}-${EMBEDDING_DIMS}.jsonl`);
 const CORPUS = path.join(DATA, 'corpus.json');
 const KEYWORDS_FILE = path.join(DATA, 'normalize', 'keywords.json');
+const MOOD_FILE = path.join(DATA, 'mood', 'moods.json');
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -384,8 +386,9 @@ const build = async () => {
   const embeddings = await loadEmbeddings();
   const keywords = exists(KEYWORDS_FILE) ? await readJson(KEYWORDS_FILE) : null;
   if (!keywords) console.log('(no keyword table yet - run `pipeline.mjs normalize` for clean DAF keywords and per-item rates)');
+  const moods = exists(MOOD_FILE) ? await readJson(MOOD_FILE) : null;
   const t0 = Date.now();
-  const corpus = buildCorpus(parsed, { embeddings: embeddings.size ? embeddings : null, keywords });
+  const corpus = buildCorpus(parsed, { embeddings: embeddings.size ? embeddings : null, keywords, moods });
   // Family vectors = mean of member vectors (re-normalised); seeded as int8 for the runtime search.
   if (embeddings.size) {
     const sums = new Map();
@@ -406,6 +409,54 @@ const build = async () => {
   const stats = corpusStats(corpus);
   await writeJson(CORPUS, { builtAt: new Date().toISOString(), engines: Object.fromEntries(parsed.map((p) => [p.year, p.engine])), stats, ...corpus });
   console.log(`corpus: ${stats.transcripts} transcripts (${corpus.reposts} reposted duplicates left out), ${stats.questions} questions, ${stats.families} families (${stats.repeatedFamilies} asked in 2+ interviews), ${embeddings.size ? 'with' : 'without'} embeddings, ${Date.now() - t0}ms`);
+};
+
+// ------------------------------------------------------------------ board mood
+
+// Labels each interview's board mood from the lines that describe it (see lib/interview/mood.js), cached in
+// data/interview/mood/moods.json. With --apply (and --uri or MONGODB_URI) it also writes the labels to that
+// database's transcripts and each board's counts to the corpus meta, without re-seeding.
+const mood = async () => {
+  if (!exists(CORPUS)) throw new Error('No corpus.json - run `pipeline.mjs build` first');
+  const corpus = await readJson(CORPUS);
+  await fs.mkdir(path.dirname(MOOD_FILE), { recursive: true });
+  const cache = exists(MOOD_FILE) ? await readJson(MOOD_FILE) : {};
+  const todo = corpus.transcripts.map((t) => ({ key: t.key, lines: moodLines(t) })).filter((x) => x.lines.length && !(x.key in cache));
+  console.log(`${todo.length} interviews to label (${Object.keys(cache).length} done before)`);
+  if (todo.length && !(await checkGemini())) throw new Error(`Gemini is not available: ${geminiStatus().lastError || 'set GEMINI_API_KEY'}`);
+  const BATCH = 50;
+  for (let i = 0; i < todo.length; i += BATCH) {
+    const batch = todo.slice(i, i + BATCH);
+    const raw = await generateJson({ system: MOOD_SYSTEM, prompt: moodPrompt(batch), temperature: 0, maxOutputTokens: 4000, thinking: 'low', retries: 2 });
+    for (const x of batch) {
+      const v = raw?.r?.[x.key];
+      cache[x.key] = MOODS.includes(v) ? v : 'unknown';
+    }
+    await writeJson(MOOD_FILE, cache);
+    console.log(`  ${Math.min(i + BATCH, todo.length)}/${todo.length}`);
+  }
+  const labelled = Object.values(cache).filter((v) => MOODS.includes(v));
+  console.log(`labelled ${labelled.length} of ${corpus.transcripts.length} interviews: ${MOODS.map((m) => `${m} ${labelled.filter((v) => v === m).length}`).join(', ')}`);
+  const byBoard = moodByBoard(corpus.transcripts, cache);
+  for (const [b, c] of Object.entries(byBoard).sort((a, z) => z[1].n - a[1].n)) console.log(`  ${b}: ${c.n} labelled - cordial ${Math.round((c.cordial / c.n) * 100)}%, neutral ${Math.round((c.neutral / c.n) * 100)}%, tough ${Math.round((c.tough / c.n) * 100)}%`);
+  if (usageTotals.calls) console.log(`billed by ${GEMINI_MODEL}: ${usageTotals.calls} calls, ${usageTotals.input} input, ${usageTotals.output} output, ${usageTotals.thinking} thinking tokens`);
+
+  if (args.includes('--apply')) {
+    const uri = opt('uri', process.env.MONGODB_URI);
+    const { default: mongoose } = await import('mongoose');
+    const { default: InterviewTranscript } = await import('../../models/InterviewTranscript.js');
+    const { default: InterviewMeta } = await import('../../models/InterviewMeta.js');
+    await mongoose.connect(uri);
+    const ops = Object.entries(cache).filter(([, v]) => MOODS.includes(v)).map(([key, v]) => ({ updateOne: { filter: { key }, update: { $set: { mood: v } } } }));
+    const r = ops.length ? await InterviewTranscript.bulkWrite(ops, { ordered: false }) : { modifiedCount: 0 };
+    const metaDoc = await InterviewMeta.findOne({ key: 'corpus' }).lean();
+    if (metaDoc) {
+      const boards = (metaDoc.data.boards || []).map((b) => ({ ...b, mood: byBoard[b.name] || null }));
+      await InterviewMeta.updateOne({ key: 'corpus' }, { $set: { 'data.boards': boards } });
+    }
+    console.log(`applied: ${r.modifiedCount} transcripts labelled; board moods written to the meta (${metaDoc ? 'ok' : 'no meta doc'})`);
+    await mongoose.disconnect();
+  }
 };
 
 // ------------------------------------------------------------------ seed
@@ -437,6 +488,7 @@ const main = async () => {
       break;
     case 'embed': await embed(); break;
     case 'normalize': await normalizeKeywords(); break;
+    case 'mood': await mood(); break;
     case 'build': await build(); break;
     case 'seed': await seed(); break;
     case 'all':
