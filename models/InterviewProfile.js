@@ -51,6 +51,16 @@ const interviewProfileSchema = new mongoose.Schema({
     aiUses: { type: Number, default: 0 } // credits spent today (lib/interview/credits.js caps the day)
   },
 
+  // DAF verification (lib/interview/dafCheck.js): an admin checks the uploaded DAF before practice and AI
+  // credits unlock.
+  dafCheck: {
+    status: { type: String, enum: ['none', 'pending', 'verified', 'rejected'], default: 'none' },
+    submissionId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    submittedAt: { type: Date, default: null },
+    reviewedAt: { type: Date, default: null },
+    reason: { type: String, default: '' }
+  },
+
   // AI credits (lib/interview/credits.js): free ones used so far, and bought ones left.
   credits: {
     freeUsed: { type: Number, default: 0 },

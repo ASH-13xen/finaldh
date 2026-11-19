@@ -21,6 +21,8 @@ const prepItemSchema = new mongoose.Schema({
 const interviewPrepSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   items: { type: [prepItemSchema], default: [] },
+  // Questions whose "How to approach it" guide this student has unlocked (1 AI credit each; reopening is free).
+  approaches: { type: [String], default: [] },
   interviewDate: { type: Date, default: null }
 }, { timestamps: true });
 

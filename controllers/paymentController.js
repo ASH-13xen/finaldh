@@ -9,6 +9,7 @@ import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { userHasCourseAccess } from '../utils/courseAccess.js';
 import { withAccessGroups } from '../utils/purchaseFulfillment.js';
 import { CREDIT_PACKS, addPaidCredits } from '../lib/interview/credits.js';
+import { getDafCheck, dafGateMessage } from '../lib/interview/dafCheck.js';
 import {
   getRazorpay,
   razorpayKeyId,
@@ -117,6 +118,8 @@ async function resolvePurchase(user, body) {
   if (kind === 'ai_credits') {
     const pack = CREDIT_PACKS[String(body.pack || '')];
     if (!pack) throw new PurchaseError(400, 'Unknown credit pack');
+    const daf = await getDafCheck(user._id);
+    if (daf.status !== 'verified') throw new PurchaseError(403, dafGateMessage(daf.status));
     return { kind, itemLabel: `Interview Prep AI credits — ${pack.credits} uses`, price: pack.price, credits: pack.credits };
   }
 

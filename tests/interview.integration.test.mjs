@@ -132,8 +132,10 @@ if (!URI) {
     assert.equal(res.status, 401);
   });
 
-  test('before launch (INTERVIEW_SECTION_LIVE unset) only admins can use the section', async () => {
+  test('the section is open to students unless INTERVIEW_SECTION_LIVE=false closes it to all but admins', async () => {
     process.env.INTERVIEW_SECTION_LIVE = '';
+    assert.equal((await api('GET', '/status', 's1')).status, 200, 'open when the switch is unset');
+    process.env.INTERVIEW_SECTION_LIVE = 'false';
     try {
       for (const path of ['/status', '/bank/search?q=net', '/sessions', '/profile']) {
         assert.equal((await api('GET', path, 's1')).status, 403, `${path} is refused to a student`);
@@ -605,12 +607,31 @@ if (!URI) {
     assert.ok(fam.data.followUps.some((f) => f.text === 'Why him and not Kohli?'));
     assert.ok(fam.data.asked.some((a) => a.ladder?.[0]?.text === 'Why him and not Kohli?'));
     assert.match(s.data.items[0].key, /^q:[a-f0-9]{16}$/, 'bank questions carry the same progress key as predictions');
-    const g = await api('GET', `/bank/families/${s.data.items[0].id}/approach`, 's1');
+    // "How to approach it" needs a verified DAF, then costs 1 AI credit (given back when it can't be made).
+    const approachUrl = `/bank/families/${s.data.items[0].id}/approach`;
+    assert.equal((await api('POST', approachUrl, 's2')).status, 403, 'not before the DAF is verified');
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    const { getBalance } = await import('../lib/interview/credits.js');
+    const { default: User } = await import('../models/User.js');
+    const s2 = await User.findOne({ email: 's2@test.dev' });
+    await setDafCheck(s2._id, { status: 'verified' });
+    const before = (await getBalance(s2._id)).total;
+    assert.equal((await api('GET', approachUrl, 's2')).status, 402, 'locked until unlocked with a credit');
+    const g = await api('POST', approachUrl, 's2');
     assert.equal(g.status, 503);
     assert.equal(g.data.aiUnavailable, true);
+    assert.equal((await getBalance(s2._id)).total, before, 'no AI, no charge');
+    await setDafCheck(s2._id, { status: 'none' });
+    assert.equal((await api('POST', approachUrl, 'admin')).status, 503, 'admins skip the DAF check and credits');
   });
 
-  test('practice studio: attempts keep numbers only; AI feedback needs AI and a recording', async () => {
+  test('practice studio: needs a verified DAF; attempts keep numbers only; AI feedback needs AI and a recording', async () => {
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    const { default: User } = await import('../models/User.js');
+    const blocked = await api('POST', '/practice/attempts', 's1', { question: 'Why civil services?', metrics: { wpm: 120 } });
+    assert.equal(blocked.status, 403, 'no practice before the DAF is verified');
+    assert.equal(blocked.data.needDafVerification, true);
+    await setDafCheck((await User.findOne({ email: 's1@test.dev' }))._id, { status: 'verified' });
     const save = await api('POST', '/practice/attempts', 's1', {
       questionKey: 'q:0123456789abcdef', question: 'Why civil services?', lang: 'en',
       metrics: { durationSec: 62, wpm: 148, fillers: 4, fillersPerMin: 3.9, longPauses: 2, startDelaySec: 1.2, wpmIgnored: 9 },
@@ -698,7 +719,8 @@ if (!URI) {
     const c = await api('GET', '/credits', 's2');
     assert.equal(c.status, 200);
     assert.equal(c.data.total, FREE_AI_USES);
-    assert.deepEqual(c.data.packs.map((p) => [p.credits, p.price]), [[40, 299], [60, 399]]);
+    assert.deepEqual(c.data.packs.map((p) => [p.credits, p.price]), [[40, 199], [60, 299]]);
+    assert.equal(c.data.daf.status, 'none');
     for (let i = 0; i < FREE_AI_USES; i++) assert.equal((await spendCredit(u._id)).from, 'free');
     assert.equal(await spendCredit(u._id), null, 'nothing left');
     await addPaidCredits(u._id, 2);
@@ -708,12 +730,67 @@ if (!URI) {
     assert.equal((await getBalance(u._id)).paid, 2, 'a failed AI call gives the credit back');
     await spendCredit(u._id);
     await spendCredit(u._id);
-    // With no credits, the AI actions answer 402 before any AI call (AI is off here, so check the order:
-    // the credit check runs only once AI is available - drafting with AI off says AI is off).
+    // Before the DAF is verified, AI actions are refused (403); after, with AI off here, they say AI is off.
     const draft = await api('POST', '/answers/draft', 's2', { question: 'Why did you leave your job?' });
-    assert.equal(draft.status, 503);
+    assert.equal(draft.status, 403);
+    assert.equal(draft.data.dafStatus, 'none');
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    await setDafCheck(u._id, { status: 'verified' });
+    assert.equal((await api('POST', '/answers/draft', 's2', { question: 'Why did you leave your job?' })).status, 503);
     assert.equal((await api('POST', '/answers/draft', 's2', { question: '' })).status, 400);
     assert.equal((await api('GET', '/credits', 'admin')).data.admin, true);
+  });
+
+  test('DAF verification: upload, admin reviews the file, verify or reject; the file is gone after review', async () => {
+    const { default: User } = await import('../models/User.js');
+    const { default: DafSubmission } = await import('../models/DafSubmission.js');
+    const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
+    await User.create({ googleId: 'g-s3', email: 's3@test.dev', name: 's3', fullName: 'Student Three' });
+    const s3 = await User.findOne({ email: 's3@test.dev' });
+    tokens.s3 = jwt.sign({ userId: s3._id, email: 's3@test.dev' }, 'test-secret');
+    const upload = async (bytes, type = 'application/pdf') => {
+      const form = new FormData();
+      form.append('file', new Blob([bytes], { type }), 'my-daf.pdf');
+      const r = await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s3}` }, body: form });
+      return { status: r.status, data: await r.json().catch(() => null) };
+    };
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.status, 'none');
+    const first = await upload(Buffer.from('%PDF-1.4 first'));
+    assert.equal(first.status, 200);
+    assert.equal(first.data.daf.status, 'pending');
+    const second = await upload(Buffer.from('%PDF-1.4 second upload'));
+    assert.equal(second.data.daf.status, 'pending');
+    assert.equal(await DafSubmission.countDocuments({ user: s3._id, status: 'pending' }), 1, 'a new upload replaces the waiting one');
+
+    assert.equal((await api('GET', '/admin/daf', 's3')).status, 403, 'students cannot review');
+    const list = await api('GET', '/admin/daf?status=pending', 'admin');
+    const item = list.data.items.find((i) => i.userEmail === 's3@test.dev');
+    assert.ok(item);
+    assert.equal(item.userName, 'Student Three');
+    assert.equal(list.data.counts.pending >= 1, true);
+    const file = await fetch(`${base}/api/interview/admin/daf/${item.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
+    assert.equal(file.status, 200);
+    assert.equal(file.headers.get('content-type'), 'application/pdf');
+    assert.equal(Buffer.from(await file.arrayBuffer()).toString(), '%PDF-1.4 second upload');
+
+    assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', {})).status, 400, 'a rejection needs a reason');
+    assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', { reason: 'This is not a DAF' })).status, 200);
+    const after = await api('GET', '/daf/status', 's3');
+    assert.equal(after.data.daf.status, 'rejected');
+    assert.equal(after.data.daf.reason, 'This is not a DAF');
+    assert.equal((await fetch(`${base}/api/interview/admin/daf/${item.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } })).status, 404, 'the file is deleted after review');
+
+    const third = await upload(Buffer.from('%PDF-1.4 the real DAF'));
+    assert.equal(third.data.daf.status, 'pending');
+    const again = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin')).status, 200);
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin')).status, 409, 'already reviewed');
+    assert.equal((await api('GET', '/credits', 's3')).data.daf.status, 'verified');
+    assert.equal((await api('POST', '/practice/attempts', 's3', { question: 'Why civil services?', metrics: { wpm: 120 } })).status, 200, 'practice unlocks');
+    const reupload = await upload(Buffer.from('%PDF-1.4 updated'));
+    assert.equal(reupload.data.daf.status, 'verified', 'uploading again after verification keeps it verified');
+    assert.equal(reupload.data.stored, false);
+    assert.equal((await InterviewProfile.findOne({ user: s3._id }).lean()).dafCheck.status, 'verified');
   });
 
   test('notes: admins draft from sources and publish; students see published notes, marked "for you" from the DAF', async () => {

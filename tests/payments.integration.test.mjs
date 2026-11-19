@@ -414,10 +414,13 @@ if (!URI) {
   test('AI credits: a pack is priced on the server, added once when paid (verify and webhook racing), with no admin step', async () => {
     const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
     const { getBalance } = await import('../lib/interview/credits.js');
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    assert.equal((await call('POST', '/api/payments/order', 'other', { kind: 'ai_credits', pack: 'p40' })).status, 403, 'only once the DAF is verified');
+    await setDafCheck(users.other._id, { status: 'verified' });
     assert.equal((await call('POST', '/api/payments/order', 'other', { kind: 'ai_credits', pack: 'p999' })).status, 400);
     const order = await call('POST', '/api/payments/order', 'other', { kind: 'ai_credits', pack: 'p40', amount: 100 });
     assert.equal(order.status, 200);
-    assert.equal(order.data.amount, 29900, '40 credits for Rs 299, whatever the browser sends');
+    assert.equal(order.data.amount, 19900, '40 credits for Rs 199, whatever the browser sends');
     const paid = payOrder(order.data.orderId);
     const [v, w] = await Promise.all([
       call('POST', '/api/payments/verify', 'other', { razorpay_order_id: paid.razorpay_order_id, razorpay_payment_id: paid.razorpay_payment_id, razorpay_signature: paid.razorpay_signature }),
@@ -433,7 +436,7 @@ if (!URI) {
     assert.equal(bal.free, 15);
     assert.equal(await PurchaseRequest.countDocuments({ razorpayOrderId: order.data.orderId }), 0, 'no admin verification for credits');
     const big = await call('POST', '/api/payments/order', 'other', { kind: 'ai_credits', pack: 'p60' });
-    assert.equal(big.data.amount, 39900);
+    assert.equal(big.data.amount, 29900);
     assert.ok(await InterviewProfile.exists({ user: users.other._id }));
   });
 }

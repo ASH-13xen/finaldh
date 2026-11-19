@@ -17,11 +17,12 @@ import PracticeAttempt from '../models/PracticeAttempt.js';
 import { analyzeAnswer } from '../lib/interview/practice.js';
 import InterviewAiCache from '../models/InterviewAiCache.js';
 import { textHash } from '../lib/interview/translate.js';
-import { PREP_KEY_RE } from '../lib/interview/prepKey.js';
+import { PREP_KEY_RE, prepKey } from '../lib/interview/prepKey.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, getBalance, spendCredit, refundCredit } from '../lib/interview/credits.js';
 import { draftAnswer } from '../lib/interview/answers.js';
+import { getDafCheck, dafGateMessage } from '../lib/interview/dafCheck.js';
 
 // Free for now; the caps only stop one account from running up the Gemini bill.
 const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400, extractsPerDay: 5, approachesPerDay: 40 };
@@ -432,24 +433,44 @@ export const getFamily = async (req, res) => {
 
 // How to approach a question: what the board is testing, a structure, points to cover, pitfalls, and a
 // sample answer for factual / opinion questions (never for personal ones - those must be the student's own).
-// Made once per wording and language and shared by everyone.
+// Made once per wording and language and cached. Students need a verified DAF, and unlocking a question's
+// guide costs 1 AI credit (POST); reopening one they already unlocked is free (GET or POST).
 const APPROACH_SYSTEM = `You coach UPSC Civil Services interview (Personality Test) candidates. Be concrete, balanced and calm, in the tone of an experienced mentor. Use only well-established facts; never invent statistics, dates or quotes.`;
 export const getApproach = async (req, res) => {
   if (!isId(req.params.id)) return fail(res, 404, 'Question not found.');
+  if (await dafGate(req, res)) return;
+  let spent = null;
   try {
     const lang = langOf(req);
     const idx = await getCorpusIndex();
     const fam = familyById(idx, req.params.id);
     if (!fam) return fail(res, 404, 'Question not found.');
+    const unlockKey = prepKey(fam.text);
+    const admin = await isAdminRequest(req);
+    const unlocked = admin || !!(await InterviewPrep.exists({ user: req.userId, approaches: unlockKey }));
+    if (!unlocked) {
+      if (req.method !== 'POST') return fail(res, 402, 'How to approach it costs 1 AI credit.', { locked: true });
+      spent = await takeCredit(req);
+      if (!spent?.from) return noCredits(res, spent);
+    }
+    const remember = async () => {
+      if (unlocked) return;
+      await InterviewPrep.updateOne({ user: req.userId }, { $addToSet: { approaches: unlockKey }, $setOnInsert: { user: req.userId } }, { upsert: true });
+    };
     const key = `approach:${lang}:${textHash(fam.text)}`;
     const hit = await InterviewAiCache.findOne({ key }).lean();
-    if (hit?.data) return res.json({ approach: hit.data, cached: true });
-    if (!(await checkGemini())) return fail(res, 503, 'Answer guidance needs AI, which is not switched on right now.', { aiUnavailable: true });
-    if (!(await useAllowance(req.userId, 'approaches', LIMITS.approachesPerDay))) return fail(res, 429, 'You have opened a lot of answer guides today. Try again tomorrow.', { limited: true });
+    if (hit?.data) {
+      await remember();
+      return res.json({ approach: hit.data, cached: true, credits: admin ? null : await getBalance(req.userId) });
+    }
+    if (!(await checkGemini())) {
+      await refundCredit(req.userId, spent?.from === 'admin' ? null : spent).catch(() => {});
+      return fail(res, 503, 'Answer guidance needs AI, which is not switched on right now.', { aiUnavailable: true });
+    }
     const notes = (await InterviewQuestion.find({ family: fam.id, note: { $gt: '' }, hidden: { $ne: true } }).limit(8).select('note').lean()).map((n) => n.note).filter((n) => n.length > 10);
     const personal = ['personal', 'daf'].includes(fam.qtype) || (fam.hookTypes || []).some((t) => ['intro', 'motivation', 'hobby', 'eca', 'home', 'education', 'work', 'family', 'name', 'service'].includes(t));
     const prompt = `Interview question: "${fam.text}"
-Asked in ${fam.transcriptCount} past interviews (CSE ${fam.years.join(', ')}). Question type: ${fam.qtype}. Topics: ${(fam.topics || []).join(', ') || 'general'}.
+Asked in ${fam.transcriptCount} past interviews (in ${fam.years.join(', ')}). Question type: ${fam.qtype}. Topics: ${(fam.topics || []).join(', ') || 'general'}.
 ${notes.length ? `What past candidates say they answered, or how the board reacted:\n- ${notes.slice(0, 6).join('\n- ')}\n` : ''}
 Return JSON {"gist":"what the board is really testing, one sentence","structure":["3-4 steps of a strong answer"],"include":["3-5 points worth covering"],"avoid":["2-3 pitfalls"],"sample":"${personal ? '' : 'a 90-120 word sample answer in the first person'}"}.
 ${personal ? 'This is a personal question: leave "sample" empty - the answer must be the candidate\'s own.' : ''}
@@ -458,8 +479,11 @@ ${lang === 'hi' ? 'Write every value in Hindi (Devanagari), simple and natural; 
     const list = (x, n) => (Array.isArray(x) ? x.map((v) => String(v || '').trim().slice(0, 400)).filter(Boolean).slice(0, n) : []);
     const approach = { gist: String(raw?.gist || '').slice(0, 400), structure: list(raw?.structure, 5), include: list(raw?.include, 6), avoid: list(raw?.avoid, 4), sample: personal ? '' : String(raw?.sample || '').slice(0, 1400), personal };
     await InterviewAiCache.updateOne({ key }, { $set: { key, data: approach } }, { upsert: true });
-    res.json({ approach, cached: false });
+    await remember();
+    res.json({ approach, cached: false, credits: admin ? null : await getBalance(req.userId) });
   } catch (err) {
+    // The credit is given back when the guide couldn't be made.
+    await refundCredit(req.userId, spent?.from === 'admin' ? null : spent).catch(() => {});
     if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI is not available right now.', { aiUnavailable: true });
     console.error('[interview] getApproach error:', err);
     fail(res, 500, 'Could not prepare the answer guide.');
@@ -540,6 +564,16 @@ export const savePrepSettings = async (req, res) => {
 // How many AI-feedback answers the student has left today.
 // ------------------------------------------------------------------ AI credits
 
+// Practice and AI need a DAF an admin has verified; admins are never gated. Answers the request (403) and
+// returns true when the student isn't verified yet.
+const dafGate = async (req, res) => {
+  if (await isAdminRequest(req)) return false;
+  const daf = await getDafCheck(req.userId);
+  if (daf.status === 'verified') return false;
+  fail(res, 403, dafGateMessage(daf.status), { needDafVerification: true, dafStatus: daf.status });
+  return true;
+};
+
 // One AI credit, free ones first; admins never spend. null when the student has none left, so callers answer
 // 402 and the screen offers a pack.
 const takeCredit = async (req) => {
@@ -553,7 +587,7 @@ const noCredits = (res, spent) => (spent?.limited
 export const getCredits = async (req, res) => {
   try {
     const admin = await isAdminRequest(req);
-    res.json({ ...(await getBalance(req.userId)), admin, packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY });
+    res.json({ ...(await getBalance(req.userId)), admin, daf: await getDafCheck(req.userId), packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY });
   } catch (err) {
     console.error('[interview] getCredits error:', err);
     fail(res, 500, 'Could not load your AI credits.');
@@ -567,6 +601,7 @@ export const draftAnswerHandler = async (req, res) => {
   const question = String(b.question || '').replace(/\s+/g, ' ').trim().slice(0, 400);
   if (question.length < 5) return fail(res, 400, 'Which question?');
   const key = PREP_KEY_RE.test(String(b.key || '')) ? b.key : null;
+  if (await dafGate(req, res)) return;
   if (!(await checkGemini())) return fail(res, 503, 'AI answers are not available right now.', { aiUnavailable: true });
   const spent = await takeCredit(req);
   if (!spent?.from) return noCredits(res, spent);
@@ -605,6 +640,7 @@ export const draftAnswerHandler = async (req, res) => {
 };
 
 export const analyzePractice = async (req, res) => {
+  if (await dafGate(req, res)) return;
   if (!req.file) return fail(res, 400, 'No recording was received.');
   if (!(await checkGemini())) return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
   try {
@@ -634,6 +670,7 @@ const MAX_ATTEMPTS = 500;
 const num = (v, min, max) => (Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : undefined);
 
 export const savePracticeAttempt = async (req, res) => {
+  if (await dafGate(req, res)) return;
   try {
     const b = req.body || {};
     const m = b.metrics || {};

@@ -59,6 +59,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
+import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf } from '../controllers/interviewDafController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -77,10 +78,9 @@ const audioUpload = multer({
   fileFilter: (req, file, cb) => cb(null, /^audio\//.test(file.mimetype) || file.mimetype === 'video/webm')
 });
 
-// Until the section launches (INTERVIEW_SECTION_LIVE=true in the server's environment) only admins can use
-// it. The frontend hides it from students as well; this check is what actually keeps them (and the
-// Gemini calls behind these routes) out.
-const sectionAccess = (req, res, next) => (process.env.INTERVIEW_SECTION_LIVE === 'true' ? next() : requireAdmin(req, res, next));
+// The section is open to every signed-in student (launched 2026-11-20). INTERVIEW_SECTION_LIVE=false in the
+// server's environment closes it to everyone but admins again.
+const sectionAccess = (req, res, next) => (process.env.INTERVIEW_SECTION_LIVE !== 'false' ? next() : requireAdmin(req, res, next));
 
 // The mock interview room's routes answer 404 like unknown routes while it is switched off (see
 // lib/interview/features.js), so no session - and no Gemini call behind one - can start.
@@ -104,6 +104,7 @@ router.get('/bank/trends', authenticateToken, sectionAccess, getTrends);
 router.get('/bank/keywords', authenticateToken, sectionAccess, getKeywords);
 router.get('/bank/families/:id', authenticateToken, sectionAccess, getFamily);
 router.get('/bank/families/:id/approach', authenticateToken, sectionAccess, getApproach);
+router.post('/bank/families/:id/approach', authenticateToken, sectionAccess, getApproach);
 
 // The student's own preparation (statuses, saved questions, notes, interview date)
 router.get('/prep', authenticateToken, sectionAccess, getPrep);
@@ -115,6 +116,10 @@ router.put('/prep/settings', authenticateToken, sectionAccess, savePrepSettings)
 router.post('/practice/analyze', authenticateToken, sectionAccess, audioUpload.single('audio'), analyzePractice);
 router.post('/practice/attempts', authenticateToken, sectionAccess, savePracticeAttempt);
 router.get('/practice/attempts', authenticateToken, sectionAccess, listPracticeAttempts);
+// DAF verification: the student uploads their DAF; practice and AI unlock once an admin verifies it
+router.get('/daf/status', authenticateToken, sectionAccess, getDafStatus);
+router.post('/daf/submit', authenticateToken, sectionAccess, dafUpload.single('file'), submitDaf);
+
 // AI credits (15 free, then packs bought through /api/payments) and answers drafted from the DAF
 router.get('/credits', authenticateToken, sectionAccess, getCredits);
 router.post('/answers/draft', authenticateToken, sectionAccess, draftAnswerHandler);
@@ -150,6 +155,12 @@ router.post('/admin/questions/:id/move', authenticateToken, requireAdmin, moveQu
 router.post('/admin/families/merge', authenticateToken, requireAdmin, mergeFamilies);
 router.patch('/admin/families/:id', authenticateToken, requireAdmin, updateFamily);
 router.get('/admin/families', authenticateToken, requireAdmin, findFamiliesAdmin);
+
+// Admin: DAF verification
+router.get('/admin/daf', authenticateToken, requireAdmin, adminListDaf);
+router.get('/admin/daf/:id/file', authenticateToken, requireAdmin, adminGetDafFile);
+router.post('/admin/daf/:id/verify', authenticateToken, requireAdmin, adminVerifyDaf);
+router.post('/admin/daf/:id/reject', authenticateToken, requireAdmin, adminRejectDaf);
 
 // Admin: notes (AI drafts from admin-chosen sources, review, publish) and the 100-question guide
 router.get('/admin/notes', authenticateToken, requireAdmin, adminListNotes);
