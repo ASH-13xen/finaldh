@@ -209,7 +209,16 @@ if (!URI) {
     assert.equal(bad.status, 404);
   });
 
-  test('predictions need a DAF, then cite past evidence for each DAF item', async () => {
+  test('predictions need a verified DAF, then cite past evidence for each DAF item', async () => {
+    const locked = await api('GET', '/predictions', 's1');
+    assert.equal(locked.status, 403, 'not before the DAF is verified');
+    assert.equal(locked.data.needDafVerification, true);
+    assert.equal((await api('GET', '/predictions', 'admin')).status, 400, 'admins are never gated (but need a DAF)');
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    const { default: User } = await import('../models/User.js');
+    const s1 = await User.findOne({ email: 's1@test.dev' });
+    await setDafCheck(s1._id, { status: 'verified' });
+
     const none = await api('GET', '/predictions', 's1');
     assert.equal(none.status, 400);
     assert.equal(none.data.needsProfile, true);
@@ -246,6 +255,7 @@ if (!URI) {
 
     const again = await api('GET', '/predictions', 's1');
     assert.equal(again.data.cached, true, 'unchanged DAF -> saved predictions');
+    await setDafCheck(s1._id, { status: 'none' }); // later tests expect s1 unverified
   });
 
   test('practice interview: starts with the chairperson, follows the plan, ends with a basic report', async () => {

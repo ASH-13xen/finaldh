@@ -119,8 +119,8 @@ export const saveProfile = async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
     res.json({ profile: publicProfile(p), items: profileItems(p.toObject()), empty: isProfileEmpty(p) });
-    // Have the tailored predictions ready by the time the student opens them or starts an interview.
-    warmPredictions(p).catch(() => {});
+    // Have the tailored predictions ready by the time the student opens them (once the DAF is verified).
+    warmPredictions(p, req).catch(() => {});
   } catch (err) {
     console.error('[interview] saveProfile error:', err);
     fail(res, 500, 'Could not save your DAF details.');
@@ -188,9 +188,11 @@ const buildTailored = (profile, idx, hash, lang = 'en') => {
   return run;
 };
 
-// Start a run after the DAF is saved, unless the saved predictions already match it.
-const warmPredictions = async (profile) => {
+// Start a run after the DAF is saved, unless the saved predictions already match it. Only for students whose
+// DAF is verified (and admins): an unverified upload costs no AI run - predictions build when first opened.
+const warmPredictions = async (profile, req) => {
   if (isProfileEmpty(profile) || !(await checkGemini())) return;
+  if (!(await isAdminRequest(req)) && (await getDafCheck(req.userId)).status !== 'verified') return;
   const idx = await getCorpusIndex();
   if (!idx.stats.questions) return;
   const hash = profileHash(profile.toObject(), idx);
@@ -198,7 +200,9 @@ const warmPredictions = async (profile) => {
   buildTailored(profile, idx, hash);
 };
 
+// Predicted questions need a DAF an admin has verified (admins are never gated).
 export const getPredictions = async (req, res) => {
+  if (await dafGate(req, res)) return;
   try {
     const lang = langOf(req);
     const profile = await InterviewProfile.findOne({ user: req.userId });
