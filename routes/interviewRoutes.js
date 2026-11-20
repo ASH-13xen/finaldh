@@ -60,7 +60,7 @@ import {
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
 import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf } from '../controllers/interviewDafController.js';
-import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
 
@@ -88,7 +88,9 @@ const mockAccess = (req, res, next) => (mockInterviewEnabled() ? next() : res.st
 
 const router = express.Router();
 
-router.get('/status', authenticateToken, sectionAccess, getStatus);
+// Visitors who haven't signed in can look around (status, the bank preview, boards, trends, the guide's first
+// questions); everything else needs a signed-in student.
+router.get('/status', optionalAuth, sectionAccess, getStatus);
 
 // The student's DAF
 router.get('/profile', authenticateToken, sectionAccess, getProfile);
@@ -98,10 +100,10 @@ router.post('/profile/extract', authenticateToken, sectionAccess, dafUpload.sing
 router.get('/predictions', authenticateToken, sectionAccess, getPredictions);
 
 // Question bank (built from the community transcript compilations)
-router.get('/bank/search', authenticateToken, sectionAccess, searchBank);
+router.get('/bank/search', optionalAuth, sectionAccess, searchBank);
 router.get('/bank/facets', authenticateToken, sectionAccess, getFacets);
-router.get('/bank/trends', authenticateToken, sectionAccess, getTrends);
-router.get('/bank/keywords', authenticateToken, sectionAccess, getKeywords);
+router.get('/bank/trends', optionalAuth, sectionAccess, getTrends);
+router.get('/bank/keywords', optionalAuth, sectionAccess, getKeywords);
 router.get('/bank/families/:id', authenticateToken, sectionAccess, getFamily);
 router.get('/bank/families/:id/approach', authenticateToken, sectionAccess, getApproach);
 router.post('/bank/families/:id/approach', authenticateToken, sectionAccess, getApproach);
@@ -127,7 +129,7 @@ router.post('/answers/draft', authenticateToken, sectionAccess, draftAnswerHandl
 // Notes: published current-topic notes and the 100-question guide
 router.get('/notes', authenticateToken, sectionAccess, listNotes);
 router.get('/notes/:slug', authenticateToken, sectionAccess, getNote);
-router.get('/guide', authenticateToken, sectionAccess, getGuide);
+router.get('/guide', optionalAuth, sectionAccess, getGuide);
 
 // Full transcripts are for admins only (the compilations are the community's; students see questions).
 router.get('/bank/transcripts/:id', authenticateToken, requireAdmin, getTranscript);

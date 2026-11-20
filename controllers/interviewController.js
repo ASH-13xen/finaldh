@@ -131,7 +131,7 @@ export const saveProfile = async (req, res) => {
 // and the file itself is never stored.
 export const extractProfile = async (req, res) => {
   if (!req.file) return fail(res, 400, 'Choose your DAF file (PDF or a photo).');
-  if (!(await checkGemini())) return fail(res, 503, 'Reading a DAF automatically needs AI, which is not switched on right now. Please fill in the form - it takes about two minutes.', { aiUnavailable: true });
+  if (!(await checkGemini())) return fail(res, 503, 'We could not read your DAF automatically right now. Please fill in the form - it takes about two minutes.', { aiUnavailable: true });
   try {
     if (!(await useAllowance(req.userId, 'extracts', LIMITS.extractsPerDay))) {
       return fail(res, 429, `You can upload up to ${LIMITS.extractsPerDay} DAF files a day. Please fill in the form by hand.`, { limited: true });
@@ -139,7 +139,7 @@ export const extractProfile = async (req, res) => {
     const { fields, unsure } = await extractDaf(req.file.buffer, req.file.mimetype);
     res.json({ fields, unsure, empty: isProfileEmpty(fields) });
   } catch (err) {
-    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI is not available right now. Please fill in the form by hand.', { aiUnavailable: true });
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'We could not read your DAF right now. Please fill in the form by hand.', { aiUnavailable: true });
     console.error('[interview] extractProfile error:', err);
     fail(res, 502, 'Could not read that file. Try a clearer PDF or photo, or fill in the form by hand.');
   }
@@ -274,9 +274,22 @@ const bankFilters = (q) => {
   return f;
 };
 
+// Before a student's DAF is verified (and for visitors who haven't signed in) the bank is a preview: the
+// BANK_PREVIEW most-asked questions, whatever the search or filters. Admins and verified students get it all.
+export const BANK_PREVIEW = 15;
+const fullBankAccess = async (req) => {
+  if (!req.userId) return false;
+  if (await isAdminRequest(req)) return true;
+  return (await getDafCheck(req.userId)).status === 'verified';
+};
+
 export const searchBank = async (req, res) => {
   try {
     const idx = await getCorpusIndex();
+    if (!(await fullBankAccess(req))) {
+      const { total, items } = searchFamilies(idx, { sort: 'asked', offset: 0, limit: BANK_PREVIEW });
+      return res.json({ total, page: 1, limit: BANK_PREVIEW, items, semantic: false, preview: true, previewLimit: BANK_PREVIEW });
+    }
     const q = String(req.query.q || '').slice(0, 200);
     const page = Math.max(1, Math.min(500, Number(req.query.page) || 1));
     const limit = Math.max(5, Math.min(50, Number(req.query.limit) || 20));
@@ -449,7 +462,7 @@ export const getApproach = async (req, res) => {
     const admin = await isAdminRequest(req);
     const unlocked = admin || !!(await InterviewPrep.exists({ user: req.userId, approaches: unlockKey }));
     if (!unlocked) {
-      if (req.method !== 'POST') return fail(res, 402, 'How to approach it costs 1 AI credit.', { locked: true });
+      if (req.method !== 'POST') return fail(res, 402, 'How to approach it costs 1 credit.', { locked: true });
       spent = await takeCredit(req);
       if (!spent?.from) return noCredits(res, spent);
     }
@@ -465,7 +478,7 @@ export const getApproach = async (req, res) => {
     }
     if (!(await checkGemini())) {
       await refundCredit(req.userId, spent?.from === 'admin' ? null : spent).catch(() => {});
-      return fail(res, 503, 'Answer guidance needs AI, which is not switched on right now.', { aiUnavailable: true });
+      return fail(res, 503, 'Answer guides are not available right now. Please try again later.', { aiUnavailable: true });
     }
     const notes = (await InterviewQuestion.find({ family: fam.id, note: { $gt: '' }, hidden: { $ne: true } }).limit(8).select('note').lean()).map((n) => n.note).filter((n) => n.length > 10);
     const personal = ['personal', 'daf'].includes(fam.qtype) || (fam.hookTypes || []).some((t) => ['intro', 'motivation', 'hobby', 'eca', 'home', 'education', 'work', 'family', 'name', 'service'].includes(t));
@@ -484,7 +497,7 @@ ${lang === 'hi' ? 'Write every value in Hindi (Devanagari), simple and natural; 
   } catch (err) {
     // The credit is given back when the guide couldn't be made.
     await refundCredit(req.userId, spent?.from === 'admin' ? null : spent).catch(() => {});
-    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI is not available right now.', { aiUnavailable: true });
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'Answer guides are not available right now. Please try again later.', { aiUnavailable: true });
     console.error('[interview] getApproach error:', err);
     fail(res, 500, 'Could not prepare the answer guide.');
   }
@@ -581,8 +594,8 @@ const takeCredit = async (req) => {
   return spendCredit(req.userId);
 };
 const noCredits = (res, spent) => (spent?.limited
-  ? fail(res, 429, `That's ${AI_USES_PER_DAY} AI actions today - the daily limit. Try again tomorrow.`, { limited: true })
-  : fail(res, 402, `You've used your ${FREE_AI_USES} free AI uses. Get more credits to continue.`, { needCredits: true }));
+  ? fail(res, 429, `That's ${AI_USES_PER_DAY} credits used today - the daily limit. Try again tomorrow.`, { limited: true })
+  : fail(res, 402, `You've used your ${FREE_AI_USES} free credits. Get more to continue.`, { needCredits: true }));
 
 export const getCredits = async (req, res) => {
   try {
@@ -590,7 +603,7 @@ export const getCredits = async (req, res) => {
     res.json({ ...(await getBalance(req.userId)), admin, daf: await getDafCheck(req.userId), packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY });
   } catch (err) {
     console.error('[interview] getCredits error:', err);
-    fail(res, 500, 'Could not load your AI credits.');
+    fail(res, 500, 'Could not load your credits.');
   }
 };
 
@@ -602,7 +615,7 @@ export const draftAnswerHandler = async (req, res) => {
   if (question.length < 5) return fail(res, 400, 'Which question?');
   const key = PREP_KEY_RE.test(String(b.key || '')) ? b.key : null;
   if (await dafGate(req, res)) return;
-  if (!(await checkGemini())) return fail(res, 503, 'AI answers are not available right now.', { aiUnavailable: true });
+  if (!(await checkGemini())) return fail(res, 503, 'Answer drafts are not available right now. Please try again later.', { aiUnavailable: true });
   const spent = await takeCredit(req);
   if (!spent?.from) return noCredits(res, spent);
   try {
@@ -633,7 +646,7 @@ export const draftAnswerHandler = async (req, res) => {
     res.json({ draft, credits: await getBalance(req.userId) });
   } catch (err) {
     await refundCredit(req.userId, spent.from === 'admin' ? null : spent).catch(() => {});
-    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI answers are not available right now.', { aiUnavailable: true });
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'Answer drafts are not available right now. Please try again later.', { aiUnavailable: true });
     console.error('[interview] draftAnswer error:', err);
     fail(res, 502, 'Could not write that answer. Your credit was not used - try again.');
   }
@@ -642,7 +655,7 @@ export const draftAnswerHandler = async (req, res) => {
 export const analyzePractice = async (req, res) => {
   if (await dafGate(req, res)) return;
   if (!req.file) return fail(res, 400, 'No recording was received.');
-  if (!(await checkGemini())) return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
+  if (!(await checkGemini())) return fail(res, 503, 'Detailed feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
   try {
     const spent = await takeCredit(req);
     if (!spent?.from) return noCredits(res, spent);
@@ -660,7 +673,7 @@ export const analyzePractice = async (req, res) => {
     res.json({ analysis, left: credits.total, credits });
   } catch (err) {
     await refundCredit(req.userId, req.spentCredit).catch(() => {});
-    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'AI feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
+    if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'Detailed feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
     console.error('[interview] analyzePractice error:', err);
     fail(res, 502, 'Could not analyse that recording. Try again, a little closer to the microphone.');
   }

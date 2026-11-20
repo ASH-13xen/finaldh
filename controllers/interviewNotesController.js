@@ -86,17 +86,23 @@ export const getNote = async (req, res) => {
   }
 };
 
-// The published guide in the student's language (hidden entries left out).
+// The published guide in the student's language (hidden entries left out). Visitors who haven't signed in
+// get its first GUIDE_PREVIEW questions and the total.
+export const GUIDE_PREVIEW = 5;
 export const getGuide = async (req, res) => {
   try {
     const lang = langOf(req);
     const g = await InterviewGuide.findOne({ key: GUIDE_KEY }).select('published').lean();
     if (!g?.published?.at) return res.json({ status: 'none' });
+    const visible = (g.published.entries || []).filter((e) => !e.hidden && e.en);
+    const preview = !req.userId;
     res.json({
       status: 'published',
       publishedAt: g.published.at,
       corpus: g.published.corpus || null,
-      entries: (g.published.entries || []).filter((e) => !e.hidden && e.en).map((e) => ({
+      total: visible.length,
+      ...(preview ? { preview: true } : {}),
+      entries: (preview ? visible.slice(0, GUIDE_PREVIEW) : visible).map((e) => ({
         key: e.key,
         text: lang === 'hi' && e.textHi ? e.textHi : e.text,
         textEn: e.text,

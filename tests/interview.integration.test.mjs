@@ -94,9 +94,11 @@ if (!URI) {
     await Promise.all([User, InterviewProfile, InterviewSession].map((m) => m.init()));
     await seedCorpus(buildCorpus(corpusInput));
 
-    for (const [key, email] of [['admin', 'admin@test.dev'], ['s1', 's1@test.dev'], ['s2', 's2@test.dev']]) {
+    for (const [key, email] of [['admin', 'admin@test.dev'], ['s1', 's1@test.dev'], ['s2', 's2@test.dev'], ['v1', 'v1@test.dev']]) {
       const u = await User.create({ googleId: `g-${key}`, email, name: key, fullName: key });
       tokens[key] = jwt.sign({ userId: u._id, email }, 'test-secret');
+      // v1's DAF is verified: the full question bank is open to them (others get the preview).
+      if (key === 'v1') await (await import('../lib/interview/dafCheck.js')).setDafCheck(u._id, { status: 'verified' });
     }
 
     const app = express();
@@ -127,9 +129,28 @@ if (!URI) {
     assert.ok(r.data.sources.length >= 2, 'the transcript compilations are credited');
   });
 
-  test('requests without a token are refused', async () => {
-    const res = await fetch(`${base}/api/interview/status`);
-    assert.equal(res.status, 401);
+  test('visitors without a token can look around, but nothing personal', async () => {
+    assert.equal((await fetch(`${base}/api/interview/status`)).status, 200, 'the overview loads for visitors');
+    for (const path of ['/profile', '/prep', '/credits', '/predictions', '/bank/facets', '/practice/attempts']) {
+      assert.equal((await fetch(`${base}/api/interview${path}`)).status, 401, `${path} needs a signed-in student`);
+    }
+    const bad = await fetch(`${base}/api/interview/status`, { headers: { Authorization: 'Bearer not-a-token' } });
+    assert.equal(bad.status, 403, 'a bad token is refused, not treated as a visitor');
+  });
+
+  test('the question bank is a preview of the most-asked questions until the DAF is verified', async () => {
+    const full = await api('GET', '/bank/search?sort=asked&limit=50', 'admin');
+    for (const who of ['s2', null]) {
+      const r = who ? await api('GET', '/bank/search?q=net%20neutrality&year=2023', who) : { data: await (await fetch(`${base}/api/interview/bank/search?q=net%20neutrality`)).json() };
+      assert.equal(r.data.preview, true, `${who || 'a visitor'} gets the preview`);
+      assert.equal(r.data.previewLimit, 15);
+      assert.ok(r.data.items.length <= 15);
+      assert.equal(r.data.total, full.data.total, 'the preview says how many questions there are');
+      assert.deepEqual(r.data.items.map((i) => i.id), full.data.items.slice(0, r.data.items.length).map((i) => i.id), 'the most asked, whatever was searched');
+    }
+    const v = await api('GET', '/bank/search?q=net%20neutrality', 'v1');
+    assert.equal(v.data.preview, undefined, 'a verified student searches the full bank');
+    assert.match(v.data.items[0].text, /net neutrality/i);
   });
 
   test('the section is open to students unless INTERVIEW_SECTION_LIVE=false closes it to all but admins', async () => {
@@ -148,17 +169,17 @@ if (!URI) {
   });
 
   test('bank search: repeats are counted once per interview, filters narrow results', async () => {
-    const r = await api('GET', '/bank/search?q=net%20neutrality', 's1');
+    const r = await api('GET', '/bank/search?q=net%20neutrality', 'v1');
     assert.equal(r.status, 200);
     assert.equal(r.data.items[0].timesAsked, 2);
     assert.match(r.data.items[0].text, /net neutrality/i);
 
-    const all = await api('GET', '/bank/search?sort=asked', 's1');
+    const all = await api('GET', '/bank/search?sort=asked', 'v1');
     assert.equal(all.data.items[0].timesAsked, 4, 'the most asked question first');
 
-    const byYear = await api('GET', '/bank/search?q=hydrogen&year=2023', 's1');
+    const byYear = await api('GET', '/bank/search?q=hydrogen&year=2023', 'v1');
     assert.equal(byYear.data.total, 0);
-    const byBoard = await api('GET', `/bank/search?q=green%20hydrogen&board=${encodeURIComponent('B.B. Swain')}`, 's1');
+    const byBoard = await api('GET', `/bank/search?q=green%20hydrogen&board=${encodeURIComponent('B.B. Swain')}`, 'v1');
     assert.equal(byBoard.data.total, 1);
 
     const facets = await api('GET', '/bank/facets', 's1');
@@ -169,7 +190,7 @@ if (!URI) {
   });
 
   test('a family shows where it was asked and how the board followed up; full transcripts are admin-only', async () => {
-    const s = await api('GET', '/bank/search?q=favourite%20cricket%20player', 's1');
+    const s = await api('GET', '/bank/search?q=favourite%20cricket%20player', 'v1');
     const fam = await api('GET', `/bank/families/${s.data.items[0].id}`, 's1');
     assert.equal(fam.status, 200);
     assert.equal(fam.data.asked.length, 2);
@@ -538,8 +559,8 @@ if (!URI) {
     assert.ok(t.data.transcript.rawText.length > 0);
 
     // Merge the two UN questions into one family
-    const un1 = await api('GET', '/bank/search?q=UN%20relevant', 's1');
-    const un2 = await api('GET', '/bank/search?q=UN%20reform', 's1');
+    const un1 = await api('GET', '/bank/search?q=UN%20relevant', 'v1');
+    const un2 = await api('GET', '/bank/search?q=UN%20reform', 'v1');
     const a = un1.data.items.find((f) => /relevant/.test(f.text));
     const b = un2.data.items.find((f) => /reform/.test(f.text));
     assert.notEqual(a.id, b.id);
@@ -548,7 +569,7 @@ if (!URI) {
     assert.equal(merged.data.asked.length, 2);
 
     // Fixing a transcript's board updates the family statistics
-    const hy = await api('GET', '/bank/search?q=green%20hydrogen', 's1');
+    const hy = await api('GET', '/bank/search?q=green%20hydrogen', 'v1');
     const famBefore = await api('GET', `/bank/families/${hy.data.items[0].id}`, 'admin'); // transcript links are admin-only
     const swainTranscript = famBefore.data.asked.find((x) => x.board === 'B.B. Swain').transcriptId;
     assert.equal((await api('PATCH', `/admin/transcripts/${swainTranscript}`, 'admin', { board: 'Shri Dinesh Dasa sir', reviewed: true })).status, 200);
@@ -559,25 +580,25 @@ if (!URI) {
     const q = t.data.questions.find((x) => /online gaming/i.test(x.text)) || t.data.questions[0];
     assert.equal((await api('PATCH', `/admin/questions/${q.id}`, 'admin', { hidden: true })).status, 200);
     if (/online gaming/i.test(q.text)) {
-      const gone = await api('GET', '/bank/search?q=online%20gaming%20regulated', 's1');
+      const gone = await api('GET', '/bank/search?q=online%20gaming%20regulated', 'v1');
       assert.ok(!gone.data.items.some((f) => /online gaming be regulated/i.test(f.text)));
     }
   });
 
   test('bank filters: counts for each filter value, how-often bands, chairperson or members', async () => {
-    const all = await api('GET', '/bank/search?facets=1&limit=50', 's1');
+    const all = await api('GET', '/bank/search?facets=1&limit=50', 'v1');
     assert.equal(all.status, 200);
     const fc = all.data.facets;
     for (const k of ['year', 'board', 'topic', 'hookType', 'qtype', 'often', 'asker', 'shelfLife']) assert.ok(fc[k], `facet ${k}`);
     const oftenTotal = Object.values(fc.often).reduce((a, b) => a + b, 0);
     assert.equal(oftenTotal, all.data.total, 'every question falls in one how-often band');
     const year = Object.keys(fc.year)[0];
-    const byYear = await api('GET', `/bank/search?facets=1&year=${year}`, 's1');
+    const byYear = await api('GET', `/bank/search?facets=1&year=${year}`, 'v1');
     assert.equal(byYear.data.total, fc.year[year], 'the count shown is the count you get');
     assert.equal(Object.values(byYear.data.facets.year).reduce((a, b) => a + b, 0) >= byYear.data.total, true, 'other years still show their counts');
-    const repeated = await api('GET', '/bank/search?often=repeated', 's1');
+    const repeated = await api('GET', '/bank/search?often=repeated', 'v1');
     assert.ok(repeated.data.items.every((f) => f.timesAsked >= 2 && f.timesAsked <= 4));
-    const members = await api('GET', '/bank/search?asker=members&limit=50', 's1');
+    const members = await api('GET', '/bank/search?asker=members&limit=50', 'v1');
     assert.ok(members.data.items.every((f) => Object.keys(f.askers).some((k) => k !== 'chairman' && k !== 'unknown')));
   });
 
@@ -601,7 +622,7 @@ if (!URI) {
   });
 
   test('question detail: follow-up ladders and the follow-ups boards use most; answer guides need AI', async () => {
-    const s = await api('GET', '/bank/search?q=favourite%20cricket%20player', 's1');
+    const s = await api('GET', '/bank/search?q=favourite%20cricket%20player', 'v1');
     const fam = await api('GET', `/bank/families/${s.data.items[0].id}`, 's1');
     assert.ok(Array.isArray(fam.data.followUps));
     assert.ok(fam.data.followUps.some((f) => f.text === 'Why him and not Kohli?'));
@@ -663,7 +684,7 @@ if (!URI) {
       for (const [method, path] of [['GET', '/sessions'], ['POST', '/sessions'], ['GET', '/voice-sample']]) {
         assert.equal((await api(method, path, 's1', method === 'POST' ? { mode: 'practice' } : undefined)).status, 404, `${method} ${path}`);
       }
-      assert.equal((await api('GET', '/bank/search?q=cricket', 's1')).status, 200, 'the rest of the section still works');
+      assert.equal((await api('GET', '/bank/search?q=cricket', 'v1')).status, 200, 'the rest of the section still works');
     } finally {
       process.env.INTERVIEW_MOCK_ENABLED = 'true';
     }
@@ -845,6 +866,11 @@ if (!URI) {
     const en = await api('GET', '/guide', 's1');
     assert.equal(en.data.status, 'published');
     assert.deepEqual(en.data.entries.map((e) => e.text), ['Why civil services?']);
+    assert.equal(en.data.preview, undefined, 'signed-in students get the whole guide');
+    const visitor = await (await fetch(`${base}/api/interview/guide`)).json();
+    assert.equal(visitor.preview, true, 'visitors get a preview');
+    assert.equal(visitor.total, 1);
+    assert.ok(visitor.entries.length <= 5);
     const hi = await api('GET', '/guide?lang=hi', 's1');
     assert.equal(hi.data.entries[0].text, 'सिविल सेवा क्यों?');
     assert.equal(hi.data.entries[0].guide.tests, 'प्रेरणा।');
