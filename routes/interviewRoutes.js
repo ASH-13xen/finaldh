@@ -10,6 +10,7 @@ import {
   getFacets,
   getTrends,
   getKeywords,
+  getMyDafKeywords,
   getFamily,
   getApproach,
   getTranscript,
@@ -104,6 +105,7 @@ router.get('/bank/search', optionalAuth, sectionAccess, searchBank);
 router.get('/bank/facets', authenticateToken, sectionAccess, getFacets);
 router.get('/bank/trends', optionalAuth, sectionAccess, getTrends);
 router.get('/bank/keywords', optionalAuth, sectionAccess, getKeywords);
+router.get('/bank/my-daf', authenticateToken, sectionAccess, getMyDafKeywords);
 router.get('/bank/families/:id', authenticateToken, sectionAccess, getFamily);
 router.get('/bank/families/:id/approach', authenticateToken, sectionAccess, getApproach);
 router.post('/bank/families/:id/approach', authenticateToken, sectionAccess, getApproach);

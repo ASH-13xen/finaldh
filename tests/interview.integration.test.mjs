@@ -151,6 +151,35 @@ if (!URI) {
     const v = await api('GET', '/bank/search?q=net%20neutrality', 'v1');
     assert.equal(v.data.preview, undefined, 'a verified student searches the full bank');
     assert.match(v.data.items[0].text, /net neutrality/i);
+    const withFacets = await api('GET', '/bank/search?facets=1', 's2');
+    assert.equal(withFacets.data.preview, true);
+    assert.ok(withFacets.data.facets, 'the preview brings the filter counts, for the locked filters');
+  });
+
+  test('"From your DAF": a verified student filters the bank by their own DAF items', async () => {
+    assert.equal((await api('GET', '/bank/my-daf', 's2')).status, 403, 'not before the DAF is verified');
+    const none = await api('GET', '/bank/my-daf', 'v1');
+    assert.equal(none.status, 200);
+    assert.deepEqual(none.data.items, [], 'no DAF yet');
+    assert.equal((await api('GET', '/bank/search?mine=1', 'v1')).data.total, 0);
+
+    assert.equal((await api('PUT', '/profile', 'v1', { hobbies: ['Cricket'], homeState: 'Haryana' })).status, 200);
+    // The test bank is built without the keyword table, so its questions carry no DAF keywords and nothing
+    // matches here (the live bank has them); the counts and the filter still have to agree.
+    const mine = await api('GET', '/bank/my-daf', 'v1');
+    assert.equal(mine.status, 200);
+    for (const item of mine.data.items) {
+      const one = await api('GET', `/bank/search?label=${encodeURIComponent(item.filter)}&limit=50`, 'v1');
+      assert.equal(one.data.total, item.questions, 'each chip count matches its filter');
+    }
+    const all = await api('GET', '/bank/search?mine=1&limit=50', 'v1');
+    assert.equal(all.data.total, mine.data.total, '"All of my DAF" matches its count');
+
+    // Deleting the DAF details keeps the verification (and credits) on the same record.
+    assert.equal((await api('DELETE', '/profile', 'v1')).status, 200);
+    assert.equal((await api('GET', '/profile', 'v1')).data.empty, true, 'the DAF details are gone');
+    assert.equal((await api('GET', '/credits', 'v1')).data.daf.status, 'verified', 'still verified');
+    assert.equal((await api('GET', '/bank/search?sort=asked', 'v1')).data.preview, undefined, 'still the full bank');
   });
 
   test('the section is open to students unless INTERVIEW_SECTION_LIVE=false closes it to all but admins', async () => {

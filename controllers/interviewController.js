@@ -4,7 +4,7 @@ import InterviewSession from '../models/InterviewSession.js';
 import InterviewQuestion from '../models/InterviewQuestion.js';
 import InterviewTranscript from '../models/InterviewTranscript.js';
 import { getCorpusIndex, searchFamilies, familyById, relatedFamilies, summarizeFamily, familiesByKeys, OFTEN } from '../lib/interview/corpusIndex.js';
-import { buildPredictions, profileHash, profileItems } from '../lib/interview/predict.js';
+import { buildPredictions, profileHash, profileItems, keywordFor } from '../lib/interview/predict.js';
 import { planSession, openSession, answerCurrent, buildReport, sessionPayload, closingLine, pauseSession, resumeSession, PANEL, TRAITS } from '../lib/interview/interviewer.js';
 import { FORMATS, DEFAULT_FORMAT, formatOf, formatFromMinutes, TEMPERAMENTS, DEFAULT_TEMPERAMENT } from '../lib/interview/board.js';
 import { cleanProfileInput, transcribeAnswer, isProfileEmpty, extractDaf, SERVICES } from '../lib/interview/daf.js';
@@ -145,9 +145,13 @@ export const extractProfile = async (req, res) => {
   }
 };
 
+// Deletes the DAF details only. The same record holds the student's DAF verification, credits (bought and
+// free used) and daily usage, which must survive: deleting it all would wipe paid credits and hand out a
+// fresh set of free ones.
+const DAF_DETAIL_FIELDS = ['homeState', 'homeDistrict', 'hometown', 'education', 'work', 'optional', 'hobbies', 'achievements', 'servicePreference', 'familyBackground', 'languages', 'otherNotes', 'source', 'predictionCache', 'predictionCaches'];
 export const deleteProfile = async (req, res) => {
   try {
-    await InterviewProfile.deleteOne({ user: req.userId });
+    await InterviewProfile.updateOne({ user: req.userId }, { $unset: Object.fromEntries(DAF_DETAIL_FIELDS.map((k) => [k, 1])) });
     res.json({ ok: true });
   } catch (err) {
     console.error('[interview] deleteProfile error:', err);
@@ -273,10 +277,32 @@ const bankFilters = (q) => {
   const m = String(q.label || '').match(/^(hobby|college|discipline|job|state|optional):(.{1,80})$/);
   if (m) {
     const [, kind, label] = m;
-    f.labels = { hobby: [`hobby:${label}`, `eca:${label}`], college: [`education:${label}`], discipline: [`education:${label}`], job: [`work:${label}`], state: [`home:${label}`], optional: [`optional:${label}`] }[kind];
+    f.labels = LABEL_HOOKS[kind](label);
   }
   return f;
 };
+
+// The question hooks a DAF keyword covers ("hobby:Cricket" -> hobby and achievement questions about it).
+const LABEL_HOOKS = {
+  hobby: (l) => [`hobby:${l}`, `eca:${l}`],
+  college: (l) => [`education:${l}`],
+  discipline: (l) => [`education:${l}`],
+  job: (l) => [`work:${l}`],
+  state: (l) => [`home:${l}`],
+  optional: (l) => [`optional:${l}`]
+};
+
+// The student's DAF items as bank keywords, matched the way predictions match them; items the bank has no
+// keyword for are left out.
+const dafKeywords = (idx, profile) => {
+  const out = new Map();
+  for (const item of profileItems(profile || {})) {
+    const kw = keywordFor(idx, item);
+    if (kw && LABEL_HOOKS[kw.kind] && !out.has(`${kw.kind}:${kw.label}`)) out.set(`${kw.kind}:${kw.label}`, { kind: kw.kind, label: kw.label });
+  }
+  return [...out.values()];
+};
+const hooksOf = (keywords) => [...new Set(keywords.flatMap((k) => LABEL_HOOKS[k.kind](k.label)))];
 
 // Before a student's DAF is verified (and for visitors who haven't signed in) the bank is a preview: the
 // BANK_PREVIEW most-asked questions, whatever the search or filters. Admins and verified students get it all.
@@ -291,19 +317,45 @@ export const searchBank = async (req, res) => {
   try {
     const idx = await getCorpusIndex();
     if (!(await fullBankAccess(req))) {
-      const { total, items } = searchFamilies(idx, { sort: 'asked', offset: 0, limit: BANK_PREVIEW });
-      return res.json({ total, page: 1, limit: BANK_PREVIEW, items, semantic: false, preview: true, previewLimit: BANK_PREVIEW });
+      const { total, items, facets } = searchFamilies(idx, { sort: 'asked', offset: 0, limit: BANK_PREVIEW, facets: req.query.facets === '1' });
+      return res.json({ total, page: 1, limit: BANK_PREVIEW, items, semantic: false, preview: true, previewLimit: BANK_PREVIEW, ...(facets ? { facets } : {}) });
     }
     const q = String(req.query.q || '').slice(0, 200);
     const page = Math.max(1, Math.min(500, Number(req.query.page) || 1));
     const limit = Math.max(5, Math.min(50, Number(req.query.limit) || 20));
     const sort = ['relevance', 'asked', 'recent'].includes(req.query.sort) ? req.query.sort : 'relevance';
+    const filters = bankFilters(req.query);
+    // mine=1: questions about anything in the student's own DAF.
+    if (req.query.mine === '1') {
+      const profile = await InterviewProfile.findOne({ user: req.userId }).lean();
+      filters.labels = hooksOf(dafKeywords(idx, profile));
+      if (!filters.labels.length) return res.json({ total: 0, page, limit, items: [], semantic: false });
+    }
     const queryVec = q ? await queryVector(q, idx) : null;
-    const { total, items, facets } = searchFamilies(idx, { q, filters: bankFilters(req.query), sort, offset: (page - 1) * limit, limit, queryVec, facets: req.query.facets === '1' });
+    const { total, items, facets } = searchFamilies(idx, { q, filters, sort, offset: (page - 1) * limit, limit, queryVec, facets: req.query.facets === '1' });
     res.json({ total, page, limit, items, semantic: !!queryVec, ...(facets ? { facets } : {}) });
   } catch (err) {
     console.error('[interview] searchBank error:', err);
     fail(res, 500, 'Search failed. Please try again.');
+  }
+};
+
+// "From your DAF" in the bank: the student's DAF items as bank keywords, with how many questions each
+// (and all of them together) covers. Only with the full bank (a verified DAF, or an admin).
+export const getMyDafKeywords = async (req, res) => {
+  try {
+    if (!(await fullBankAccess(req))) return fail(res, 403, 'The full question bank opens once your DAF is verified.', { preview: true });
+    const idx = await getCorpusIndex();
+    const profile = await InterviewProfile.findOne({ user: req.userId }).lean();
+    const keywords = dafKeywords(idx, profile);
+    const count = (labels) => (labels.length ? searchFamilies(idx, { filters: { labels }, sort: 'asked', offset: 0, limit: 1 }).total : 0);
+    const items = keywords
+      .map((k) => ({ filter: `${k.kind}:${k.label}`, kind: k.kind, label: k.label, questions: count(LABEL_HOOKS[k.kind](k.label)) }))
+      .filter((k) => k.questions > 0);
+    res.json({ total: count(hooksOf(keywords)), items });
+  } catch (err) {
+    console.error('[interview] getMyDafKeywords error:', err);
+    fail(res, 500, 'Could not load your DAF keywords.');
   }
 };
 

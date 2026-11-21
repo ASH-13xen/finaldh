@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
+import { getCorpusIndex } from './lib/interview/corpusIndex.js';
 import { startMcqSweeper } from './utils/mcqAttempts.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -54,8 +56,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize Database Connection
-connectDB();
+// Initialize Database Connection, then build the interview question index straight away, so the first
+// Abhivyakti visitor after a restart or wake-up doesn't wait for it (it takes ~15 s on a small server).
+connectDB().then(() => {
+  if (mongoose.connection.readyState !== 1) return;
+  const t0 = Date.now();
+  getCorpusIndex()
+    .then((idx) => console.log(`[interview] question index ready in ${Math.round((Date.now() - t0) / 1000)}s (${idx?.stats?.questions ?? 0} questions)`))
+    .catch((err) => console.error('[interview] building the question index at startup failed:', err?.message || err));
+});
 
 // Auto-submits timed MCQ attempts nobody came back to (see utils/mcqAttempts.js)
 startMcqSweeper();
