@@ -218,10 +218,11 @@ export const getPredictions = async (req, res) => {
     const cache = cacheOf(profile, lang);
     const wantAI = await checkGemini();
     const fresh = cache?.data && cache.hash === hash && (cache.aiUsed || !wantAI);
-    if (fresh && req.query.refresh !== '1') return res.json({ ...cache.data, cached: true, ai: aiPayload() });
+    // No "rebuild on demand": saved predictions are reused until the DAF changes (each AI run costs money).
+    if (fresh) return res.json({ ...cache.data, cached: true, ai: aiPayload() });
     // A run started when the DAF was saved may still be going: wait for it rather than paying twice.
     const runKey = `${req.userId}:${lang}`;
-    if (wantAI && req.query.refresh !== '1' && building.has(runKey)) {
+    if (wantAI && building.has(runKey)) {
       const ready = await building.get(runKey);
       if (ready) return res.json({ ...ready, cached: false, ai: aiPayload() });
     }
