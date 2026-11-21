@@ -9,7 +9,7 @@ import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { userHasCourseAccess } from '../utils/courseAccess.js';
 import { withAccessGroups } from '../utils/purchaseFulfillment.js';
 import { CREDIT_PACKS, addPaidCredits } from '../lib/interview/credits.js';
-import { getDafCheck, dafGateMessage } from '../lib/interview/dafCheck.js';
+import { getDafCheck, dafGateMessage, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
 import {
   getRazorpay,
   razorpayKeyId,
@@ -123,8 +123,19 @@ async function resolvePurchase(user, body) {
     return { kind, itemLabel: `Abhivyakti credits — ${pack.credits}`, price: pack.price, credits: pack.credits };
   }
 
+  if (kind === 'daf_change') {
+    const daf = await getDafCheck(user._id);
+    if (daf.status !== 'verified') throw new PurchaseError(403, dafGateMessage(daf.status));
+    if (daf.change?.status === 'pending') throw new PurchaseError(400, 'Your new DAF is already waiting for verification.');
+    if (daf.canUpload) throw new PurchaseError(400, 'You can already upload your new DAF.');
+    return { kind, itemLabel: 'Abhivyakti — change of DAF', price: DAF_CHANGE_PRICE };
+  }
+
   throw new PurchaseError(400, 'Unknown purchase type');
 }
+
+// Kinds that are fulfilled the moment they're paid, with no admin step.
+const INSTANT = ['ai_credits', 'daf_change'];
 
 const requestModelFor = (payment) => (payment.kind === 'mcq_subject' ? McqPurchaseRequest : PurchaseRequest);
 
@@ -180,20 +191,25 @@ async function settlePayment(orderId, { paymentId, method, contact, email, via }
       $unset: { failureReason: 1 }
     }
   );
-  // AI credits go straight into the wallet. Claiming fulfilledAt first means two confirmations racing
-  // (browser verify + webhook) add the credits once.
-  const credited = await Payment.findOneAndUpdate(
-    { razorpayOrderId: orderId, kind: 'ai_credits', status: 'paid', fulfilledAt: { $exists: false } },
+  // AI credits go straight into the wallet, and a paid DAF change allows one more upload. Claiming
+  // fulfilledAt first means two confirmations racing (browser verify + webhook) fulfil it once.
+  const instant = await Payment.findOneAndUpdate(
+    { razorpayOrderId: orderId, kind: { $in: INSTANT }, status: 'paid', fulfilledAt: { $exists: false } },
     { $set: { fulfilledAt: new Date() } },
     { new: true }
   );
-  if (credited) {
-    await addPaidCredits(credited.userId, credited.credits || 0);
-    console.log(`[Payments] ${orderId} paid via ${via}: ${credited.credits} AI credits added for ${credited.userEmail}`);
-    return credited;
+  if (instant?.kind === 'ai_credits') {
+    await addPaidCredits(instant.userId, instant.credits || 0);
+    console.log(`[Payments] ${orderId} paid via ${via}: ${instant.credits} AI credits added for ${instant.userEmail}`);
+    return instant;
+  }
+  if (instant?.kind === 'daf_change') {
+    await grantDafUpload(instant.userId);
+    console.log(`[Payments] ${orderId} paid via ${via}: a DAF change for ${instant.userEmail}`);
+    return instant;
   }
   const payment = await Payment.findOne({ razorpayOrderId: orderId });
-  if (payment && payment.kind !== 'ai_credits' && !payment.fulfilledAt) {
+  if (payment && !INSTANT.includes(payment.kind) && !payment.fulfilledAt) {
     const request = await createVerificationRequest(payment);
     payment.purchaseRequestId = request._id;
     payment.fulfilledAt = new Date();

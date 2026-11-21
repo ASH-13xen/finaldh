@@ -60,7 +60,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
-import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf } from '../controllers/interviewDafController.js';
+import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminGetSchedule, adminUploadSchedule, getMyInterview } from '../controllers/interviewDafController.js';
 import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -97,7 +97,8 @@ router.get('/status', optionalAuth, sectionAccess, getStatus);
 router.get('/profile', authenticateToken, sectionAccess, getProfile);
 router.put('/profile', authenticateToken, sectionAccess, saveProfile);
 router.delete('/profile', authenticateToken, sectionAccess, deleteProfile);
-router.post('/profile/extract', authenticateToken, sectionAccess, dafUpload.single('file'), extractProfile);
+// Reading a DAF file on its own: admins only (a student's upload is read by /daf/submit, which counts it).
+router.post('/profile/extract', authenticateToken, requireAdmin, dafUpload.single('file'), extractProfile);
 router.get('/predictions', authenticateToken, sectionAccess, getPredictions);
 
 // Question bank (built from the community transcript compilations)
@@ -123,6 +124,7 @@ router.get('/practice/attempts', authenticateToken, sectionAccess, listPracticeA
 // DAF verification: the student uploads their DAF; practice and AI unlock once an admin verifies it
 router.get('/daf/status', authenticateToken, sectionAccess, getDafStatus);
 router.post('/daf/submit', authenticateToken, sectionAccess, dafUpload.single('file'), submitDaf);
+router.get('/my-interview', authenticateToken, sectionAccess, getMyInterview);
 
 // AI credits (15 free, then packs bought through /api/payments) and answers drafted from the DAF
 router.get('/credits', authenticateToken, sectionAccess, getCredits);
@@ -165,6 +167,8 @@ router.get('/admin/daf', authenticateToken, requireAdmin, adminListDaf);
 router.get('/admin/daf/:id/file', authenticateToken, requireAdmin, adminGetDafFile);
 router.post('/admin/daf/:id/verify', authenticateToken, requireAdmin, adminVerifyDaf);
 router.post('/admin/daf/:id/reject', authenticateToken, requireAdmin, adminRejectDaf);
+router.get('/admin/schedule', authenticateToken, requireAdmin, adminGetSchedule);
+router.post('/admin/schedule', authenticateToken, requireAdmin, dafUpload.single('file'), adminUploadSchedule);
 
 // Admin: notes (AI drafts from admin-chosen sources, review, publish) and the 100-question guide
 router.get('/admin/notes', authenticateToken, requireAdmin, adminListNotes);

@@ -439,4 +439,27 @@ if (!URI) {
     assert.equal(big.data.amount, 29900);
     assert.ok(await InterviewProfile.exists({ user: users.other._id }));
   });
+
+  test('DAF change: Rs 50 for one more upload after verification, granted once when paid, no admin step', async () => {
+    const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
+    const { getDafCheck, setDafCheck } = await import('../lib/interview/dafCheck.js');
+    await setDafCheck(users.other._id, { status: 'none' });
+    assert.equal((await call('POST', '/api/payments/order', 'other', { kind: 'daf_change' })).status, 403, 'only for a verified DAF');
+    await setDafCheck(users.other._id, { status: 'verified', submittedAt: new Date() });
+    await InterviewProfile.updateOne({ user: users.other._id }, { $set: { 'dafUploads.used': 1, 'dafUploads.allowed': 1 } });
+    assert.equal((await getDafCheck(users.other._id)).changeNeedsPayment, true);
+    const order = await call('POST', '/api/payments/order', 'other', { kind: 'daf_change', amount: 100 });
+    assert.equal(order.status, 200);
+    assert.equal(order.data.amount, 5000, 'Rs 50, whatever the browser sends');
+    const paid = payOrder(order.data.orderId);
+    await Promise.all([
+      call('POST', '/api/payments/verify', 'other', { razorpay_order_id: paid.razorpay_order_id, razorpay_payment_id: paid.razorpay_payment_id, razorpay_signature: paid.razorpay_signature }),
+      sendWebhook(capturedEvent({ ...paid.payment, order_id: order.data.orderId }))
+    ]);
+    const after = await InterviewProfile.findOne({ user: users.other._id }).lean();
+    assert.equal(after.dafUploads.allowed, 2, 'one more upload, granted once');
+    assert.equal((await getDafCheck(users.other._id)).canUpload, true);
+    assert.equal(await PurchaseRequest.countDocuments({ razorpayOrderId: order.data.orderId }), 0, 'no admin verification for the payment');
+    assert.equal((await call('POST', '/api/payments/order', 'other', { kind: 'daf_change' })).status, 400, 'not again while the paid upload is unused');
+  });
 }

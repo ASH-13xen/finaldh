@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import InterviewProfile from '../models/InterviewProfile.js';
+import DafSubmission from '../models/DafSubmission.js';
 import InterviewSession from '../models/InterviewSession.js';
 import InterviewQuestion from '../models/InterviewQuestion.js';
 import InterviewTranscript from '../models/InterviewTranscript.js';
@@ -20,7 +21,7 @@ import { textHash } from '../lib/interview/translate.js';
 import { PREP_KEY_RE, prepKey } from '../lib/interview/prepKey.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
-import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, getBalance, spendCredit, refundCredit } from '../lib/interview/credits.js';
+import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, FEEDBACK_CREDITS, FEEDBACK_MAX_SECONDS, getBalance, spendCredit, spendCredits, refundCredit, refundCredits } from '../lib/interview/credits.js';
 import { draftAnswer } from '../lib/interview/answers.js';
 import { getDafCheck, dafGateMessage } from '../lib/interview/dafCheck.js';
 
@@ -110,14 +111,39 @@ export const getProfile = async (req, res) => {
   }
 };
 
+// Saving the DAF details. Before verification (and an admin's) they're simply saved. Once a student is
+// verified, details already saved change only through a paid re-upload: the reviewed fields wait on the
+// change until an admin verifies the new DAF (or, if it was verified first, replace the details now).
 export const saveProfile = async (req, res) => {
   try {
     const fields = cleanProfileInput(req.body || {});
+    const admin = await isAdminRequest(req);
+    const before = await InterviewProfile.findOne({ user: req.userId }).lean();
+    const verified = before?.dafCheck?.status === 'verified';
+    // Details saved before this rule existed have no date but count as saved.
+    const saved = !!before?.detailsSavedAt || (!!before && !isProfileEmpty(before));
+    if (!admin && verified && saved) {
+      const change = before.dafChange || {};
+      if (change.status === 'pending') {
+        await InterviewProfile.updateOne({ user: req.userId }, { $set: { 'dafChange.fields': fields } });
+        if (change.submissionId && fields.rollNo) await DafSubmission.updateOne({ _id: change.submissionId, status: 'pending' }, { $set: { rollNo: fields.rollNo } });
+        const current = await InterviewProfile.findOne({ user: req.userId });
+        return res.json({ profile: publicProfile(current), items: profileItems(current.toObject()), empty: isProfileEmpty(current), changePending: true });
+      }
+      if (!(change.status === 'verified' && !change.appliedAt)) {
+        return fail(res, 403, 'Your DAF is verified. To change it, re-upload it.', { needReupload: true });
+      }
+    }
+    const extra = verified && before?.dafChange?.status === 'verified' && !before.dafChange.appliedAt ? { 'dafChange.appliedAt': new Date() } : {};
     const p = await InterviewProfile.findOneAndUpdate(
       { user: req.userId },
-      { $set: { ...fields, source: 'manual' }, $setOnInsert: { user: req.userId } },
+      { $set: { ...fields, source: 'manual', detailsSavedAt: new Date(), ...extra }, $setOnInsert: { user: req.userId } },
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
+    // The waiting first upload carries the roll number the student confirmed, for the admin's check.
+    if (!verified && before?.dafCheck?.submissionId && fields.rollNo) {
+      await DafSubmission.updateOne({ _id: before.dafCheck.submissionId, status: 'pending' }, { $set: { rollNo: fields.rollNo } });
+    }
     res.json({ profile: publicProfile(p), items: profileItems(p.toObject()), empty: isProfileEmpty(p) });
     // Have the tailored predictions ready by the time the student opens them (once the DAF is verified).
     warmPredictions(p, req).catch(() => {});
@@ -151,6 +177,9 @@ export const extractProfile = async (req, res) => {
 const DAF_DETAIL_FIELDS = ['homeState', 'homeDistrict', 'hometown', 'education', 'work', 'optional', 'hobbies', 'achievements', 'servicePreference', 'familyBackground', 'languages', 'otherNotes', 'source', 'predictionCache', 'predictionCaches'];
 export const deleteProfile = async (req, res) => {
   try {
+    // A verified DAF is changed by re-uploading (deleting and refilling it would be a free change).
+    const p = await InterviewProfile.findOne({ user: req.userId }).select('dafCheck').lean();
+    if (p?.dafCheck?.status === 'verified' && !(await isAdminRequest(req))) return fail(res, 403, 'Your DAF is verified. To change it, re-upload it.', { needReupload: true });
     await InterviewProfile.updateOne({ user: req.userId }, { $unset: Object.fromEntries(DAF_DETAIL_FIELDS.map((k) => [k, 1])) });
     res.json({ ok: true });
   } catch (err) {
@@ -545,7 +574,7 @@ ${notes.length ? `What past candidates say they answered, or how the board react
 Return JSON {"gist":"what the board is really testing, one sentence","structure":["3-4 steps of a strong answer"],"include":["3-5 points worth covering"],"avoid":["2-3 pitfalls"],"sample":"${personal ? '' : 'a 90-120 word sample answer in the first person'}"}.
 ${personal ? 'This is a personal question: leave "sample" empty - the answer must be the candidate\'s own.' : ''}
 ${lang === 'hi' ? 'Write every value in Hindi (Devanagari), simple and natural; keep acronyms and names as commonly written.' : 'Write in clear Indian English.'}`;
-    const raw = await generateJson({ system: APPROACH_SYSTEM, prompt, temperature: 0.4, maxOutputTokens: 2500, thinking: 'low' });
+    const raw = await generateJson({ system: APPROACH_SYSTEM, prompt, temperature: 0.4, maxOutputTokens: 2200, thinking: 'low' });
     const list = (x, n) => (Array.isArray(x) ? x.map((v) => String(v || '').trim().slice(0, 400)).filter(Boolean).slice(0, n) : []);
     const approach = { gist: String(raw?.gist || '').slice(0, 400), structure: list(raw?.structure, 5), include: list(raw?.include, 6), avoid: list(raw?.avoid, 4), sample: personal ? '' : String(raw?.sample || '').slice(0, 1400), personal };
     await InterviewAiCache.updateOne({ key }, { $set: { key, data: approach } }, { upsert: true });
@@ -652,12 +681,12 @@ const takeCredit = async (req) => {
 };
 const noCredits = (res, spent) => (spent?.limited
   ? fail(res, 429, `That's ${AI_USES_PER_DAY} credits used today - the daily limit. Try again tomorrow.`, { limited: true })
-  : fail(res, 402, `You've used your ${FREE_AI_USES} free credits. Get more to continue.`, { needCredits: true }));
+  : fail(res, 402, `You don't have enough credits left for this. Get more to continue.`, { needCredits: true }));
 
 export const getCredits = async (req, res) => {
   try {
     const admin = await isAdminRequest(req);
-    res.json({ ...(await getBalance(req.userId)), admin, daf: await getDafCheck(req.userId), packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY });
+    res.json({ ...(await getBalance(req.userId)), admin, daf: await getDafCheck(req.userId), packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY, feedbackCredits: FEEDBACK_CREDITS, feedbackMaxSeconds: FEEDBACK_MAX_SECONDS });
   } catch (err) {
     console.error('[interview] getCredits error:', err);
     fail(res, 500, 'Could not load your credits.');
@@ -713,12 +742,17 @@ export const analyzePractice = async (req, res) => {
   if (await dafGate(req, res)) return;
   if (!req.file) return fail(res, 400, 'No recording was received.');
   if (!(await checkGemini())) return fail(res, 503, 'Detailed feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
+  let device = {};
+  try { device = JSON.parse(String(req.body?.device || '{}')); } catch { device = {}; }
+  // Up to 2 minutes of audio (the screen says so; the size check catches recordings that claim otherwise).
+  if (Number(device.durationSec) > FEEDBACK_MAX_SECONDS + 5 || req.file.size > FEEDBACK_MAX_BYTES) {
+    return fail(res, 413, 'Detailed feedback works on answers up to 2 minutes.', { tooLong: true });
+  }
   try {
-    const spent = await takeCredit(req);
+    const admin = await isAdminRequest(req);
+    const spent = admin ? { from: 'admin' } : await spendCredits(req.userId, FEEDBACK_CREDITS);
     if (!spent?.from) return noCredits(res, spent);
     req.spentCredit = spent.from === 'admin' ? null : spent;
-    let device = {};
-    try { device = JSON.parse(String(req.body?.device || '{}')); } catch { device = {}; }
     const analysis = await analyzeAnswer({
       // "audio/webm;codecs=opus" -> "audio/webm" (Gemini wants the bare type).
       audio: { buffer: req.file.buffer, mimeType: req.file.mimetype.startsWith('video/') ? 'audio/webm' : req.file.mimetype.split(';')[0] },
@@ -729,7 +763,7 @@ export const analyzePractice = async (req, res) => {
     const credits = await getBalance(req.userId);
     res.json({ analysis, left: credits.total, credits });
   } catch (err) {
-    await refundCredit(req.userId, req.spentCredit).catch(() => {});
+    await refundCredits(req.userId, req.spentCredit).catch(() => {});
     if (err.name === 'GeminiUnavailableError') return fail(res, 503, 'Detailed feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
     console.error('[interview] analyzePractice error:', err);
     fail(res, 502, 'Could not analyse that recording. Try again, a little closer to the microphone.');
@@ -737,6 +771,8 @@ export const analyzePractice = async (req, res) => {
 };
 
 const MAX_ATTEMPTS = 500;
+// 2 minutes of compressed speech is well under this; bigger files are longer recordings.
+const FEEDBACK_MAX_BYTES = 3 * 1024 * 1024;
 const num = (v, min, max) => (Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : undefined);
 
 export const savePracticeAttempt = async (req, res) => {

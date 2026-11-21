@@ -4,8 +4,13 @@
 import mongoose from 'mongoose';
 import DafSubmission from '../models/DafSubmission.js';
 import User from '../models/User.js';
-import { getDafCheck, setDafCheck, dafCheckOf } from '../lib/interview/dafCheck.js';
+import { getDafCheck, setDafCheck, dafCheckOf, takeDafUpload, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
+import { findByRoll, normalizeRoll, parseSchedulePdf, replaceSchedule, scheduleInfo } from '../lib/interview/schedule.js';
+import InterviewSchedule from '../models/InterviewSchedule.js';
 import InterviewProfile from '../models/InterviewProfile.js';
+import { isAdminEmail } from '../middlewares/adminMiddleware.js';
+import { checkGemini } from '../lib/interview/gemini.js';
+import { extractDaf, isProfileEmpty } from '../lib/interview/daf.js';
 
 const fail = (res, status, error, extra = {}) => res.status(status).json({ error, ...extra });
 const isId = (id) => mongoose.Types.ObjectId.isValid(String(id || ''));
@@ -22,21 +27,37 @@ export const getDafStatus = async (req, res) => {
   }
 };
 
-// POST /daf/submit (multipart "file"): stores the DAF for an admin to verify. A verified student uploading
-// again is just refreshing their details - their verification stays.
+// POST /daf/submit (multipart "file"): the student's DAF upload. One call stores the file for an admin to
+// verify and has AI read it, so the student can check the details (returned as fields) before saving them.
+// One upload per account, plus one more after each rejection; nothing while one is waiting or verified.
+// Admins (testing) are not limited.
 export const submitDaf = async (req, res) => {
   if (!req.file) return fail(res, 400, 'Choose your DAF file (PDF or a photo).');
   try {
-    const current = await getDafCheck(req.userId);
-    if (current.status === 'verified') return res.json({ daf: current, stored: false });
-    const since = new Date(Date.now() - 24 * 3600 * 1000);
-    if (await DafSubmission.countDocuments({ user: req.userId, createdAt: { $gte: since } }) >= SUBMITS_PER_DAY) {
-      return fail(res, 429, 'You have uploaded your DAF several times today. Please try again tomorrow.', { limited: true });
-    }
     const user = await User.findById(req.userId).select('email name fullName').lean();
+    const admin = !!user && isAdminEmail(user.email);
+    const current = await getDafCheck(req.userId);
+    // A verified student's upload is a change: paid for first, verified again, and it leaves the current
+    // DAF in place until then.
+    const isChange = current.status === 'verified';
+    if (!admin) {
+      if (current.status === 'pending') return fail(res, 403, 'Your DAF is waiting to be verified. You can upload again only if our team can’t verify it.', { dafLocked: 'pending', daf: current });
+      if (isChange && current.change?.status === 'pending') return fail(res, 403, 'Your new DAF is waiting to be verified.', { dafLocked: 'changePending', daf: current });
+      if (!(await takeDafUpload(req.userId))) {
+        return isChange
+          ? fail(res, 402, `Changing your DAF costs ₹${DAF_CHANGE_PRICE}.`, { needPayment: true, price: DAF_CHANGE_PRICE, daf: current })
+          : fail(res, 403, 'You have already uploaded your DAF.', { dafLocked: 'used', daf: current });
+      }
+    } else {
+      const since = new Date(Date.now() - 24 * 3600 * 1000);
+      if (await DafSubmission.countDocuments({ user: req.userId, createdAt: { $gte: since } }) >= SUBMITS_PER_DAY) {
+        return fail(res, 429, 'You have uploaded your DAF several times today. Please try again tomorrow.', { limited: true });
+      }
+    }
     // One waiting upload per student: a new one replaces the old.
     await DafSubmission.deleteMany({ user: req.userId, status: 'pending' });
     const sub = await DafSubmission.create({
+      kind: isChange ? 'change' : 'first',
       user: req.userId,
       userEmail: user?.email || '',
       userName: user?.fullName || user?.name || '',
@@ -45,8 +66,24 @@ export const submitDaf = async (req, res) => {
       size: req.file.size,
       file: req.file.buffer
     });
-    await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: new Date(), reviewedAt: null, reason: '' });
-    res.json({ daf: await getDafCheck(req.userId), stored: true });
+    if (isChange) {
+      await InterviewProfile.updateOne({ user: req.userId }, { $set: { dafChange: { status: 'pending', submissionId: sub._id, submittedAt: new Date(), reviewedAt: null, reason: '', fields: null, appliedAt: null } } });
+    } else {
+      await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: new Date(), reviewedAt: null, reason: '' });
+    }
+    // AI reads it to fill in the form; if it can't, the student fills it in from the file instead.
+    let read = { aiUnavailable: true };
+    if (await checkGemini()) {
+      try {
+        const { fields, unsure } = await extractDaf(req.file.buffer, req.file.mimetype);
+        read = { fields, unsure, empty: isProfileEmpty(fields) };
+        if (fields.rollNo) await DafSubmission.updateOne({ _id: sub._id }, { $set: { rollNo: fields.rollNo } });
+      } catch (err) {
+        console.warn('[interview] reading an uploaded DAF failed:', String(err?.message || err).slice(0, 200));
+        read = { readFailed: true };
+      }
+    }
+    res.json({ daf: await getDafCheck(req.userId), stored: true, change: isChange, ...read });
   } catch (err) {
     console.error('[interview] submitDaf error:', err);
     fail(res, 500, 'Could not upload your DAF. Please try again.');
@@ -68,7 +105,10 @@ const summary = (s) => ({
   reason: s.reason,
   reviewedBy: s.reviewedBy,
   reviewedAt: s.reviewedAt,
-  createdAt: s.createdAt
+  createdAt: s.createdAt,
+  kind: s.kind || 'first',
+  rollNo: s.rollNo || '',
+  schedule: s.schedule || null
 });
 
 export const adminListDaf = async (req, res) => {
@@ -79,11 +119,25 @@ export const adminListDaf = async (req, res) => {
         { $match: { status } },
         { $sort: { createdAt: status === 'pending' ? 1 : -1 } },
         { $limit: 300 },
-        { $project: { hasFile: { $gt: [{ $ifNull: ['$size', 0] }, 0] }, user: 1, userEmail: 1, userName: 1, status: 1, fileName: 1, mimeType: 1, size: 1, reason: 1, reviewedBy: 1, reviewedAt: 1, createdAt: 1 } }
+        { $project: { hasFile: { $gt: [{ $ifNull: ['$size', 0] }, 0] }, user: 1, userEmail: 1, userName: 1, status: 1, fileName: 1, mimeType: 1, size: 1, reason: 1, reviewedBy: 1, reviewedAt: 1, createdAt: 1, kind: 1, rollNo: 1 } }
       ]),
       DafSubmission.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])
     ]);
-    res.json({ items: items.map(summary), counts: Object.fromEntries(counts.map((c) => [c._id, c.n])) });
+    // The roll number the student confirmed (or the one read from the file), checked against UPSC's schedule.
+    const profiles = await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo').lean();
+    const rollOfUser = new Map(profiles.map((p) => [String(p.user), p.rollNo || '']));
+    for (const i of items) i.rollNo = normalizeRoll(i.rollNo || rollOfUser.get(String(i.user)) || '');
+    const rolls = [...new Set(items.map((i) => i.rollNo).filter(Boolean))];
+    const rows = rolls.length ? await InterviewSchedule.find({ roll: { $in: rolls } }).lean() : [];
+    const byRoll = new Map(rows.map((r) => [r.roll, r]));
+    const loaded = (await InterviewSchedule.estimatedDocumentCount()) > 0;
+    for (const i of items) {
+      const r = i.rollNo ? byRoll.get(i.rollNo) : null;
+      i.schedule = r
+        ? { found: true, name: r.name, date: r.date, day: r.day, session: r.session, reportingTime: r.reportingTime }
+        : { found: false, loaded, noRoll: !i.rollNo };
+    }
+    res.json({ items: items.map(summary), counts: Object.fromEntries(counts.map((c) => [c._id, c.n])), schedule: await scheduleInfo() });
   } catch (err) {
     console.error('[interview] adminListDaf error:', err);
     fail(res, 500, 'Could not load the DAF uploads.');
@@ -119,7 +173,19 @@ const decide = (status) => async (req, res) => {
     const now = new Date();
     // The file is not kept once it has been reviewed.
     await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, size: 0 }, $unset: { file: 1 } });
-    await setDafCheck(s.user, { status, reason, reviewedAt: now });
+    if (s.kind === 'change') {
+      // A change: verified -> the new details replace the current ones (if the student has saved them;
+      // otherwise when they do). Rejected -> the current DAF stays and they may upload once more.
+      const p = await InterviewProfile.findOne({ user: s.user }).select('dafChange').lean();
+      const fields = p?.dafChange?.fields;
+      const $set = { 'dafChange.status': status, 'dafChange.reason': reason, 'dafChange.reviewedAt': now };
+      if (status === 'verified' && fields) Object.assign($set, fields, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
+      await InterviewProfile.updateOne({ user: s.user }, { $set });
+    } else {
+      await setDafCheck(s.user, { status, reason, reviewedAt: now });
+    }
+    // A rejected DAF may be uploaded once more.
+    if (status === 'rejected') await grantDafUpload(s.user);
     res.json({ ok: true, daf: dafCheckOf((await InterviewProfile.findOne({ user: s.user }).select('dafCheck').lean())) });
   } catch (err) {
     console.error('[interview] DAF review error:', err);
@@ -128,4 +194,53 @@ const decide = (status) => async (req, res) => {
 };
 
 export const adminVerifyDaf = decide('verified');
+
+// ------------------------------------------------------------------ admins: UPSC's interview schedule
+
+export const adminGetSchedule = async (req, res) => {
+  try {
+    res.json({ schedule: await scheduleInfo() });
+  } catch (err) {
+    console.error('[interview] adminGetSchedule error:', err);
+    fail(res, 500, 'Could not load the schedule.');
+  }
+};
+
+// POST /admin/schedule (multipart "file": the PDF UPSC publishes): replaces the stored schedule.
+export const adminUploadSchedule = async (req, res) => {
+  if (!req.file) return fail(res, 400, 'Choose the schedule PDF.');
+  if (req.file.mimetype !== 'application/pdf') return fail(res, 400, 'The schedule must be the PDF UPSC publishes.');
+  try {
+    const rows = await parseSchedulePdf(req.file.buffer);
+    if (rows.length < 20) return fail(res, 400, 'That doesn’t look like UPSC’s interview schedule: no candidate rows were found.');
+    res.json({ schedule: await replaceSchedule(rows, String(req.file.originalname || '').slice(0, 160)), rows: rows.length });
+  } catch (err) {
+    console.error('[interview] adminUploadSchedule error:', err);
+    fail(res, 500, 'Could not read that schedule.');
+  }
+};
+
+// GET /my-interview: the student's own row of the schedule, matched by the roll number on their verified
+// DAF. Never anyone else's.
+export const getMyInterview = async (req, res) => {
+  try {
+    const p = await InterviewProfile.findOne({ user: req.userId }).select('rollNo dafCheck').lean();
+    if (dafCheckOf(p).status !== 'verified' || !p?.rollNo) return res.json({ found: false });
+    const r = await findByRoll(p.rollNo);
+    if (!r) return res.json({ found: false });
+    res.json({
+      found: true,
+      roll: r.roll,
+      name: r.name,
+      date: r.date,
+      day: r.day,
+      session: r.session,
+      reportingTime: r.reportingTime,
+      reportingAt: new Date(`${r.date}T${r.reportingTime}:00+05:30`).toISOString()
+    });
+  } catch (err) {
+    console.error('[interview] getMyInterview error:', err);
+    fail(res, 500, 'Could not load your interview date.');
+  }
+};
 export const adminRejectDaf = decide('rejected');

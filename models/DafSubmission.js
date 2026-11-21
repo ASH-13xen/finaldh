@@ -10,6 +10,10 @@ const dafSubmissionSchema = new mongoose.Schema({
   userEmail: { type: String, default: '' },
   userName: { type: String, default: '' },
   status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending', index: true },
+  // 'first': the DAF that unlocks the section; 'change': a paid re-upload by a verified student.
+  kind: { type: String, enum: ['first', 'change'], default: 'first' },
+  // The UPSC roll number read from it (or confirmed by the student), for checking against the schedule.
+  rollNo: { type: String, default: '' },
   fileName: { type: String, default: '' },
   mimeType: { type: String, default: '' },
   size: { type: Number, default: 0 },

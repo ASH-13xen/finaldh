@@ -53,6 +53,28 @@ const interviewProfileSchema = new mongoose.Schema({
 
   // DAF verification (lib/interview/dafCheck.js): an admin checks the uploaded DAF before practice and AI
   // credits unlock.
+  // UPSC roll number, read from the uploaded DAF and confirmed by the student; matched to the interview
+  // schedule (models/InterviewSchedule.js). Shown back only to the student, once their DAF is verified.
+  rollNo: { type: String, default: '' },
+  // When the DAF details were first saved: after verification, changing them is a paid re-upload.
+  detailsSavedAt: { type: Date, default: null },
+  // A change of DAF after verification (paid, re-uploaded, verified again). The current details and
+  // predictions stay until an admin verifies the new DAF; then its fields replace them.
+  dafChange: {
+    status: { type: String, enum: ['none', 'pending', 'verified', 'rejected'], default: 'none' },
+    submissionId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    submittedAt: { type: Date, default: null },
+    reviewedAt: { type: Date, default: null },
+    reason: { type: String, default: '' },
+    fields: { type: mongoose.Schema.Types.Mixed, default: null },
+    appliedAt: { type: Date, default: null }
+  },
+  // DAF uploads: one per account, plus one more each time an admin rejects the DAF (no defaults, so
+  // students who uploaded before this existed are counted from dafCheck - see lib/interview/dafCheck.js).
+  dafUploads: {
+    used: { type: Number },
+    allowed: { type: Number }
+  },
   dafCheck: {
     status: { type: String, enum: ['none', 'pending', 'verified', 'rejected'], default: 'none' },
     submissionId: { type: mongoose.Schema.Types.ObjectId, default: null },

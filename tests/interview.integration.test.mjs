@@ -175,11 +175,15 @@ if (!URI) {
     const all = await api('GET', '/bank/search?mine=1&limit=50', 'v1');
     assert.equal(all.data.total, mine.data.total, '"All of my DAF" matches its count');
 
-    // Deleting the DAF details keeps the verification (and credits) on the same record.
-    assert.equal((await api('DELETE', '/profile', 'v1')).status, 200);
-    assert.equal((await api('GET', '/profile', 'v1')).data.empty, true, 'the DAF details are gone');
+    // A verified DAF can't be deleted or edited (that would be a free change); it changes by re-uploading.
+    assert.equal((await api('DELETE', '/profile', 'v1')).status, 403);
+    assert.equal((await api('PUT', '/profile', 'v1', { hobbies: ['Chess'] })).data.needReupload, true);
+    assert.deepEqual((await api('GET', '/profile', 'v1')).data.profile.hobbies, ['Cricket'], 'unchanged');
     assert.equal((await api('GET', '/credits', 'v1')).data.daf.status, 'verified', 'still verified');
-    assert.equal((await api('GET', '/bank/search?sort=asked', 'v1')).data.preview, undefined, 'still the full bank');
+    // (clean up for later tests, as an admin would)
+    const { default: IP } = await import('../models/InterviewProfile.js');
+    const { default: U } = await import('../models/User.js');
+    await IP.updateOne({ user: (await U.findOne({ email: 'v1@test.dev' }))._id }, { $set: { hobbies: [], homeState: '', detailsSavedAt: null } });
   });
 
   test('the section is open to students unless INTERVIEW_SECTION_LIVE=false closes it to all but admins', async () => {
@@ -567,17 +571,18 @@ if (!URI) {
     await api('POST', `/sessions/${id}/end`, 's1');
   });
 
-  test('DAF upload is read by AI for review (not saved); with AI off it says so; transcription likewise', async () => {
-    const form = new FormData();
-    form.append('file', new Blob([Buffer.from('%PDF-1.4 test')], { type: 'application/pdf' }), 'daf.pdf');
-    const res = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: form });
+  test('reading a DAF file on its own is for admins (students upload through /daf/submit); with AI off it says so', async () => {
+    const form = () => { const f = new FormData(); f.append('file', new Blob([Buffer.from('%PDF-1.4 test')], { type: 'application/pdf' }), 'daf.pdf'); return f; };
+    const student = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: form() });
+    assert.equal(student.status, 403, 'students cannot have files read outside their one upload');
+    const res = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.admin}` }, body: form() });
     assert.equal(res.status, 503);
     assert.equal((await res.json()).aiUnavailable, true);
-    const noFile = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` } });
+    const noFile = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.admin}` } });
     assert.equal(noFile.status, 400);
     const exe = new FormData();
     exe.append('file', new Blob([Buffer.from('MZ')], { type: 'application/x-msdownload' }), 'daf.exe');
-    const bad = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s1}` }, body: exe });
+    const bad = await fetch(`${base}/api/interview/profile/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.admin}` }, body: exe });
     assert.equal(bad.status, 400, 'only PDFs and photos are read');
 
     const audio = new FormData();
@@ -814,13 +819,19 @@ if (!URI) {
       const r = await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s3}` }, body: form });
       return { status: r.status, data: await r.json().catch(() => null) };
     };
-    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.status, 'none');
-    const first = await upload(Buffer.from('%PDF-1.4 first'));
+    const none = (await api('GET', '/daf/status', 's3')).data.daf;
+    assert.equal(none.status, 'none');
+    assert.equal(none.canUpload, true);
+    const first = await upload(Buffer.from('%PDF-1.4 first upload'));
     assert.equal(first.status, 200);
     assert.equal(first.data.daf.status, 'pending');
+    assert.equal(first.data.stored, true);
+    assert.equal(first.data.aiUnavailable, true, 'the same call reads it with AI (off here), so the student can check the details');
+    assert.equal(first.data.daf.canUpload, false);
     const second = await upload(Buffer.from('%PDF-1.4 second upload'));
-    assert.equal(second.data.daf.status, 'pending');
-    assert.equal(await DafSubmission.countDocuments({ user: s3._id, status: 'pending' }), 1, 'a new upload replaces the waiting one');
+    assert.equal(second.status, 403, 'one upload per account: not again while it waits');
+    assert.equal(second.data.dafLocked, 'pending');
+    assert.equal(await DafSubmission.countDocuments({ user: s3._id }), 1);
 
     assert.equal((await api('GET', '/admin/daf', 's3')).status, 403, 'students cannot review');
     const list = await api('GET', '/admin/daf?status=pending', 'admin');
@@ -831,26 +842,112 @@ if (!URI) {
     const file = await fetch(`${base}/api/interview/admin/daf/${item.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
     assert.equal(file.status, 200);
     assert.equal(file.headers.get('content-type'), 'application/pdf');
-    assert.equal(Buffer.from(await file.arrayBuffer()).toString(), '%PDF-1.4 second upload');
+    assert.equal(Buffer.from(await file.arrayBuffer()).toString(), '%PDF-1.4 first upload');
 
     assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', {})).status, 400, 'a rejection needs a reason');
     assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', { reason: 'This is not a DAF' })).status, 200);
     const after = await api('GET', '/daf/status', 's3');
     assert.equal(after.data.daf.status, 'rejected');
     assert.equal(after.data.daf.reason, 'This is not a DAF');
+    assert.equal(after.data.daf.canUpload, true, 'a rejection allows one more upload');
     assert.equal((await fetch(`${base}/api/interview/admin/daf/${item.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } })).status, 404, 'the file is deleted after review');
 
     const third = await upload(Buffer.from('%PDF-1.4 the real DAF'));
     assert.equal(third.data.daf.status, 'pending');
+    assert.equal((await upload(Buffer.from('%PDF-1.4 one more'))).status, 403, 'and only one');
     const again = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
     assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin')).status, 200);
     assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin')).status, 409, 'already reviewed');
     assert.equal((await api('GET', '/credits', 's3')).data.daf.status, 'verified');
     assert.equal((await api('POST', '/practice/attempts', 's3', { question: 'Why civil services?', metrics: { wpm: 120 } })).status, 200, 'practice unlocks');
+    // Details saved (before verification they save freely, with the confirmed roll number)
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Chess'], homeState: 'Kerala', rollNo: '0811049' })).status, 200);
+    assert.equal((await api('GET', '/profile', 's3')).data.profile.rollNo, '0811049');
+
+    // Changing a verified DAF: Rs 50 first, then a re-upload that is verified again
     const reupload = await upload(Buffer.from('%PDF-1.4 updated'));
-    assert.equal(reupload.data.daf.status, 'verified', 'uploading again after verification keeps it verified');
-    assert.equal(reupload.data.stored, false);
-    assert.equal((await InterviewProfile.findOne({ user: s3._id }).lean()).dafCheck.status, 'verified');
+    assert.equal(reupload.status, 402, 'changing a verified DAF is paid for first');
+    assert.equal(reupload.data.needPayment, true);
+    assert.equal(reupload.data.price, 50);
+    const st = (await api('GET', '/daf/status', 's3')).data.daf;
+    assert.equal(st.canUpload, false);
+    assert.equal(st.changeNeedsPayment, true);
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'] })).status, 403, 'no free edits either');
+
+    const { grantDafUpload } = await import('../lib/interview/dafCheck.js');
+    await grantDafUpload(s3._id); // what a paid Rs 50 order does
+    const change = await upload(Buffer.from('%PDF-1.4 my new DAF'));
+    assert.equal(change.status, 200);
+    assert.equal(change.data.change, true);
+    assert.equal(change.data.daf.status, 'verified', 'still verified while the new DAF waits');
+    assert.equal(change.data.daf.change.status, 'pending');
+    const saved = await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'], homeState: 'Haryana', rollNo: '0811049' });
+    assert.equal(saved.data.changePending, true);
+    assert.deepEqual((await api('GET', '/profile', 's3')).data.profile.hobbies, ['Chess'], 'the current DAF stays until the new one is verified');
+    assert.equal((await upload(Buffer.from('%PDF-1.4 another'))).status, 403, 'one change at a time');
+
+    const waiting = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
+    assert.equal(waiting.kind, 'change');
+    assert.equal(waiting.rollNo, '0811049');
+    assert.equal((await api('POST', `/admin/daf/${waiting.id}/verify`, 'admin')).status, 200);
+    const now = (await api('GET', '/profile', 's3')).data.profile;
+    assert.deepEqual(now.hobbies, ['Kabaddi'], 'verified: the new details replace the old');
+    assert.equal(now.homeState, 'Haryana');
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.changeNeedsPayment, true, 'the next change is paid for again');
+  });
+
+  test('UPSC interview schedule: admins see the match for each upload; students see only their own row, once verified', async () => {
+    const { parseScheduleText, replaceSchedule, normalizeRoll, firstNameOf } = await import('../lib/interview/schedule.js');
+    const rows = parseScheduleText([
+      'Sl. No. Interview Date \tDay \tSession Reporting Time Roll No. \tName',
+      '1 07-Dec-2026 Monday \tForenoon 09:00 HRS \t0811049 DIPANSHU GUPTA',
+      '2 07-Dec-2026 Monday \tAfternoon 13:00 HRS \t0814202 NIKITA',
+      '116 09-Dec-2026 Wednesday Forenoon 09:00 HRS \t0103665 RISHAV JAIN',
+      '-- 1 of 114 --',
+      'ATEL'
+    ].join('\n'));
+    assert.equal(rows.length, 3);
+    assert.deepEqual(rows[0], { sl: 1, date: '2026-12-07', day: 'Monday', session: 'Forenoon', reportingTime: '09:00', roll: '0811049', name: 'DIPANSHU GUPTA' });
+    assert.equal(rows[2].date, '2026-12-09');
+    assert.equal(normalizeRoll('811049'), '0811049', 'a dropped leading zero is put back');
+    assert.equal(firstNameOf('DIPANSHU GUPTA'), 'Dipanshu');
+    const info = await replaceSchedule(rows, 'schedule.pdf');
+    assert.equal(info.count, 3);
+    assert.equal(info.firstDate, '2026-12-07');
+
+    // s3 (verified, roll 0811049 from the DAF test above) sees their own row
+    const mine = await api('GET', '/my-interview', 's3');
+    assert.equal(mine.data.found, true);
+    assert.equal(mine.data.name, 'DIPANSHU GUPTA');
+    assert.equal(mine.data.reportingAt, '2026-12-07T03:30:00.000Z', '09:00 Indian time');
+    assert.equal((await api('GET', '/my-interview', 's2')).data.found, false, 'not verified: nothing');
+    assert.equal((await api('GET', '/my-interview?roll=0814202', 's2')).data.found, false, 'and no looking up other roll numbers');
+
+    // the admin list shows the match (or that a roll number is not in the schedule)
+    const verified = (await api('GET', '/admin/daf?status=verified', 'admin')).data;
+    const s3 = verified.items.find((i) => i.userEmail === 's3@test.dev');
+    assert.equal(s3.schedule.found, true);
+    assert.equal(s3.schedule.session, 'Forenoon');
+    assert.equal(verified.schedule.count, 3);
+    assert.equal((await api('GET', '/admin/schedule', 's1')).status, 403, 'admins only');
+  });
+
+  test('recording feedback takes 2 credits, all or none; credits report what feedback needs', async () => {
+    const { spendCredits, refundCredits, getBalance } = await import('../lib/interview/credits.js');
+    const { default: User } = await import('../models/User.js');
+    const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
+    const u = await User.findOne({ email: 'v1@test.dev' });
+    assert.equal((await api('GET', '/credits', 'v1')).data.feedbackCredits, 2);
+    await InterviewProfile.updateOne({ user: u._id }, { $set: { 'credits.freeUsed': 14, 'credits.paid': 0 } });
+    assert.equal((await spendCredits(u._id, 2))?.from ?? null, null, 'one credit left is not enough');
+    assert.equal((await getBalance(u._id)).total, 1, 'and nothing was taken');
+    await InterviewProfile.updateOne({ user: u._id }, { $set: { 'credits.paid': 1 } });
+    const spent = await spendCredits(u._id, 2);
+    assert.equal(spent.parts.length, 2, 'the last free one and a bought one');
+    assert.equal((await getBalance(u._id)).total, 0);
+    await refundCredits(u._id, spent);
+    assert.equal((await getBalance(u._id)).total, 2, 'both come back when feedback fails');
+    await InterviewProfile.updateOne({ user: u._id }, { $set: { 'credits.freeUsed': 0, 'credits.paid': 0 } });
   });
 
   test('notes: admins draft from sources and publish; students see published notes, marked "for you" from the DAF', async () => {
