@@ -120,7 +120,7 @@ async function resolvePurchase(user, body) {
     if (!pack) throw new PurchaseError(400, 'Unknown credit pack');
     const daf = await getDafCheck(user._id);
     if (daf.status !== 'verified') throw new PurchaseError(403, dafGateMessage(daf.status));
-    return { kind, itemLabel: `Interview Prep credits — ${pack.credits}`, price: pack.price, credits: pack.credits };
+    return { kind, itemLabel: `Abhivyakti credits — ${pack.credits}`, price: pack.price, credits: pack.credits };
   }
 
   throw new PurchaseError(400, 'Unknown purchase type');

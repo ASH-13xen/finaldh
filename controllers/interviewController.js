@@ -466,7 +466,7 @@ export const getApproach = async (req, res) => {
     const admin = await isAdminRequest(req);
     const unlocked = admin || !!(await InterviewPrep.exists({ user: req.userId, approaches: unlockKey }));
     if (!unlocked) {
-      if (req.method !== 'POST') return fail(res, 402, 'How to approach it costs 1 credit.', { locked: true });
+      if (req.method !== 'POST') return fail(res, 402, 'Open "How to approach it" to see this answer guide.', { locked: true });
       spent = await takeCredit(req);
       if (!spent?.from) return noCredits(res, spent);
     }
