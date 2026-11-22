@@ -53,12 +53,22 @@ const interviewProfileSchema = new mongoose.Schema({
 
   // DAF verification (lib/interview/dafCheck.js): an admin checks the uploaded DAF before practice and AI
   // credits unlock.
-  // UPSC roll number, read from the uploaded DAF and confirmed by the student; matched to the interview
-  // schedule (models/InterviewSchedule.js). Shown back only to the student, once their DAF is verified.
+  // UPSC roll number, matched to the interview schedule (models/InterviewSchedule.js). Students never type it
+  // in: it is read from the uploaded DAF and set by an admin when verifying it (or when approving a roll
+  // number request with proof). Shown back only to the student, once their DAF is verified.
   rollNo: { type: String, default: '' },
-  // When an admin checked the roll number against the DAF (set only by verifying it). A student's own entry
-  // is just a suggestion for that check; only a checked roll number shows the student an interview slot.
+  // When an admin checked the roll number (set only by verifying a DAF or a roll number request); only a
+  // checked roll number shows the student an interview slot.
   rollCheckedAt: { type: Date, default: null },
+  // A verified student with no checked roll number asking to add one, free, with proof (an e-summon letter,
+  // admit card or the DAF page showing it), checked by an admin like a DAF.
+  rollClaim: {
+    status: { type: String, enum: ['none', 'pending', 'verified', 'rejected'], default: 'none' },
+    submissionId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    submittedAt: { type: Date, default: null },
+    reviewedAt: { type: Date, default: null },
+    reason: { type: String, default: '' }
+  },
   // When the DAF details were first saved: after verification, changing them is a paid re-upload.
   detailsSavedAt: { type: Date, default: null },
   // A change of DAF after verification (paid, re-uploaded, verified again). The current details and

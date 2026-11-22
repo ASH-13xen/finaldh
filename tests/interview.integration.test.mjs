@@ -855,10 +855,12 @@ if (!URI) {
     const third = await upload(Buffer.from('%PDF-1.4 the real DAF'));
     assert.equal(third.data.daf.status, 'pending');
     assert.equal((await upload(Buffer.from('%PDF-1.4 one more'))).status, 403, 'and only one');
-    // While it waits, the student saves the details with the roll number they typed (a typo here)
+    // While it waits, the student saves the details; a roll number they type is ignored (it comes only from
+    // the DAF, checked by an admin)
     assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Chess'], homeState: 'Kerala', rollNo: '0814202' })).status, 200);
+    assert.equal((await api('GET', '/profile', 's3')).data.profile.rollNo, '', 'students never set the roll number');
     const again = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
-    assert.equal(again.rollNo, '0814202', "the admin sees the student's roll number, to check against the DAF");
+    assert.equal(again.rollNo, '', 'nothing was read from this file (AI is off here): the admin types it from the DAF');
     // Verifying saves the roll number the admin checked (an old admin page that sends none is refused)
     assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', {})).status, 400);
     assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', { rollNo: '12345' })).status, 400, 'a roll number has 7 digits');
@@ -944,7 +946,58 @@ if (!URI) {
     assert.equal((await api('GET', '/my-interview', 's4')).data.found, false);
     // and a roll number nobody checked (e.g. saved before this rule) shows nothing either
     await InterviewProfile.updateOne({ user: s4._id }, { $set: { rollNo: '0814202' } });
-    assert.equal((await api('GET', '/my-interview', 's4')).data.found, false, 'only an admin-checked roll number counts');
+    const none = (await api('GET', '/my-interview', 's4')).data;
+    assert.equal(none.found, false, 'only an admin-checked roll number counts');
+    assert.equal(none.noRoll, true, 'so the student is offered to add one');
+
+    // Adding the roll number later: free, with proof, checked by an admin
+    const sendRoll = async (who, rollNo, proof = '%PDF-1.4 e-summon letter') => {
+      const form = new FormData();
+      form.append('rollNo', rollNo);
+      if (proof) form.append('file', new Blob([Buffer.from(proof)], { type: 'application/pdf' }), 'e-summon.pdf');
+      const r = await fetch(`${base}/api/interview/daf/roll`, { method: 'POST', headers: { Authorization: `Bearer ${tokens[who]}` }, body: form });
+      return { status: r.status, data: await r.json().catch(() => null) };
+    };
+    assert.equal((await api('GET', '/daf/status', 's4')).data.daf.roll.canRequest, true);
+    await setDafCheck(s4._id, { status: 'pending' });
+    assert.equal((await sendRoll('s4', '0814202')).status, 403, 'only once the DAF is verified');
+    await setDafCheck(s4._id, { status: 'verified' });
+    assert.equal((await sendRoll('s4', '12345')).status, 400, 'a roll number has 7 digits');
+    assert.equal((await sendRoll('s4', '0814202', null)).status, 400, 'proof is required');
+    const asked = await sendRoll('s4', '0814202');
+    assert.equal(asked.status, 200);
+    assert.equal(asked.data.daf.roll.claim.status, 'pending');
+    assert.equal(asked.data.daf.roll.canRequest, false);
+    assert.equal((await sendRoll('s4', '0814202')).status, 409, 'one at a time');
+    assert.equal((await api('GET', '/my-interview', 's4')).data.found, false, 'nothing changes until an admin checks it');
+    // a DAF upload while it waits doesn't remove it
+    const dafForm = new FormData();
+    dafForm.append('file', new Blob([Buffer.from('%PDF-1.4 a DAF')], { type: 'application/pdf' }), 'daf.pdf');
+    await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s4}` }, body: dafForm });
+    const claimItem = () => api('GET', '/admin/daf?status=pending', 'admin').then((r) => r.data.items.find((i) => i.userEmail === 's4@test.dev' && i.kind === 'roll'));
+    const claim = await claimItem();
+    assert.ok(claim, 'still waiting for the admin');
+    assert.equal(claim.rollNo, '0814202');
+    assert.equal(claim.schedule.found, true);
+    assert.equal(claim.schedule.name, 'NIKITA');
+    const proof = await fetch(`${base}/api/interview/admin/daf/${claim.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
+    assert.equal(Buffer.from(await proof.arrayBuffer()).toString(), '%PDF-1.4 e-summon letter', 'the admin sees the proof');
+    assert.equal((await api('POST', `/admin/daf/${claim.id}/verify`, 'admin', { rollNo: '' })).status, 400, 'approving needs the roll number');
+    assert.equal((await api('POST', `/admin/daf/${claim.id}/reject`, 'admin', { reason: 'The proof is unreadable' })).status, 200);
+    const afterReject = (await api('GET', '/daf/status', 's4')).data.daf;
+    assert.equal(afterReject.status, 'verified', 'a rejected roll number leaves the DAF verified');
+    assert.equal(afterReject.roll.claim.status, 'rejected');
+    assert.equal(afterReject.roll.claim.reason, 'The proof is unreadable');
+    assert.equal(afterReject.roll.canRequest, true, 'and they can ask again, free');
+    assert.equal((await sendRoll('s4', '0814202', '%PDF-1.4 admit card')).status, 200);
+    assert.equal((await api('POST', `/admin/daf/${(await claimItem()).id}/verify`, 'admin', { rollNo: '0814202' })).status, 200);
+    const mineNow = (await api('GET', '/my-interview', 's4')).data;
+    assert.equal(mineNow.found, true, 'approved: their interview date shows');
+    assert.equal(mineNow.name, 'NIKITA');
+    const st4 = (await api('GET', '/daf/status', 's4')).data.daf.roll;
+    assert.equal(st4.checked, true);
+    assert.equal(st4.canRequest, false, 'nothing more to add');
+    assert.equal((await sendRoll('s4', '0811049')).status, 409, "and they can't swap it for another");
 
     // admins check a roll number as they type it
     const look = await api('GET', '/admin/schedule/roll/814202', 'admin');
@@ -962,12 +1015,21 @@ if (!URI) {
     assert.equal((await api('GET', '/admin/schedule', 's1')).status, 403, 'admins only');
   });
 
-  test('recording feedback takes 2 credits, all or none; credits report what feedback needs', async () => {
-    const { spendCredits, refundCredits, getBalance } = await import('../lib/interview/credits.js');
+  test('recording feedback: 1 credit up to 90 seconds, 2 up to 3 minutes, all or none', async () => {
+    const { spendCredits, refundCredits, getBalance, feedbackCreditsFor } = await import('../lib/interview/credits.js');
     const { default: User } = await import('../models/User.js');
     const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
     const u = await User.findOne({ email: 'v1@test.dev' });
-    assert.equal((await api('GET', '/credits', 'v1')).data.feedbackCredits, 2);
+    const c = (await api('GET', '/credits', 'v1')).data;
+    assert.equal(c.feedbackCredits, 1);
+    assert.equal(c.feedbackLongCredits, 2);
+    assert.equal(c.feedbackShortSeconds, 90);
+    assert.equal(c.feedbackMaxSeconds, 180);
+    assert.equal(feedbackCreditsFor(45), 1);
+    assert.equal(feedbackCreditsFor(90), 1);
+    assert.equal(feedbackCreditsFor(91), 2);
+    assert.equal(feedbackCreditsFor(180), 2);
+    assert.equal(feedbackCreditsFor(undefined), 2, 'a recording that does not say how long it is counts as long');
     await InterviewProfile.updateOne({ user: u._id }, { $set: { 'credits.freeUsed': 14, 'credits.paid': 0 } });
     assert.equal((await spendCredits(u._id, 2))?.from ?? null, null, 'one credit left is not enough');
     assert.equal((await getBalance(u._id)).total, 1, 'and nothing was taken');

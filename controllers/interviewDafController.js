@@ -4,7 +4,7 @@
 import mongoose from 'mongoose';
 import DafSubmission from '../models/DafSubmission.js';
 import User from '../models/User.js';
-import { getDafCheck, setDafCheck, dafCheckOf, takeDafUpload, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
+import { getDafCheck, setDafCheck, dafCheckOf, rollOf, takeDafUpload, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
 import { findByRoll, normalizeRoll, parseSchedulePdf, replaceSchedule, scheduleInfo } from '../lib/interview/schedule.js';
 import InterviewSchedule from '../models/InterviewSchedule.js';
 import InterviewProfile from '../models/InterviewProfile.js';
@@ -54,8 +54,8 @@ export const submitDaf = async (req, res) => {
         return fail(res, 429, 'You have uploaded your DAF several times today. Please try again tomorrow.', { limited: true });
       }
     }
-    // One waiting upload per student: a new one replaces the old.
-    await DafSubmission.deleteMany({ user: req.userId, status: 'pending' });
+    // One waiting DAF upload per student: a new one replaces the old (a waiting roll number request stays).
+    await DafSubmission.deleteMany({ user: req.userId, status: 'pending', kind: { $ne: 'roll' } });
     const sub = await DafSubmission.create({
       kind: isChange ? 'change' : 'first',
       user: req.userId,
@@ -87,6 +87,43 @@ export const submitDaf = async (req, res) => {
   } catch (err) {
     console.error('[interview] submitDaf error:', err);
     fail(res, 500, 'Could not upload your DAF. Please try again.');
+  }
+};
+
+// POST /daf/roll (multipart "file" = the proof, "rollNo"): a verified student with no checked roll number asks
+// to add one, free. An admin checks the proof (an e-summon letter, admit card or the DAF page showing it) on
+// DAF Checks, like a DAF; until then nothing changes for the student.
+export const submitRollClaim = async (req, res) => {
+  const roll = normalizeRoll(req.body?.rollNo);
+  if (!roll) return fail(res, 400, 'A roll number has 7 digits.');
+  if (!req.file) return fail(res, 400, 'Attach a proof of your roll number (PDF or a photo).');
+  try {
+    const user = await User.findById(req.userId).select('email name fullName').lean();
+    const p = await InterviewProfile.findOne({ user: req.userId }).select('dafCheck rollNo rollCheckedAt rollClaim').lean();
+    const state = rollOf(p, dafCheckOf(p).status);
+    if (dafCheckOf(p).status !== 'verified') return fail(res, 403, 'Your DAF needs to be verified first.', { dafLocked: dafCheckOf(p).status });
+    if (state.checked) return fail(res, 409, 'Your roll number is already on your verified DAF.');
+    if (state.claim.status === 'pending') return fail(res, 409, 'Your roll number is already waiting for verification.');
+    const since = new Date(Date.now() - 24 * 3600 * 1000);
+    if (await DafSubmission.countDocuments({ user: req.userId, kind: 'roll', createdAt: { $gte: since } }) >= SUBMITS_PER_DAY) {
+      return fail(res, 429, 'You have sent your roll number several times today. Please try again tomorrow.', { limited: true });
+    }
+    const sub = await DafSubmission.create({
+      kind: 'roll',
+      rollNo: roll,
+      user: req.userId,
+      userEmail: user?.email || '',
+      userName: user?.fullName || user?.name || '',
+      fileName: String(req.file.originalname || 'proof').slice(0, 160),
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      file: req.file.buffer
+    });
+    await InterviewProfile.updateOne({ user: req.userId }, { $set: { rollClaim: { status: 'pending', submissionId: sub._id, submittedAt: new Date(), reviewedAt: null, reason: '' } } });
+    res.json({ daf: await getDafCheck(req.userId) });
+  } catch (err) {
+    console.error('[interview] submitRollClaim error:', err);
+    fail(res, 500, 'Could not send your roll number. Please try again.');
   }
 };
 
@@ -180,6 +217,7 @@ const decide = (status) => async (req, res) => {
     const s = await DafSubmission.findById(req.params.id);
     if (!s) return fail(res, 404, 'Not found.');
     if (s.status !== 'pending') return fail(res, 409, `This upload was already ${s.status}.`);
+    if (s.kind === 'roll' && status === 'verified' && !roll) return fail(res, 400, 'Enter the roll number to approve it.');
     const now = new Date();
     const checkedRoll = { rollNo: roll, rollCheckedAt: roll ? now : null };
     // The file is not kept once it has been reviewed.
@@ -193,12 +231,18 @@ const decide = (status) => async (req, res) => {
       if (status === 'verified' && fields) Object.assign($set, fields, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
       if (status === 'verified') Object.assign($set, checkedRoll);
       await InterviewProfile.updateOne({ user: s.user }, { $set });
+    } else if (s.kind === 'roll') {
+      // A roll number request: approved -> the roll number the admin checked becomes theirs. Rejected -> the
+      // student may ask again (it's free).
+      const $set = { 'rollClaim.status': status, 'rollClaim.reason': reason, 'rollClaim.reviewedAt': now };
+      if (status === 'verified') Object.assign($set, checkedRoll);
+      await InterviewProfile.updateOne({ user: s.user }, { $set });
     } else {
       await setDafCheck(s.user, { status, reason, reviewedAt: now });
       if (status === 'verified') await InterviewProfile.updateOne({ user: s.user }, { $set: checkedRoll });
     }
     // A rejected DAF may be uploaded once more.
-    if (status === 'rejected') await grantDafUpload(s.user);
+    if (status === 'rejected' && s.kind !== 'roll') await grantDafUpload(s.user);
     res.json({ ok: true, daf: dafCheckOf((await InterviewProfile.findOne({ user: s.user }).select('dafCheck').lean())) });
   } catch (err) {
     console.error('[interview] DAF review error:', err);
@@ -252,8 +296,10 @@ export const adminScheduleRoll = async (req, res) => {
 // against their DAF when verifying it. Never anyone else's.
 export const getMyInterview = async (req, res) => {
   try {
-    const p = await InterviewProfile.findOne({ user: req.userId }).select('rollNo rollCheckedAt dafCheck').lean();
-    if (dafCheckOf(p).status !== 'verified' || !p?.rollNo || !p?.rollCheckedAt) return res.json({ found: false });
+    const p = await InterviewProfile.findOne({ user: req.userId }).select('rollNo rollCheckedAt rollClaim dafCheck').lean();
+    if (dafCheckOf(p).status !== 'verified') return res.json({ found: false });
+    // No checked roll number: the student can add one (free, with proof).
+    if (!p?.rollNo || !p?.rollCheckedAt) return res.json({ found: false, noRoll: true, claim: p?.rollClaim?.status || 'none' });
     const r = await findByRoll(p.rollNo);
     if (!r) return res.json({ found: false });
     res.json({

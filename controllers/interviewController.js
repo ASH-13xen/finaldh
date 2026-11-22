@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import InterviewProfile from '../models/InterviewProfile.js';
-import DafSubmission from '../models/DafSubmission.js';
 import InterviewSession from '../models/InterviewSession.js';
 import InterviewQuestion from '../models/InterviewQuestion.js';
 import InterviewTranscript from '../models/InterviewTranscript.js';
@@ -21,7 +20,7 @@ import { textHash } from '../lib/interview/translate.js';
 import { PREP_KEY_RE, prepKey } from '../lib/interview/prepKey.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
-import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, FEEDBACK_CREDITS, FEEDBACK_MAX_SECONDS, getBalance, spendCredit, spendCredits, refundCredit, refundCredits } from '../lib/interview/credits.js';
+import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, FEEDBACK_CREDITS_SHORT, FEEDBACK_CREDITS_LONG, FEEDBACK_SHORT_SECONDS, FEEDBACK_MAX_SECONDS, feedbackCreditsFor, getBalance, spendCredit, spendCredits, refundCredit, refundCredits } from '../lib/interview/credits.js';
 import { draftAnswer } from '../lib/interview/answers.js';
 import { getDafCheck, dafGateMessage } from '../lib/interview/dafCheck.js';
 
@@ -120,16 +119,16 @@ export const saveProfile = async (req, res) => {
     const admin = await isAdminRequest(req);
     const before = await InterviewProfile.findOne({ user: req.userId }).lean();
     const verified = before?.dafCheck?.status === 'verified';
-    // Once verified, the roll number is the one the admin checked against the DAF: a student can never set
-    // or change it (it decides whose interview slot they see).
-    if (verified && !admin) delete fields.rollNo;
+    // A student never sets their roll number (it decides whose interview slot they see): it comes only from
+    // the DAF they upload (read from the file, checked by an admin when verifying) or from a roll number
+    // request with proof (POST /daf/roll), also checked by an admin.
+    if (!admin) delete fields.rollNo;
     // Details saved before this rule existed have no date but count as saved.
     const saved = !!before?.detailsSavedAt || (!!before && !isProfileEmpty(before));
     if (!admin && verified && saved) {
       const change = before.dafChange || {};
       if (change.status === 'pending') {
         await InterviewProfile.updateOne({ user: req.userId }, { $set: { 'dafChange.fields': fields } });
-        if (change.submissionId && fields.rollNo) await DafSubmission.updateOne({ _id: change.submissionId, status: 'pending' }, { $set: { rollNo: fields.rollNo } });
         const current = await InterviewProfile.findOne({ user: req.userId });
         return res.json({ profile: publicProfile(current), items: profileItems(current.toObject()), empty: isProfileEmpty(current), changePending: true });
       }
@@ -143,10 +142,6 @@ export const saveProfile = async (req, res) => {
       { $set: { ...fields, source: 'manual', detailsSavedAt: new Date(), ...extra }, $setOnInsert: { user: req.userId } },
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
-    // The waiting first upload carries the roll number the student confirmed, for the admin's check.
-    if (!verified && before?.dafCheck?.submissionId && fields.rollNo) {
-      await DafSubmission.updateOne({ _id: before.dafCheck.submissionId, status: 'pending' }, { $set: { rollNo: fields.rollNo } });
-    }
     res.json({ profile: publicProfile(p), items: profileItems(p.toObject()), empty: isProfileEmpty(p) });
     // Have the tailored predictions ready by the time the student opens them (once the DAF is verified).
     warmPredictions(p, req).catch(() => {});
@@ -689,7 +684,7 @@ const noCredits = (res, spent) => (spent?.limited
 export const getCredits = async (req, res) => {
   try {
     const admin = await isAdminRequest(req);
-    res.json({ ...(await getBalance(req.userId)), admin, daf: await getDafCheck(req.userId), packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY, feedbackCredits: FEEDBACK_CREDITS, feedbackMaxSeconds: FEEDBACK_MAX_SECONDS });
+    res.json({ ...(await getBalance(req.userId)), admin, daf: await getDafCheck(req.userId), packs: Object.values(CREDIT_PACKS), perDay: AI_USES_PER_DAY, feedbackCredits: FEEDBACK_CREDITS_SHORT, feedbackLongCredits: FEEDBACK_CREDITS_LONG, feedbackShortSeconds: FEEDBACK_SHORT_SECONDS, feedbackMaxSeconds: FEEDBACK_MAX_SECONDS });
   } catch (err) {
     console.error('[interview] getCredits error:', err);
     fail(res, 500, 'Could not load your credits.');
@@ -747,13 +742,14 @@ export const analyzePractice = async (req, res) => {
   if (!(await checkGemini())) return fail(res, 503, 'Detailed feedback is not available right now. Your on-device report is still here.', { aiUnavailable: true });
   let device = {};
   try { device = JSON.parse(String(req.body?.device || '{}')); } catch { device = {}; }
-  // Up to 2 minutes of audio (the screen says so; the size check catches recordings that claim otherwise).
+  // Up to 3 minutes of audio (the screen says so; the size check catches recordings that claim otherwise).
   if (Number(device.durationSec) > FEEDBACK_MAX_SECONDS + 5 || req.file.size > FEEDBACK_MAX_BYTES) {
-    return fail(res, 413, 'Detailed feedback works on answers up to 2 minutes.', { tooLong: true });
+    return fail(res, 413, 'Detailed feedback works on answers up to 3 minutes.', { tooLong: true });
   }
   try {
     const admin = await isAdminRequest(req);
-    const spent = admin ? { from: 'admin' } : await spendCredits(req.userId, FEEDBACK_CREDITS);
+    // 1 credit up to 90 seconds, 2 for a longer answer.
+    const spent = admin ? { from: 'admin' } : await spendCredits(req.userId, feedbackCreditsFor(device.durationSec));
     if (!spent?.from) return noCredits(res, spent);
     req.spentCredit = spent.from === 'admin' ? null : spent;
     const analysis = await analyzeAnswer({
@@ -774,8 +770,9 @@ export const analyzePractice = async (req, res) => {
 };
 
 const MAX_ATTEMPTS = 500;
-// 2 minutes of compressed speech is well under this; bigger files are longer recordings.
-const FEEDBACK_MAX_BYTES = 3 * 1024 * 1024;
+// 3 minutes of compressed speech is well under this (the recorder asks for 64 kbps, about 1.5 MB; this
+// allows browsers that record at up to ~250 kbps); bigger files are longer recordings.
+const FEEDBACK_MAX_BYTES = 6 * 1024 * 1024;
 const num = (v, min, max) => (Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : undefined);
 
 export const savePracticeAttempt = async (req, res) => {

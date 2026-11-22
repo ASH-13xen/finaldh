@@ -60,7 +60,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
-import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
+import { getDafStatus, submitDaf, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
 import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -124,6 +124,7 @@ router.get('/practice/attempts', authenticateToken, sectionAccess, listPracticeA
 // DAF verification: the student uploads their DAF; practice and AI unlock once an admin verifies it
 router.get('/daf/status', authenticateToken, sectionAccess, getDafStatus);
 router.post('/daf/submit', authenticateToken, sectionAccess, dafUpload.single('file'), submitDaf);
+router.post('/daf/roll', authenticateToken, sectionAccess, dafUpload.single('file'), submitRollClaim);
 router.get('/my-interview', authenticateToken, sectionAccess, getMyInterview);
 
 // AI credits (15 free, then packs bought through /api/payments) and answers drafted from the DAF
