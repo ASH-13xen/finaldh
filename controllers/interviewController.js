@@ -120,6 +120,9 @@ export const saveProfile = async (req, res) => {
     const admin = await isAdminRequest(req);
     const before = await InterviewProfile.findOne({ user: req.userId }).lean();
     const verified = before?.dafCheck?.status === 'verified';
+    // Once verified, the roll number is the one the admin checked against the DAF: a student can never set
+    // or change it (it decides whose interview slot they see).
+    if (verified && !admin) delete fields.rollNo;
     // Details saved before this rule existed have no date but count as saved.
     const saved = !!before?.detailsSavedAt || (!!before && !isProfileEmpty(before));
     if (!admin && verified && saved) {

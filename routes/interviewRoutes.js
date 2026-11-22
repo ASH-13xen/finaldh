@@ -60,7 +60,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
-import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminGetSchedule, adminUploadSchedule, getMyInterview } from '../controllers/interviewDafController.js';
+import { getDafStatus, submitDaf, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
 import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -169,6 +169,7 @@ router.post('/admin/daf/:id/verify', authenticateToken, requireAdmin, adminVerif
 router.post('/admin/daf/:id/reject', authenticateToken, requireAdmin, adminRejectDaf);
 router.get('/admin/schedule', authenticateToken, requireAdmin, adminGetSchedule);
 router.post('/admin/schedule', authenticateToken, requireAdmin, dafUpload.single('file'), adminUploadSchedule);
+router.get('/admin/schedule/roll/:roll', authenticateToken, requireAdmin, adminScheduleRoll);
 
 // Admin: notes (AI drafts from admin-chosen sources, review, publish) and the 100-question guide
 router.get('/admin/notes', authenticateToken, requireAdmin, adminListNotes);

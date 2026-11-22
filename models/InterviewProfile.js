@@ -56,6 +56,9 @@ const interviewProfileSchema = new mongoose.Schema({
   // UPSC roll number, read from the uploaded DAF and confirmed by the student; matched to the interview
   // schedule (models/InterviewSchedule.js). Shown back only to the student, once their DAF is verified.
   rollNo: { type: String, default: '' },
+  // When an admin checked the roll number against the DAF (set only by verifying it). A student's own entry
+  // is just a suggestion for that check; only a checked roll number shows the student an interview slot.
+  rollCheckedAt: { type: Date, default: null },
   // When the DAF details were first saved: after verification, changing them is a paid re-upload.
   detailsSavedAt: { type: Date, default: null },
   // A change of DAF after verification (paid, re-uploaded, verified again). The current details and

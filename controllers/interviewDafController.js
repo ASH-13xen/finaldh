@@ -123,8 +123,9 @@ export const adminListDaf = async (req, res) => {
       ]),
       DafSubmission.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])
     ]);
-    // The roll number the student confirmed (or the one read from the file), checked against UPSC's schedule.
-    const profiles = await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo').lean();
+    // Waiting: the roll number read from the file or typed by the student (a suggestion for the admin to
+    // check). Reviewed: the one the admin saved when verifying. Either way checked against UPSC's schedule.
+    const profiles = status === 'pending' ? await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo').lean() : [];
     const rollOfUser = new Map(profiles.map((p) => [String(p.user), p.rollNo || '']));
     for (const i of items) i.rollNo = normalizeRoll(i.rollNo || rollOfUser.get(String(i.user)) || '');
     const rolls = [...new Set(items.map((i) => i.rollNo).filter(Boolean))];
@@ -167,12 +168,22 @@ const decide = (status) => async (req, res) => {
   try {
     const reason = status === 'rejected' ? String(req.body?.reason || '').trim().slice(0, 300) : '';
     if (status === 'rejected' && !reason) return fail(res, 400, 'Say why, so the student knows what to fix.');
+    // Verifying saves the roll number the admin checked against the DAF ('' = verify without one). It is the
+    // only way a verified student gets a roll number, so it is required (an old admin page sends none).
+    let roll = '';
+    if (status === 'verified') {
+      if (req.body?.rollNo === undefined) return fail(res, 400, 'Reload this page: verifying now needs the roll number from the DAF.');
+      const raw = String(req.body.rollNo || '').replace(/\D/g, '');
+      roll = normalizeRoll(raw);
+      if (raw && !roll) return fail(res, 400, 'A roll number has 7 digits.');
+    }
     const s = await DafSubmission.findById(req.params.id);
     if (!s) return fail(res, 404, 'Not found.');
     if (s.status !== 'pending') return fail(res, 409, `This upload was already ${s.status}.`);
     const now = new Date();
+    const checkedRoll = { rollNo: roll, rollCheckedAt: roll ? now : null };
     // The file is not kept once it has been reviewed.
-    await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, size: 0 }, $unset: { file: 1 } });
+    await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, size: 0, ...(status === 'verified' ? { rollNo: roll } : {}) }, $unset: { file: 1 } });
     if (s.kind === 'change') {
       // A change: verified -> the new details replace the current ones (if the student has saved them;
       // otherwise when they do). Rejected -> the current DAF stays and they may upload once more.
@@ -180,9 +191,11 @@ const decide = (status) => async (req, res) => {
       const fields = p?.dafChange?.fields;
       const $set = { 'dafChange.status': status, 'dafChange.reason': reason, 'dafChange.reviewedAt': now };
       if (status === 'verified' && fields) Object.assign($set, fields, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
+      if (status === 'verified') Object.assign($set, checkedRoll);
       await InterviewProfile.updateOne({ user: s.user }, { $set });
     } else {
       await setDafCheck(s.user, { status, reason, reviewedAt: now });
+      if (status === 'verified') await InterviewProfile.updateOne({ user: s.user }, { $set: checkedRoll });
     }
     // A rejected DAF may be uploaded once more.
     if (status === 'rejected') await grantDafUpload(s.user);
@@ -220,12 +233,27 @@ export const adminUploadSchedule = async (req, res) => {
   }
 };
 
-// GET /my-interview: the student's own row of the schedule, matched by the roll number on their verified
-// DAF. Never anyone else's.
+// GET /admin/schedule/roll/:roll: one roll number's row, as an admin types it while checking a DAF.
+export const adminScheduleRoll = async (req, res) => {
+  try {
+    const roll = normalizeRoll(req.params.roll);
+    if (!roll) return res.json({ found: false, loaded: true, noRoll: true });
+    const [r, count] = await Promise.all([findByRoll(roll), InterviewSchedule.estimatedDocumentCount()]);
+    res.json(r
+      ? { found: true, roll: r.roll, name: r.name, date: r.date, day: r.day, session: r.session, reportingTime: r.reportingTime }
+      : { found: false, loaded: count > 0 });
+  } catch (err) {
+    console.error('[interview] adminScheduleRoll error:', err);
+    fail(res, 500, 'Could not check that roll number.');
+  }
+};
+
+// GET /my-interview: the student's own row of the schedule, matched by the roll number an admin checked
+// against their DAF when verifying it. Never anyone else's.
 export const getMyInterview = async (req, res) => {
   try {
-    const p = await InterviewProfile.findOne({ user: req.userId }).select('rollNo dafCheck').lean();
-    if (dafCheckOf(p).status !== 'verified' || !p?.rollNo) return res.json({ found: false });
+    const p = await InterviewProfile.findOne({ user: req.userId }).select('rollNo rollCheckedAt dafCheck').lean();
+    if (dafCheckOf(p).status !== 'verified' || !p?.rollNo || !p?.rollCheckedAt) return res.json({ found: false });
     const r = await findByRoll(p.rollNo);
     if (!r) return res.json({ found: false });
     res.json({

@@ -855,13 +855,20 @@ if (!URI) {
     const third = await upload(Buffer.from('%PDF-1.4 the real DAF'));
     assert.equal(third.data.daf.status, 'pending');
     assert.equal((await upload(Buffer.from('%PDF-1.4 one more'))).status, 403, 'and only one');
+    // While it waits, the student saves the details with the roll number they typed (a typo here)
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Chess'], homeState: 'Kerala', rollNo: '0814202' })).status, 200);
     const again = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
-    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin')).status, 200);
-    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin')).status, 409, 'already reviewed');
+    assert.equal(again.rollNo, '0814202', "the admin sees the student's roll number, to check against the DAF");
+    // Verifying saves the roll number the admin checked (an old admin page that sends none is refused)
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', {})).status, 400);
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', { rollNo: '12345' })).status, 400, 'a roll number has 7 digits');
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', { rollNo: '0811049' })).status, 200);
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', { rollNo: '0811049' })).status, 409, 'already reviewed');
     assert.equal((await api('GET', '/credits', 's3')).data.daf.status, 'verified');
+    assert.equal((await api('GET', '/profile', 's3')).data.profile.rollNo, '0811049', "the admin's roll number replaces the student's");
     assert.equal((await api('POST', '/practice/attempts', 's3', { question: 'Why civil services?', metrics: { wpm: 120 } })).status, 200, 'practice unlocks');
-    // Details saved (before verification they save freely, with the confirmed roll number)
-    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Chess'], homeState: 'Kerala', rollNo: '0811049' })).status, 200);
+    // Once verified the student can't change it
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Chess'], rollNo: '0814202' })).status, 403);
     assert.equal((await api('GET', '/profile', 's3')).data.profile.rollNo, '0811049');
 
     // Changing a verified DAF: Rs 50 first, then a re-upload that is verified again
@@ -881,18 +888,19 @@ if (!URI) {
     assert.equal(change.data.change, true);
     assert.equal(change.data.daf.status, 'verified', 'still verified while the new DAF waits');
     assert.equal(change.data.daf.change.status, 'pending');
-    const saved = await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'], homeState: 'Haryana', rollNo: '0811049' });
+    const saved = await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'], homeState: 'Haryana', rollNo: '0814202' });
     assert.equal(saved.data.changePending, true);
     assert.deepEqual((await api('GET', '/profile', 's3')).data.profile.hobbies, ['Chess'], 'the current DAF stays until the new one is verified');
     assert.equal((await upload(Buffer.from('%PDF-1.4 another'))).status, 403, 'one change at a time');
 
     const waiting = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
     assert.equal(waiting.kind, 'change');
-    assert.equal(waiting.rollNo, '0811049');
-    assert.equal((await api('POST', `/admin/daf/${waiting.id}/verify`, 'admin')).status, 200);
+    assert.equal(waiting.rollNo, '0811049', "a changed DAF can't carry a roll number the student typed");
+    assert.equal((await api('POST', `/admin/daf/${waiting.id}/verify`, 'admin', { rollNo: '0811049' })).status, 200);
     const now = (await api('GET', '/profile', 's3')).data.profile;
     assert.deepEqual(now.hobbies, ['Kabaddi'], 'verified: the new details replace the old');
     assert.equal(now.homeState, 'Haryana');
+    assert.equal(now.rollNo, '0811049', 'the roll number is still the one the admin checked');
     assert.equal((await api('GET', '/daf/status', 's3')).data.daf.changeNeedsPayment, true, 'the next change is paid for again');
   });
 
@@ -922,6 +930,28 @@ if (!URI) {
     assert.equal(mine.data.reportingAt, '2026-12-07T03:30:00.000Z', '09:00 Indian time');
     assert.equal((await api('GET', '/my-interview', 's2')).data.found, false, 'not verified: nothing');
     assert.equal((await api('GET', '/my-interview?roll=0814202', 's2')).data.found, false, 'and no looking up other roll numbers');
+
+    // A verified student with no details saved yet may save them, but never a roll number of their choosing
+    const { default: User } = await import('../models/User.js');
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
+    await User.create({ googleId: 'g-s4', email: 's4@test.dev', name: 's4' });
+    const s4 = await User.findOne({ email: 's4@test.dev' });
+    tokens.s4 = jwt.sign({ userId: s4._id, email: 's4@test.dev' }, 'test-secret');
+    await setDafCheck(s4._id, { status: 'verified', reviewedAt: new Date() });
+    assert.equal((await api('PUT', '/profile', 's4', { hobbies: ['Chess'], rollNo: '0814202' })).status, 200);
+    assert.equal((await api('GET', '/profile', 's4')).data.profile.rollNo, '', 'the roll number was ignored');
+    assert.equal((await api('GET', '/my-interview', 's4')).data.found, false);
+    // and a roll number nobody checked (e.g. saved before this rule) shows nothing either
+    await InterviewProfile.updateOne({ user: s4._id }, { $set: { rollNo: '0814202' } });
+    assert.equal((await api('GET', '/my-interview', 's4')).data.found, false, 'only an admin-checked roll number counts');
+
+    // admins check a roll number as they type it
+    const look = await api('GET', '/admin/schedule/roll/814202', 'admin');
+    assert.equal(look.data.found, true);
+    assert.equal(look.data.name, 'NIKITA');
+    assert.equal((await api('GET', '/admin/schedule/roll/0999999', 'admin')).data.found, false);
+    assert.equal((await api('GET', '/admin/schedule/roll/0814202', 's4')).status, 403, 'students cannot look anyone up');
 
     // the admin list shows the match (or that a roll number is not in the schedule)
     const verified = (await api('GET', '/admin/daf?status=verified', 'admin')).data;
