@@ -1146,21 +1146,21 @@ if (!URI) {
     assert.equal((await api('POST', '/daf/read', 's7')).status, 409, 'already filled in');
   });
 
-  test('recording feedback: 2 credits for any answer up to 3 minutes, all or none', async () => {
+  test('recording feedback: 2 credits up to 90 seconds, 3 up to 3 minutes, all or none', async () => {
     const { spendCredits, refundCredits, getBalance, feedbackCreditsFor } = await import('../lib/interview/credits.js');
     const { default: User } = await import('../models/User.js');
     const { default: InterviewProfile } = await import('../models/InterviewProfile.js');
     const u = await User.findOne({ email: 'v1@test.dev' });
     const c = (await api('GET', '/credits', 'v1')).data;
     assert.equal(c.feedbackCredits, 2);
-    assert.equal(c.feedbackLongCredits, 2);
+    assert.equal(c.feedbackLongCredits, 3);
     assert.equal(c.feedbackShortSeconds, 90);
     assert.equal(c.feedbackMaxSeconds, 180);
     assert.equal(feedbackCreditsFor(45), 2);
     assert.equal(feedbackCreditsFor(90), 2);
-    assert.equal(feedbackCreditsFor(91), 2);
-    assert.equal(feedbackCreditsFor(180), 2);
-    assert.equal(feedbackCreditsFor(undefined), 2, 'a recording that does not say how long it is counts as long');
+    assert.equal(feedbackCreditsFor(91), 3);
+    assert.equal(feedbackCreditsFor(180), 3);
+    assert.equal(feedbackCreditsFor(undefined), 3, 'a recording that does not say how long it is counts as long');
     await InterviewProfile.updateOne({ user: u._id }, { $set: { 'credits.freeUsed': 14, 'credits.paid': 0 } });
     assert.equal((await spendCredits(u._id, 2))?.from ?? null, null, 'one credit left is not enough');
     assert.equal((await getBalance(u._id)).total, 1, 'and nothing was taken');
