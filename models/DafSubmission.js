@@ -13,6 +13,10 @@ const dafSubmissionSchema = new mongoose.Schema({
   // 'first': the DAF that unlocks the section; 'change': a paid re-upload by a verified student; 'roll': a
   // verified student's roll number with proof (the file is the proof), free.
   kind: { type: String, enum: ['first', 'change', 'roll'], default: 'first' },
+  // How the DAF came in: 'file' (uploaded) or 'form' (filled in by hand: `fields` holds what the student typed,
+  // and `file`, if any, is the proof of the roll number they gave).
+  source: { type: String, enum: ['file', 'form'], default: 'file' },
+  fields: { type: mongoose.Schema.Types.Mixed, default: null },
   // The UPSC roll number read from it (or, for 'roll', the one the student asks for); once verified, the
   // one the admin saved. Checked against the schedule.
   rollNo: { type: String, default: '' },

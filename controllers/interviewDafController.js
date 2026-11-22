@@ -10,7 +10,7 @@ import InterviewSchedule from '../models/InterviewSchedule.js';
 import InterviewProfile from '../models/InterviewProfile.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { checkGemini } from '../lib/interview/gemini.js';
-import { extractDaf, isProfileEmpty } from '../lib/interview/daf.js';
+import { extractDaf, isProfileEmpty, cleanProfileInput } from '../lib/interview/daf.js';
 
 const fail = (res, status, error, extra = {}) => res.status(status).json({ error, ...extra });
 const isId = (id) => mongoose.Types.ObjectId.isValid(String(id || ''));
@@ -27,40 +27,52 @@ export const getDafStatus = async (req, res) => {
   }
 };
 
+// Sending a DAF for verification - uploaded or filled in - uses the account's one submission (one more after
+// each rejection); nothing while one is waiting. A verified student's is a change: paid for first, verified
+// again, and it leaves the current DAF in place until then. Admins (testing) are not limited.
+// Returns { user, isChange } or null when it has already answered.
+const takeDafSubmission = async (req, res) => {
+  const user = await User.findById(req.userId).select('email name fullName').lean();
+  const admin = !!user && isAdminEmail(user.email);
+  const current = await getDafCheck(req.userId);
+  const isChange = current.status === 'verified';
+  if (!admin) {
+    if (current.status === 'pending') { fail(res, 403, 'Your DAF is waiting to be verified. You can send it again only if our team can’t verify it.', { dafLocked: 'pending', daf: current }); return null; }
+    if (isChange && current.change?.status === 'pending') { fail(res, 403, 'Your new DAF is waiting to be verified.', { dafLocked: 'changePending', daf: current }); return null; }
+    if (!(await takeDafUpload(req.userId))) {
+      if (isChange) fail(res, 402, `Changing your DAF costs ₹${DAF_CHANGE_PRICE}.`, { needPayment: true, price: DAF_CHANGE_PRICE, daf: current });
+      else fail(res, 403, 'You have already sent your DAF.', { dafLocked: 'used', daf: current });
+      return null;
+    }
+  } else {
+    const since = new Date(Date.now() - 24 * 3600 * 1000);
+    if (await DafSubmission.countDocuments({ user: req.userId, createdAt: { $gte: since } }) >= SUBMITS_PER_DAY) {
+      fail(res, 429, 'You have sent your DAF several times today. Please try again tomorrow.', { limited: true });
+      return null;
+    }
+  }
+  // One waiting DAF per student: a new one replaces the old (a waiting roll number request stays).
+  await DafSubmission.deleteMany({ user: req.userId, status: 'pending', kind: { $ne: 'roll' } });
+  return { user, isChange };
+};
+
+const submissionBase = (req, user, isChange) => ({
+  kind: isChange ? 'change' : 'first',
+  user: req.userId,
+  userEmail: user?.email || '',
+  userName: user?.fullName || user?.name || ''
+});
+
 // POST /daf/submit (multipart "file"): the student's DAF upload. One call stores the file for an admin to
 // verify and has AI read it, so the student can check the details (returned as fields) before saving them.
-// One upload per account, plus one more after each rejection; nothing while one is waiting or verified.
-// Admins (testing) are not limited.
 export const submitDaf = async (req, res) => {
   if (!req.file) return fail(res, 400, 'Choose your DAF file (PDF or a photo).');
   try {
-    const user = await User.findById(req.userId).select('email name fullName').lean();
-    const admin = !!user && isAdminEmail(user.email);
-    const current = await getDafCheck(req.userId);
-    // A verified student's upload is a change: paid for first, verified again, and it leaves the current
-    // DAF in place until then.
-    const isChange = current.status === 'verified';
-    if (!admin) {
-      if (current.status === 'pending') return fail(res, 403, 'Your DAF is waiting to be verified. You can upload again only if our team can’t verify it.', { dafLocked: 'pending', daf: current });
-      if (isChange && current.change?.status === 'pending') return fail(res, 403, 'Your new DAF is waiting to be verified.', { dafLocked: 'changePending', daf: current });
-      if (!(await takeDafUpload(req.userId))) {
-        return isChange
-          ? fail(res, 402, `Changing your DAF costs ₹${DAF_CHANGE_PRICE}.`, { needPayment: true, price: DAF_CHANGE_PRICE, daf: current })
-          : fail(res, 403, 'You have already uploaded your DAF.', { dafLocked: 'used', daf: current });
-      }
-    } else {
-      const since = new Date(Date.now() - 24 * 3600 * 1000);
-      if (await DafSubmission.countDocuments({ user: req.userId, createdAt: { $gte: since } }) >= SUBMITS_PER_DAY) {
-        return fail(res, 429, 'You have uploaded your DAF several times today. Please try again tomorrow.', { limited: true });
-      }
-    }
-    // One waiting DAF upload per student: a new one replaces the old (a waiting roll number request stays).
-    await DafSubmission.deleteMany({ user: req.userId, status: 'pending', kind: { $ne: 'roll' } });
+    const taken = await takeDafSubmission(req, res);
+    if (!taken) return;
+    const { user, isChange } = taken;
     const sub = await DafSubmission.create({
-      kind: isChange ? 'change' : 'first',
-      user: req.userId,
-      userEmail: user?.email || '',
-      userName: user?.fullName || user?.name || '',
+      ...submissionBase(req, user, isChange),
       fileName: String(req.file.originalname || 'daf').slice(0, 160),
       mimeType: req.file.mimetype,
       size: req.file.size,
@@ -87,6 +99,48 @@ export const submitDaf = async (req, res) => {
   } catch (err) {
     console.error('[interview] submitDaf error:', err);
     fail(res, 500, 'Could not upload your DAF. Please try again.');
+  }
+};
+
+// POST /daf/form (multipart "fields" = the DAF form as JSON, "rollNo" optional, "file" = proof of the roll
+// number): a DAF filled in by hand, sent for verification like an upload. The roll number is optional; given,
+// it needs a proof (an e-summon letter, admit card or the DAF page showing it), which the admin checks.
+export const submitDafForm = async (req, res) => {
+  let fields;
+  try { fields = cleanProfileInput(JSON.parse(String(req.body?.fields || '{}'))); } catch { return fail(res, 400, 'Could not read the form. Please try again.'); }
+  delete fields.rollNo; // it travels on its own, with its proof
+  if (isProfileEmpty(fields)) return fail(res, 400, 'Fill in your DAF first.');
+  const typed = String(req.body?.rollNo || '').replace(/\D/g, '');
+  const roll = normalizeRoll(typed);
+  if (typed && !roll) return fail(res, 400, 'A roll number has 7 digits.');
+  if (roll && !req.file) return fail(res, 400, 'Attach a proof of your roll number, or leave the roll number empty.', { needProof: true });
+  try {
+    const taken = await takeDafSubmission(req, res);
+    if (!taken) return;
+    const { user, isChange } = taken;
+    const proof = roll && req.file ? req.file : null;
+    const sub = await DafSubmission.create({
+      ...submissionBase(req, user, isChange),
+      source: 'form',
+      fields,
+      rollNo: roll,
+      fileName: proof ? String(proof.originalname || 'proof').slice(0, 160) : '',
+      mimeType: proof?.mimetype || '',
+      size: proof?.size || 0,
+      ...(proof ? { file: proof.buffer } : {})
+    });
+    const now = new Date();
+    if (isChange) {
+      // The current DAF stays until the new one is verified; then these details replace it.
+      await InterviewProfile.updateOne({ user: req.userId }, { $set: { dafChange: { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '', fields, appliedAt: null } } });
+    } else {
+      await InterviewProfile.updateOne({ user: req.userId }, { $set: { ...fields, source: 'manual', detailsSavedAt: now }, $setOnInsert: { user: req.userId } }, { upsert: true });
+      await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '' });
+    }
+    res.json({ daf: await getDafCheck(req.userId), stored: true, change: isChange });
+  } catch (err) {
+    console.error('[interview] submitDafForm error:', err);
+    fail(res, 500, 'Could not send your DAF. Please try again.');
   }
 };
 
@@ -144,6 +198,8 @@ const summary = (s) => ({
   reviewedAt: s.reviewedAt,
   createdAt: s.createdAt,
   kind: s.kind || 'first',
+  source: s.source || 'file',
+  fields: s.source === 'form' ? s.fields || null : null,
   rollNo: s.rollNo || '',
   schedule: s.schedule || null
 });
@@ -156,7 +212,7 @@ export const adminListDaf = async (req, res) => {
         { $match: { status } },
         { $sort: { createdAt: status === 'pending' ? 1 : -1 } },
         { $limit: 300 },
-        { $project: { hasFile: { $gt: [{ $ifNull: ['$size', 0] }, 0] }, user: 1, userEmail: 1, userName: 1, status: 1, fileName: 1, mimeType: 1, size: 1, reason: 1, reviewedBy: 1, reviewedAt: 1, createdAt: 1, kind: 1, rollNo: 1 } }
+        { $project: { hasFile: { $gt: [{ $ifNull: ['$size', 0] }, 0] }, user: 1, userEmail: 1, userName: 1, status: 1, fileName: 1, mimeType: 1, size: 1, reason: 1, reviewedBy: 1, reviewedAt: 1, createdAt: 1, kind: 1, rollNo: 1, source: 1, fields: 1 } }
       ]),
       DafSubmission.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])
     ]);

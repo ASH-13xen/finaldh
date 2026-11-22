@@ -1015,6 +1015,60 @@ if (!URI) {
     assert.equal((await api('GET', '/admin/schedule', 's1')).status, 403, 'admins only');
   });
 
+  test('a DAF filled in by hand goes to verification like an upload; its roll number is optional and needs a proof', async () => {
+    const { default: User } = await import('../models/User.js');
+    await User.create({ googleId: 'g-s5', email: 's5@test.dev', name: 's5', fullName: 'Student Five' });
+    const s5 = await User.findOne({ email: 's5@test.dev' });
+    tokens.s5 = jwt.sign({ userId: s5._id, email: 's5@test.dev' }, 'test-secret');
+    const sendForm = async (fields, rollNo = '', proof = null) => {
+      const form = new FormData();
+      form.append('fields', JSON.stringify(fields));
+      if (rollNo) form.append('rollNo', rollNo);
+      if (proof) form.append('file', new Blob([Buffer.from(proof)], { type: 'application/pdf' }), 'admit-card.pdf');
+      const r = await fetch(`${base}/api/interview/daf/form`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s5}` }, body: form });
+      return { status: r.status, data: await r.json().catch(() => null) };
+    };
+    const details = { homeState: 'Bihar', hobbies: ['Chess'], education: [{ degree: 'B.Tech', discipline: 'Civil Engineering', institution: 'NIT Patna' }] };
+    assert.equal((await sendForm({})).status, 400, 'an empty form is not sent');
+    const noProof = await sendForm(details, '0103665');
+    assert.equal(noProof.status, 400, 'a roll number needs a proof');
+    assert.equal(noProof.data.needProof, true);
+
+    // Without a roll number: no proof needed
+    const first = await sendForm(details);
+    assert.equal(first.status, 200);
+    assert.equal(first.data.daf.status, 'pending', 'it waits for verification like an upload');
+    assert.deepEqual((await api('GET', '/profile', 's5')).data.profile.hobbies, ['Chess'], 'the details are saved');
+    assert.equal((await sendForm(details)).status, 403, 'not again while it waits');
+    const item = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's5@test.dev');
+    assert.equal(item.source, 'form');
+    assert.equal(item.hasFile, false, 'no file: the admin reads the details');
+    assert.equal(item.fields.homeState, 'Bihar');
+    assert.equal(item.fields.education[0].institution, 'NIT Patna');
+    assert.equal(item.rollNo, '');
+    assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', { reason: 'Please add your roll number with a proof' })).status, 200);
+
+    // Again, with a roll number and its proof
+    const second = await sendForm({ ...details, hobbies: ['Chess', 'Cricket'] }, '0103665', '%PDF-1.4 admit card');
+    assert.equal(second.status, 200);
+    const again = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's5@test.dev');
+    assert.equal(again.rollNo, '0103665');
+    assert.equal(again.hasFile, true);
+    assert.equal(again.schedule.found, true);
+    assert.equal(again.schedule.name, 'RISHAV JAIN');
+    const proof = await fetch(`${base}/api/interview/admin/daf/${again.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
+    assert.equal(Buffer.from(await proof.arrayBuffer()).toString(), '%PDF-1.4 admit card', 'the admin sees the proof');
+    assert.equal((await api('GET', '/profile', 's5')).data.profile.rollNo, '', 'nothing is checked yet');
+    assert.equal((await api('POST', `/admin/daf/${again.id}/verify`, 'admin', { rollNo: '0103665' })).status, 200);
+    assert.equal((await api('GET', '/credits', 's5')).data.daf.status, 'verified');
+    assert.equal((await api('GET', '/my-interview', 's5')).data.name, 'RISHAV JAIN', 'their interview date shows');
+    assert.deepEqual((await api('GET', '/profile', 's5')).data.profile.hobbies, ['Chess', 'Cricket']);
+    // the filled-in DAF was their one submission: changing it now is paid, like after an upload
+    const reupload = await sendForm(details);
+    assert.equal(reupload.status, 402);
+    assert.equal(reupload.data.needPayment, true);
+  });
+
   test('recording feedback: 1 credit up to 90 seconds, 2 up to 3 minutes, all or none', async () => {
     const { spendCredits, refundCredits, getBalance, feedbackCreditsFor } = await import('../lib/interview/credits.js');
     const { default: User } = await import('../models/User.js');
