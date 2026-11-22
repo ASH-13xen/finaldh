@@ -123,8 +123,9 @@ export const saveProfile = async (req, res) => {
     // the DAF they upload (read from the file, checked by an admin when verifying) or from a roll number
     // request with proof (POST /daf/roll), also checked by an admin.
     if (!admin) delete fields.rollNo;
-    // Details saved before this rule existed have no date but count as saved.
-    const saved = !!before?.detailsSavedAt || (!!before && !isProfileEmpty(before));
+    // Locked once there are details. A verified DAF whose details were never filled in (say the file couldn't
+    // be read automatically and the student skipped the form) can still be filled in, free.
+    const saved = !!before && !isProfileEmpty(before);
     if (!admin && verified && saved) {
       const change = before.dafChange || {};
       if (change.status === 'pending') {

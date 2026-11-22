@@ -60,7 +60,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
-import { getDafStatus, submitDaf, submitDafForm, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
+import { getDafStatus, submitDaf, submitDafForm, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminDeleteDaf, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
 import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -169,6 +169,7 @@ router.get('/admin/daf', authenticateToken, requireAdmin, adminListDaf);
 router.get('/admin/daf/:id/file', authenticateToken, requireAdmin, adminGetDafFile);
 router.post('/admin/daf/:id/verify', authenticateToken, requireAdmin, adminVerifyDaf);
 router.post('/admin/daf/:id/reject', authenticateToken, requireAdmin, adminRejectDaf);
+router.delete('/admin/daf/:id', authenticateToken, requireAdmin, adminDeleteDaf);
 router.get('/admin/schedule', authenticateToken, requireAdmin, adminGetSchedule);
 router.post('/admin/schedule', authenticateToken, requireAdmin, dafUpload.single('file'), adminUploadSchedule);
 router.get('/admin/schedule/roll/:roll', authenticateToken, requireAdmin, adminScheduleRoll);

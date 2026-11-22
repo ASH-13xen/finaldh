@@ -850,7 +850,9 @@ if (!URI) {
     assert.equal(after.data.daf.status, 'rejected');
     assert.equal(after.data.daf.reason, 'This is not a DAF');
     assert.equal(after.data.daf.canUpload, true, 'a rejection allows one more upload');
-    assert.equal((await fetch(`${base}/api/interview/admin/daf/${item.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } })).status, 404, 'the file is deleted after review');
+    const kept = await fetch(`${base}/api/interview/admin/daf/${item.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
+    assert.equal(kept.status, 200, 'admins can still look at the file after reviewing it');
+    assert.equal(Buffer.from(await kept.arrayBuffer()).toString(), '%PDF-1.4 first upload');
 
     const third = await upload(Buffer.from('%PDF-1.4 the real DAF'));
     assert.equal(third.data.daf.status, 'pending');
@@ -1067,6 +1069,52 @@ if (!URI) {
     const reupload = await sendForm(details);
     assert.equal(reupload.status, 402);
     assert.equal(reupload.data.needPayment, true);
+  });
+
+  test('admins delete entries; a verified DAF whose details were never filled in can be filled in, free', async () => {
+    const { default: User } = await import('../models/User.js');
+    await User.create({ googleId: 'g-s6', email: 's6@test.dev', name: 's6', fullName: 'Student Six' });
+    const s6 = await User.findOne({ email: 's6@test.dev' });
+    tokens.s6 = jwt.sign({ userId: s6._id, email: 's6@test.dev' }, 'test-secret');
+    const upload = async () => {
+      const form = new FormData();
+      form.append('file', new Blob([Buffer.from('%PDF-1.4 s6 daf')], { type: 'application/pdf' }), 'daf.pdf');
+      const r = await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s6}` }, body: form });
+      return { status: r.status, data: await r.json().catch(() => null) };
+    };
+    const entry = (status) => api('GET', `/admin/daf?status=${status}`, 'admin').then((r) => r.data.items.find((i) => i.userEmail === 's6@test.dev'));
+
+    // AI is off (as on the live site now): the upload waits with no details filled in
+    assert.equal((await upload()).status, 200);
+    const waiting = await entry('pending');
+    assert.equal(waiting.detailsMissing, true, 'the admin sees the details are not filled in yet');
+    // Deleting a waiting entry undoes it: the student can send their DAF again
+    assert.equal((await api('DELETE', `/admin/daf/${waiting.id}`, 's1')).status, 403, 'admins only');
+    assert.equal((await api('DELETE', `/admin/daf/${waiting.id}`, 'admin')).status, 200);
+    assert.equal(await entry('pending'), undefined, 'gone from the list');
+    const after = (await api('GET', '/daf/status', 's6')).data.daf;
+    assert.equal(after.status, 'none');
+    assert.equal(after.canUpload, true, 'they can send it again');
+
+    // Verified without any details: the student is not stuck - they fill them in, free, once
+    assert.equal((await upload()).status, 200);
+    assert.equal((await api('POST', `/admin/daf/${(await entry('pending')).id}/verify`, 'admin', { rollNo: '' })).status, 200);
+    assert.equal((await api('GET', '/credits', 's6')).data.daf.status, 'verified');
+    assert.equal((await api('GET', '/predictions', 's6')).data.needsProfile, true, 'nothing to predict from yet');
+    const filled = await api('PUT', '/profile', 's6', { homeState: 'Kerala', hobbies: ['Chess'], rollNo: '0811049' });
+    assert.equal(filled.status, 200);
+    assert.deepEqual(filled.data.profile.hobbies, ['Chess']);
+    assert.equal(filled.data.profile.rollNo, '', 'still no typed roll number');
+    assert.equal((await api('PUT', '/profile', 's6', { homeState: 'Goa' })).data.needReupload, true, 'then it is locked like any verified DAF');
+
+    // The file stays viewable; deleting a reviewed entry keeps the student verified
+    const done = await entry('verified');
+    assert.equal(done.hasFile, true);
+    assert.equal((await fetch(`${base}/api/interview/admin/daf/${done.id}/file`, { headers: { Authorization: `Bearer ${tokens.admin}` } })).status, 200);
+    assert.equal((await api('DELETE', `/admin/daf/${done.id}`, 'admin')).status, 200);
+    assert.equal(await entry('verified'), undefined);
+    assert.equal((await api('GET', '/credits', 's6')).data.daf.status, 'verified', 'deleting the record does not undo the verification');
+    assert.equal((await api('DELETE', `/admin/daf/${done.id}`, 'admin')).status, 404);
   });
 
   test('recording feedback: 1 credit up to 90 seconds, 2 up to 3 minutes, all or none', async () => {

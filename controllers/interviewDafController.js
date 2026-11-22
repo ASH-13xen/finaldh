@@ -201,6 +201,7 @@ const summary = (s) => ({
   source: s.source || 'file',
   fields: s.source === 'form' ? s.fields || null : null,
   rollNo: s.rollNo || '',
+  detailsMissing: !!s.detailsMissing,
   schedule: s.schedule || null
 });
 
@@ -218,8 +219,14 @@ export const adminListDaf = async (req, res) => {
     ]);
     // Waiting: the roll number read from the file or typed by the student (a suggestion for the admin to
     // check). Reviewed: the one the admin saved when verifying. Either way checked against UPSC's schedule.
-    const profiles = status === 'pending' ? await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo').lean() : [];
+    const profiles = status === 'pending' ? await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo homeState homeDistrict education work optional hobbies achievements').lean() : [];
     const rollOfUser = new Map(profiles.map((p) => [String(p.user), p.rollNo || '']));
+    // A waiting student who hasn't filled in their DAF details yet (they can after verification, from My DAF).
+    const noDetails = new Set(profiles.filter((p) => isProfileEmpty(p)).map((p) => String(p.user)));
+    for (const i of items) {
+      const firstUpload = (i.kind || 'first') === 'first' && i.source !== 'form';
+      if (status === 'pending' && firstUpload && (!rollOfUser.has(String(i.user)) || noDetails.has(String(i.user)))) i.detailsMissing = true;
+    }
     for (const i of items) i.rollNo = normalizeRoll(i.rollNo || rollOfUser.get(String(i.user)) || '');
     const rolls = [...new Set(items.map((i) => i.rollNo).filter(Boolean))];
     const rows = rolls.length ? await InterviewSchedule.find({ roll: { $in: rolls } }).lean() : [];
@@ -243,7 +250,7 @@ export const adminGetDafFile = async (req, res) => {
   if (!isId(req.params.id)) return fail(res, 404, 'Not found.');
   try {
     const s = await DafSubmission.findById(req.params.id).select('+file mimeType fileName').lean();
-    if (!s?.file) return fail(res, 404, 'This file has been removed after review.');
+    if (!s?.file) return fail(res, 404, 'No file was kept for this entry (reviewed before files were kept).');
     const buf = Buffer.isBuffer(s.file) ? s.file : Buffer.from(s.file.buffer || s.file);
     res.setHeader('Content-Type', s.mimeType || 'application/octet-stream');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -276,8 +283,8 @@ const decide = (status) => async (req, res) => {
     if (s.kind === 'roll' && status === 'verified' && !roll) return fail(res, 400, 'Enter the roll number to approve it.');
     const now = new Date();
     const checkedRoll = { rollNo: roll, rollCheckedAt: roll ? now : null };
-    // The file is not kept once it has been reviewed.
-    await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, size: 0, ...(status === 'verified' ? { rollNo: roll } : {}) }, $unset: { file: 1 } });
+    // The file stays, so admins can look at it again later (or delete the entry).
+    await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, ...(status === 'verified' ? { rollNo: roll } : {}) } });
     if (s.kind === 'change') {
       // A change: verified -> the new details replace the current ones (if the student has saved them;
       // otherwise when they do). Rejected -> the current DAF stays and they may upload once more.
@@ -307,6 +314,36 @@ const decide = (status) => async (req, res) => {
 };
 
 export const adminVerifyDaf = decide('verified');
+
+// DELETE /admin/daf/:id: removes an entry and its file. A waiting one is undone as if it was never sent (the
+// student can send it again); a reviewed one leaves the student's verification as it is.
+export const adminDeleteDaf = async (req, res) => {
+  if (!isId(req.params.id)) return fail(res, 404, 'Not found.');
+  try {
+    const s = await DafSubmission.findById(req.params.id).select('user status kind').lean();
+    if (!s) return fail(res, 404, 'Not found.');
+    if (s.status === 'pending') {
+      const p = await InterviewProfile.findOne({ user: s.user }).select('dafCheck dafChange rollClaim').lean();
+      const mine = (ref) => ref && String(ref) === String(s._id);
+      if (s.kind === 'roll') {
+        if (mine(p?.rollClaim?.submissionId)) await InterviewProfile.updateOne({ user: s.user }, { $set: { 'rollClaim.status': 'none', 'rollClaim.submissionId': null } });
+      } else if (s.kind === 'change') {
+        if (mine(p?.dafChange?.submissionId)) {
+          await InterviewProfile.updateOne({ user: s.user }, { $set: { 'dafChange.status': 'none', 'dafChange.submissionId': null, 'dafChange.fields': null } });
+          await grantDafUpload(s.user); // they paid for it: the change can be sent again
+        }
+      } else if (mine(p?.dafCheck?.submissionId) && p?.dafCheck?.status === 'pending') {
+        await setDafCheck(s.user, { status: 'none', submissionId: null, submittedAt: null, reviewedAt: null, reason: '' });
+        await grantDafUpload(s.user);
+      }
+    }
+    await DafSubmission.deleteOne({ _id: s._id });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[interview] adminDeleteDaf error:', err);
+    fail(res, 500, 'Could not delete that entry.');
+  }
+};
 
 // ------------------------------------------------------------------ admins: UPSC's interview schedule
 

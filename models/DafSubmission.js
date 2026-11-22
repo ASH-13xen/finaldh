@@ -2,9 +2,9 @@ import mongoose from 'mongoose';
 import { peopleConn } from '../config/peopleDb.js';
 
 // A DAF a student uploaded for verification. An admin checks it is a genuine DAF (Admin -> DAF Checks); until
-// then the student can't practise, use the free AI uses or buy credits. The file is kept only while it waits:
-// it is deleted as soon as an admin verifies or rejects it. Lives in the people cluster with the student's
-// other personal data.
+// then the student can't practise, use the free AI uses or buy credits. The file is kept (admins can look at it
+// again after reviewing it, or delete the entry). Lives in the people cluster with the student's other personal
+// data.
 const dafSubmissionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   userEmail: { type: String, default: '' },
