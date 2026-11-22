@@ -1017,7 +1017,7 @@ if (!URI) {
     assert.equal((await api('GET', '/admin/schedule', 's1')).status, 403, 'admins only');
   });
 
-  test('a DAF filled in by hand goes to verification like an upload; its roll number is optional and needs a proof', async () => {
+  test('a DAF filled in by hand goes to verification like an upload; it needs a roll number and its proof', async () => {
     const { default: User } = await import('../models/User.js');
     await User.create({ googleId: 'g-s5', email: 's5@test.dev', name: 's5', fullName: 'Student Five' });
     const s5 = await User.findOne({ email: 's5@test.dev' });
@@ -1031,26 +1031,31 @@ if (!URI) {
       return { status: r.status, data: await r.json().catch(() => null) };
     };
     const details = { homeState: 'Bihar', hobbies: ['Chess'], education: [{ degree: 'B.Tech', discipline: 'Civil Engineering', institution: 'NIT Patna' }] };
-    assert.equal((await sendForm({})).status, 400, 'an empty form is not sent');
+    assert.equal((await sendForm({}, '0103665', '%PDF-1.4 admit card')).status, 400, 'an empty form is not sent');
+    const noRoll = await sendForm(details, '', '%PDF-1.4 admit card');
+    assert.equal(noRoll.status, 400, 'the roll number is required');
+    assert.equal(noRoll.data.needRoll, true);
+    assert.equal((await sendForm(details, '12345', '%PDF-1.4 admit card')).data.needRoll, true, 'a roll number has 7 digits');
     const noProof = await sendForm(details, '0103665');
-    assert.equal(noProof.status, 400, 'a roll number needs a proof');
+    assert.equal(noProof.status, 400, 'and so is its proof');
     assert.equal(noProof.data.needProof, true);
+    assert.equal((await api('GET', '/daf/status', 's5')).data.daf.status, 'none', 'nothing was sent');
 
-    // Without a roll number: no proof needed
-    const first = await sendForm(details);
+    // With both, it waits for verification like an upload
+    const first = await sendForm(details, '0103665', '%PDF-1.4 e-summon letter');
     assert.equal(first.status, 200);
-    assert.equal(first.data.daf.status, 'pending', 'it waits for verification like an upload');
+    assert.equal(first.data.daf.status, 'pending');
     assert.deepEqual((await api('GET', '/profile', 's5')).data.profile.hobbies, ['Chess'], 'the details are saved');
-    assert.equal((await sendForm(details)).status, 403, 'not again while it waits');
+    assert.equal((await sendForm(details, '0103665', '%PDF-1.4 e-summon letter')).status, 403, 'not again while it waits');
     const item = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's5@test.dev');
     assert.equal(item.source, 'form');
-    assert.equal(item.hasFile, false, 'no file: the admin reads the details');
+    assert.equal(item.hasFile, true, 'the proof is the file');
     assert.equal(item.fields.homeState, 'Bihar');
     assert.equal(item.fields.education[0].institution, 'NIT Patna');
-    assert.equal(item.rollNo, '');
-    assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', { reason: 'Please add your roll number with a proof' })).status, 200);
+    assert.equal(item.rollNo, '0103665');
+    assert.equal((await api('POST', `/admin/daf/${item.id}/reject`, 'admin', { reason: 'The proof is unreadable' })).status, 200);
 
-    // Again, with a roll number and its proof
+    // Again, with a clearer proof
     const second = await sendForm({ ...details, hobbies: ['Chess', 'Cricket'] }, '0103665', '%PDF-1.4 admit card');
     assert.equal(second.status, 200);
     const again = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's5@test.dev');
@@ -1066,7 +1071,7 @@ if (!URI) {
     assert.equal((await api('GET', '/my-interview', 's5')).data.name, 'RISHAV JAIN', 'their interview date shows');
     assert.deepEqual((await api('GET', '/profile', 's5')).data.profile.hobbies, ['Chess', 'Cricket']);
     // the filled-in DAF was their one submission: changing it now is paid, like after an upload
-    const reupload = await sendForm(details);
+    const reupload = await sendForm(details, '0103665', '%PDF-1.4 admit card');
     assert.equal(reupload.status, 402);
     assert.equal(reupload.data.needPayment, true);
   });

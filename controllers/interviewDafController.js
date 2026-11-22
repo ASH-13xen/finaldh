@@ -136,9 +136,10 @@ export const readMyDaf = async (req, res) => {
   }
 };
 
-// POST /daf/form (multipart "fields" = the DAF form as JSON, "rollNo" optional, "file" = proof of the roll
-// number): a DAF filled in by hand, sent for verification like an upload. The roll number is optional; given,
-// it needs a proof (an e-summon letter, admit card or the DAF page showing it), which the admin checks.
+// POST /daf/form (multipart "fields" = the DAF form as JSON, "rollNo", "file" = proof of the roll number): a
+// DAF filled in by hand, sent for verification like an upload. A filled-in DAF has no file, so the roll number
+// and its proof (an e-summon letter, admit card or the DAF page showing it) are both required: the admin checks
+// them before verifying.
 export const submitDafForm = async (req, res) => {
   let fields;
   try { fields = cleanProfileInput(JSON.parse(String(req.body?.fields || '{}'))); } catch { return fail(res, 400, 'Could not read the form. Please try again.'); }
@@ -146,13 +147,14 @@ export const submitDafForm = async (req, res) => {
   if (isProfileEmpty(fields)) return fail(res, 400, 'Fill in your DAF first.');
   const typed = String(req.body?.rollNo || '').replace(/\D/g, '');
   const roll = normalizeRoll(typed);
-  if (typed && !roll) return fail(res, 400, 'A roll number has 7 digits.');
-  if (roll && !req.file) return fail(res, 400, 'Attach a proof of your roll number, or leave the roll number empty.', { needProof: true });
+  if (!typed) return fail(res, 400, 'Add your roll number: it’s needed to send a DAF you fill in.', { needRoll: true });
+  if (!roll) return fail(res, 400, 'A roll number has 7 digits.', { needRoll: true });
+  if (!req.file) return fail(res, 400, 'Attach a proof of your roll number: it’s needed to send a DAF you fill in.', { needProof: true });
   try {
     const taken = await takeDafSubmission(req, res);
     if (!taken) return;
     const { user, isChange } = taken;
-    const proof = roll && req.file ? req.file : null;
+    const proof = req.file;
     const sub = await DafSubmission.create({
       ...submissionBase(req, user, isChange),
       source: 'form',
