@@ -1117,6 +1117,35 @@ if (!URI) {
     assert.equal((await api('DELETE', `/admin/daf/${done.id}`, 'admin')).status, 404);
   });
 
+  test('a DAF sent while AI was off can fill in the details later from the stored upload', async () => {
+    const { default: User } = await import('../models/User.js');
+    const { default: DafSubmission } = await import('../models/DafSubmission.js');
+    await User.create({ googleId: 'g-s7', email: 's7@test.dev', name: 's7' });
+    const s7 = await User.findOne({ email: 's7@test.dev' });
+    tokens.s7 = jwt.sign({ userId: s7._id, email: 's7@test.dev' }, 'test-secret');
+    assert.equal((await api('POST', '/daf/read', 's7')).data.noFile, true, 'nothing uploaded yet');
+    const form = new FormData();
+    form.append('file', new Blob([Buffer.from('%PDF-1.4 s7 daf')], { type: 'application/pdf' }), 'daf.pdf');
+    const up = await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s7}` }, body: form });
+    assert.equal((await up.json()).aiUnavailable, true, 'AI is off: not read when sent');
+    assert.equal((await api('GET', '/daf/status', 's7')).data.daf.detailsFromFile, true, 'the upload can still fill in the details');
+    const off = await api('POST', '/daf/read', 's7');
+    assert.equal(off.status, 503);
+    assert.equal(off.data.aiUnavailable, true);
+
+    // Once AI has read it (kept with the upload), coming back to it is free and needs no AI
+    await DafSubmission.updateOne({ user: s7._id }, { $set: { fields: { homeState: 'Assam', hobbies: ['Music'], rollNo: '0811049' }, unsure: ['hobbies'] } });
+    const read = await api('POST', '/daf/read', 's7');
+    assert.equal(read.status, 200);
+    assert.equal(read.data.fields.homeState, 'Assam');
+    assert.deepEqual(read.data.unsure, ['hobbies']);
+    // the student checks and saves them
+    assert.equal((await api('PUT', '/profile', 's7', read.data.fields)).status, 200);
+    assert.equal((await api('GET', '/profile', 's7')).data.profile.homeState, 'Assam');
+    assert.equal((await api('GET', '/daf/status', 's7')).data.daf.detailsFromFile, false);
+    assert.equal((await api('POST', '/daf/read', 's7')).status, 409, 'already filled in');
+  });
+
   test('recording feedback: 1 credit up to 90 seconds, 2 up to 3 minutes, all or none', async () => {
     const { spendCredits, refundCredits, getBalance, feedbackCreditsFor } = await import('../lib/interview/credits.js');
     const { default: User } = await import('../models/User.js');

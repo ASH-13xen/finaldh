@@ -16,7 +16,11 @@ const dafSubmissionSchema = new mongoose.Schema({
   // How the DAF came in: 'file' (uploaded) or 'form' (filled in by hand: `fields` holds what the student typed,
   // and `file`, if any, is the proof of the roll number they gave).
   source: { type: String, enum: ['file', 'form'], default: 'file' },
+  // For an upload, what AI read from the file (kept so the student can come back to it for free), and how
+  // many times it was read.
   fields: { type: mongoose.Schema.Types.Mixed, default: null },
+  unsure: { type: [String], default: undefined },
+  aiReads: { type: Number, default: 0 },
   // The UPSC roll number read from it (or, for 'roll', the one the student asks for); once verified, the
   // one the admin saved. Checked against the schedule.
   rollNo: { type: String, default: '' },

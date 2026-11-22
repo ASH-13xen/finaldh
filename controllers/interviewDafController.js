@@ -4,7 +4,7 @@
 import mongoose from 'mongoose';
 import DafSubmission from '../models/DafSubmission.js';
 import User from '../models/User.js';
-import { getDafCheck, setDafCheck, dafCheckOf, rollOf, takeDafUpload, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
+import { getDafCheck, setDafCheck, dafCheckOf, rollOf, readableDaf, takeDafUpload, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
 import { findByRoll, normalizeRoll, parseSchedulePdf, replaceSchedule, scheduleInfo } from '../lib/interview/schedule.js';
 import InterviewSchedule from '../models/InterviewSchedule.js';
 import InterviewProfile from '../models/InterviewProfile.js';
@@ -89,7 +89,8 @@ export const submitDaf = async (req, res) => {
       try {
         const { fields, unsure } = await extractDaf(req.file.buffer, req.file.mimetype);
         read = { fields, unsure, empty: isProfileEmpty(fields) };
-        if (fields.rollNo) await DafSubmission.updateOne({ _id: sub._id }, { $set: { rollNo: fields.rollNo } });
+        // Kept with the upload: if the student leaves before saving the details, they can come back to them.
+        await DafSubmission.updateOne({ _id: sub._id }, { $set: { fields, unsure, aiReads: 1, ...(fields.rollNo ? { rollNo: fields.rollNo } : {}) } });
       } catch (err) {
         console.warn('[interview] reading an uploaded DAF failed:', String(err?.message || err).slice(0, 200));
         read = { readFailed: true };
@@ -99,6 +100,39 @@ export const submitDaf = async (req, res) => {
   } catch (err) {
     console.error('[interview] submitDaf error:', err);
     fail(res, 500, 'Could not upload your DAF. Please try again.');
+  }
+};
+
+// POST /daf/read: fills in the details of a student who has none yet from the DAF they uploaded - say it
+// couldn't be read automatically when they sent it (AI was off). What was read is kept with the upload, so
+// coming back to it is free; a file is read by AI at most MAX_AI_READS times.
+const MAX_AI_READS = 3;
+export const readMyDaf = async (req, res) => {
+  try {
+    const profile = await InterviewProfile.findOne({ user: req.userId }).lean();
+    if (profile && !isProfileEmpty(profile)) return fail(res, 409, 'Your DAF details are already filled in.');
+    const sub = await readableDaf(req.userId);
+    if (!sub) return fail(res, 404, 'There is no uploaded DAF to read. Please fill in the details by hand.', { noFile: true });
+    if (sub.fields && !isProfileEmpty(sub.fields)) return res.json({ fields: sub.fields, unsure: sub.unsure || [], saved: true });
+    if (!(sub.size > 0) || (sub.aiReads || 0) >= MAX_AI_READS) return fail(res, 422, 'We couldn’t read your DAF. Please fill in the details by hand.', { readFailed: true });
+    if (!(await checkGemini())) return fail(res, 503, 'Reading your DAF automatically isn’t available right now. Please fill in the details by hand, or try again later.', { aiUnavailable: true });
+    const full = await DafSubmission.findById(sub._id).select('+file mimeType').lean();
+    if (!full?.file) return fail(res, 422, 'We couldn’t read your DAF. Please fill in the details by hand.', { readFailed: true });
+    await DafSubmission.updateOne({ _id: sub._id }, { $inc: { aiReads: 1 } });
+    try {
+      const buf = Buffer.isBuffer(full.file) ? full.file : Buffer.from(full.file.buffer || full.file);
+      const { fields, unsure } = await extractDaf(buf, full.mimeType);
+      // A waiting upload also gets the roll number read from it, for the admin's check.
+      await DafSubmission.updateOne({ _id: sub._id }, { $set: { fields, unsure, ...(fields.rollNo && sub.status === 'pending' ? { rollNo: fields.rollNo } : {}) } });
+      res.json({ fields, unsure, empty: isProfileEmpty(fields) });
+    } catch (err) {
+      if (err?.name === 'GeminiUnavailableError') return fail(res, 503, 'Reading your DAF automatically isn’t available right now. Please fill in the details by hand, or try again later.', { aiUnavailable: true });
+      console.warn('[interview] reading a stored DAF failed:', String(err?.message || err).slice(0, 200));
+      fail(res, 502, 'We couldn’t read your DAF. Please fill in the details by hand.', { readFailed: true });
+    }
+  } catch (err) {
+    console.error('[interview] readMyDaf error:', err);
+    fail(res, 500, 'Could not read your DAF. Please try again.');
   }
 };
 
