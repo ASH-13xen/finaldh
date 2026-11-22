@@ -749,7 +749,7 @@ export const analyzePractice = async (req, res) => {
   }
   try {
     const admin = await isAdminRequest(req);
-    // 1 credit up to 90 seconds, 2 for a longer answer.
+    // 2 credits, whatever the length (up to 3 minutes).
     const spent = admin ? { from: 'admin' } : await spendCredits(req.userId, feedbackCreditsFor(device.durationSec));
     if (!spent?.from) return noCredits(res, spent);
     req.spentCredit = spent.from === 'admin' ? null : spent;
