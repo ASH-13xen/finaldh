@@ -283,12 +283,83 @@ if (!URI) {
     for (const g of p.data.groups) {
       for (let i = 1; i < g.predictions.length; i++) assert.ok(order[g.predictions[i - 1].tier] <= order[g.predictions[i].tier], 'surest first');
     }
-    const gaming = p.data.groups.find((g) => g.key === 'hobby:gaming');
-    assert.ok(gaming.predictions.some((x) => /gaming/i.test(x.question)));
+    // Without AI, only real questions asked to candidates with the same entry - never pasted-in templates
+    // or loosely similar questions from other candidates.
+    for (const g of p.data.groups) for (const q of g.predictions) assert.equal(q.kind, 'direct', q.question);
 
     const again = await api('GET', '/predictions', 's1');
     assert.equal(again.data.cached, true, 'unchanged DAF -> saved predictions');
     await setDafCheck(s1._id, { status: 'none' }); // later tests expect s1 unverified
+  });
+
+  test('predictions: AI writes every question (about 95, with follow-ups), raw search results never shown, worked-on questions kept', async () => {
+    const { getCorpusIndex } = await import('../lib/interview/corpusIndex.js');
+    const { buildPredictions, predictionPrompt, tidyLegacy, foreignNames, questionsPerItem } = await import('../lib/interview/predict.js');
+    const idx = await getCorpusIndex();
+    const profile = {
+      homeState: 'Uttar Pradesh', hobbies: ['Cricket', 'Gaming'], optional: 'PSIR',
+      education: [{ degree: 'B.Tech', discipline: 'Computer Science', institution: 'IIT Delhi' }], servicePreference: ['IAS', 'IFS'], work: []
+    };
+    // A stand-in for Gemini: exactly the asked count per item, citing the first piece of evidence.
+    let seenGroups = [];
+    const fakeAi = async (prof, groups) => {
+      seenGroups = groups;
+      return groups.map((g) => ({
+        item: g.key,
+        questions: Array.from({ length: g._count }, (_, i) => ({
+          question: `Tailored ${g.key} question ${i + 1}?`,
+          basis: g._evidence.length ? [`${g.key}|e0`] : [],
+          angle: 'daf-depth',
+          tip: 'Be specific.',
+          followUps: [`Follow-up A ${i + 1}?`, `Follow-up B ${i + 1}?`]
+        }))
+      }));
+    };
+    const kept = { id: 'old#1', key: 'q:0123456789abcdef', question: 'A question the student already practised?', kind: 'related', tier: 'likely', source: 'past' };
+    const data = await buildPredictions(idx, profile, { useAI: true, ai: fakeAi, embed: false, keep: new Map([['hobby:cricket', [kept]]]) });
+    assert.equal(data.aiUsed, true);
+    assert.ok(seenGroups.some((g) => g.type === 'intro'), 'the opening questions are written for the candidate too');
+    const items = data.groups.filter((g) => !['intro', 'motivation'].includes(g.type));
+    const per = questionsPerItem(items.length);
+    for (const g of data.groups) {
+      const fresh = g.predictions.filter((q) => !q.kept);
+      assert.ok(fresh.every((q) => q.kind === 'ai' || q.kind === 'new'), `${g.key}: only what the AI wrote`);
+      assert.equal(fresh.length, ['intro', 'motivation'].includes(g.type) ? 6 : per, g.key);
+      assert.ok(fresh.every((q) => q.followUps.length === 2), 'follow-ups for every question');
+    }
+    assert.ok(data.summary.questions >= 90, `about 95 in all (${data.summary.questions})`);
+    const cricket = data.groups.find((g) => g.key === 'hobby:cricket');
+    assert.equal(cricket.predictions[0].question, kept.question, 'a question the student worked on stays, first');
+    assert.equal(cricket.predictions[0].kept, true);
+    assert.equal(new Set(cricket.predictions.map((q) => q.id)).size, cricket.predictions.length, 'ids stay unique');
+
+    // The request tells the AI how many to write, and that there is no work experience.
+    const prompt = predictionPrompt(profile, seenGroups.slice(0, 2), 'en');
+    assert.match(prompt, /"count":\d+/);
+    assert.match(prompt, /Work experience: none\./);
+    assert.match(prompt, /followUps/);
+
+    // Old saved predictions shown while AI is off: the AI-written questions only, or real same-entry ones
+    // that name nothing outside this DAF.
+    const legacy = { groups: [
+      { key: 'eca:best student', type: 'eca', predictions: [
+        { kind: 'ai', question: 'What made you the best outgoing student?' },
+        { kind: 'related', question: 'You studied Sanskrit in class 10th; do you remember it?' },
+        { kind: 'pattern', question: 'What position do you play in Exploratory Travelling?' }] },
+      { key: 'intro:intro', type: 'intro', predictions: [
+        { kind: 'direct', question: 'Tell us about your educational background.' },
+        { kind: 'direct', question: 'Why did you leave your job?' }] },
+      { key: 'home:x', type: 'home', predictions: [
+        { kind: 'direct', question: 'What is Kolhapur famous for?' },
+        { kind: 'direct', question: 'What is the contribution of Savitribai Phule?' }] }
+    ] };
+    const tidy = tidyLegacy(legacy, { ...profile, education: [{ degree: 'B.Com', institution: 'Savitribai Phule Pune University' }] });
+    assert.deepEqual(tidy.groups[0].predictions.map((q) => q.kind), ['ai']);
+    assert.deepEqual(tidy.groups[1].predictions.map((q) => q.question), ['Tell us about your educational background.'], 'no job questions without a job');
+    assert.deepEqual(tidy.groups[2].predictions.map((q) => q.question), ['What is the contribution of Savitribai Phule?']);
+    assert.equal(tidy.summary.questions, 3);
+    assert.deepEqual(foreignNames('You studied Sanskrit in class 10th; do you remember it?', 'b com savitribai phule pune'), ['Sanskrit']);
+    assert.deepEqual(foreignNames('What is the GST collection trend in India?', ''), [], 'acronyms and national terms are fine');
   });
 
   test('practice interview: starts with the chairperson, follows the plan, ends with a basic report', async () => {

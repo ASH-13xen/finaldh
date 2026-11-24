@@ -4,7 +4,8 @@ import InterviewSession from '../models/InterviewSession.js';
 import InterviewQuestion from '../models/InterviewQuestion.js';
 import InterviewTranscript from '../models/InterviewTranscript.js';
 import { getCorpusIndex, searchFamilies, familyById, relatedFamilies, summarizeFamily, familiesByKeys, OFTEN } from '../lib/interview/corpusIndex.js';
-import { buildPredictions, profileHash, profileItems, keywordFor } from '../lib/interview/predict.js';
+import { buildPredictions, profileHash, profileItems, keywordFor, tidyLegacy, PREDICTOR_VERSION, PREVIOUS_PREDICTOR_VERSION } from '../lib/interview/predict.js';
+import { keptQuestions } from '../lib/interview/keptQuestions.js';
 import { planSession, openSession, answerCurrent, buildReport, sessionPayload, closingLine, pauseSession, resumeSession, PANEL, TRAITS } from '../lib/interview/interviewer.js';
 import { FORMATS, DEFAULT_FORMAT, formatOf, formatFromMinutes, TEMPERAMENTS, DEFAULT_TEMPERAMENT } from '../lib/interview/board.js';
 import { cleanProfileInput, transcribeAnswer, isProfileEmpty, extractDaf, SERVICES } from '../lib/interview/daf.js';
@@ -76,6 +77,7 @@ export const getStatus = async (req, res) => {
     const [idx] = await Promise.all([getCorpusIndex(), checkGemini()]);
     res.json({
       ai: aiPayload(),
+      predictor: PREDICTOR_VERSION,
       corpus: idx.stats,
       sources: SOURCES,
       panel: PANEL.map(({ id, label, focus }) => ({ id, label, focus })),
@@ -203,7 +205,8 @@ const buildTailored = (profile, idx, hash, lang = 'en') => {
   const run = (async () => {
     try {
       if (!(await useAllowance(profile.user, 'predictionRuns', LIMITS.predictionRunsPerDay))) return null;
-      const data = await buildPredictions(idx, profile.toObject(), { useAI: true, lang });
+      const keep = await keptQuestions(profile.user, cacheOf(profile, lang));
+      const data = await buildPredictions(idx, profile.toObject(), { useAI: true, lang, keep });
       const latest = await InterviewProfile.findById(profile._id);
       if (latest && profileHash(latest.toObject(), idx) === hash) {
         await InterviewProfile.updateOne({ _id: profile._id }, { $set: cacheSet(lang, { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data }) });
@@ -248,6 +251,10 @@ export const getPredictions = async (req, res) => {
     const fresh = cache?.data && cache.hash === hash && (cache.aiUsed || !wantAI);
     // No "rebuild on demand": saved predictions are reused until the DAF changes (each AI run costs money).
     if (fresh) return res.json({ ...cache.data, cached: true, ai: aiPayload() });
+    // Saved by the previous version for this same DAF: shown with its raw search results removed, never rebuilt
+    // with AI here (existing students' questions were rewritten separately, without Gemini, 2026-11-24).
+    const legacy = cache?.data && cache.hash === profileHash(plain, idx, PREVIOUS_PREDICTOR_VERSION);
+    if (legacy) return res.json({ ...tidyLegacy(cache.data, plain), cached: true, ai: aiPayload() });
     // A run started when the DAF was saved may still be going: wait for it rather than paying twice.
     const runKey = `${req.userId}:${lang}`;
     if (wantAI && building.has(runKey)) {
@@ -260,7 +267,9 @@ export const getPredictions = async (req, res) => {
       if (cache?.data && cache.hash === hash) return res.json({ ...cache.data, cached: true, ai: aiPayload(), limited: true });
       useAI = false;
     }
-    const data = await buildPredictions(idx, plain, { useAI, lang });
+    // Questions the student already worked on stay as they were.
+    const keep = await keptQuestions(req.userId, cache);
+    const data = await buildPredictions(idx, plain, { useAI, lang, keep });
     await InterviewProfile.updateOne({ _id: profile._id }, { $set: cacheSet(lang, { hash, generatedAt: new Date(), aiUsed: data.aiUsed, data }) });
     res.json({ ...data, cached: false, ai: aiPayload() });
   } catch (err) {
