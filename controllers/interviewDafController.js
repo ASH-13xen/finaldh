@@ -9,7 +9,7 @@ import { findByRoll, normalizeRoll, parseSchedulePdf, replaceSchedule, scheduleI
 import InterviewSchedule from '../models/InterviewSchedule.js';
 import InterviewProfile from '../models/InterviewProfile.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
-import { checkGemini } from '../lib/interview/gemini.js';
+import { checkGemini, geminiStatus } from '../lib/interview/gemini.js';
 import { extractDaf, isProfileEmpty, cleanProfileInput } from '../lib/interview/daf.js';
 
 const fail = (res, status, error, extra = {}) => res.status(status).json({ error, ...extra });
@@ -274,7 +274,10 @@ export const adminListDaf = async (req, res) => {
         ? { found: true, name: r.name, date: r.date, day: r.day, session: r.session, reportingTime: r.reportingTime }
         : { found: false, loaded, noRoll: !i.rollNo };
     }
-    res.json({ items: items.map(summary), counts: Object.fromEntries(counts.map((c) => [c._id, c.n])), schedule: await scheduleInfo() });
+    // Whether uploads are being read automatically right now (and Google's reason when not).
+    const aiOn = await checkGemini();
+    const ai = geminiStatus();
+    res.json({ items: items.map(summary), counts: Object.fromEntries(counts.map((c) => [c._id, c.n])), schedule: await scheduleInfo(), ai: { available: aiOn, configured: ai.configured, billingBlocked: ai.billingBlocked, reason: aiOn ? '' : ai.lastError } });
   } catch (err) {
     console.error('[interview] adminListDaf error:', err);
     fail(res, 500, 'Could not load the DAF uploads.');
