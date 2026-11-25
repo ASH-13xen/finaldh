@@ -21,6 +21,10 @@ const dafSubmissionSchema = new mongoose.Schema({
   fields: { type: mongoose.Schema.Types.Mixed, default: null },
   unsure: { type: [String], default: undefined },
   aiReads: { type: Number, default: 0 },
+  // An upload AI couldn't read when it was sent (AI off, out of credits, the read failed or found nothing):
+  // the student only waits while it is flagged for admins, who re-read it ("Redo with AI") once AI works.
+  needsRead: { type: Boolean, default: false, index: true },
+  readError: { type: String, default: '' },
   // The UPSC roll number read from it (or, for 'roll', the one the student asks for); once verified, the
   // one the admin saved. Checked against the schedule.
   rollNo: { type: String, default: '' },

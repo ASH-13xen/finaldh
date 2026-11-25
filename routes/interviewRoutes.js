@@ -60,7 +60,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
-import { getDafStatus, submitDaf, submitDafForm, readMyDaf, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminDeleteDaf, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
+import { getDafStatus, submitDaf, submitDafForm, readMyDaf, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminDeleteDaf, adminReadDaf, adminSaveDafFields, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
 import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -169,6 +169,10 @@ router.get('/admin/families', authenticateToken, requireAdmin, findFamiliesAdmin
 router.get('/admin/daf', authenticateToken, requireAdmin, adminListDaf);
 router.get('/admin/daf/:id/file', authenticateToken, requireAdmin, adminGetDafFile);
 router.post('/admin/daf/:id/verify', authenticateToken, requireAdmin, adminVerifyDaf);
+// "Redo with AI": re-reads an upload AI couldn't read when it was sent (the student is waiting for it)
+router.post('/admin/daf/:id/read', authenticateToken, requireAdmin, adminReadDaf);
+// An admin corrects what AI read from a DAF (or what was filled in)
+router.put('/admin/daf/:id/fields', authenticateToken, requireAdmin, adminSaveDafFields);
 router.post('/admin/daf/:id/reject', authenticateToken, requireAdmin, adminRejectDaf);
 router.delete('/admin/daf/:id', authenticateToken, requireAdmin, adminDeleteDaf);
 router.get('/admin/schedule', authenticateToken, requireAdmin, adminGetSchedule);

@@ -446,7 +446,8 @@ if (!URI) {
     await setDafCheck(users.other._id, { status: 'none' });
     assert.equal((await call('POST', '/api/payments/order', 'other', { kind: 'daf_change' })).status, 403, 'only for a verified DAF');
     await setDafCheck(users.other._id, { status: 'verified', submittedAt: new Date() });
-    await InterviewProfile.updateOne({ user: users.other._id }, { $set: { 'dafUploads.used': 1, 'dafUploads.allowed': 1 } });
+    // a paid change is for a student whose DAF details are saved (one with none gives them once, free)
+    await InterviewProfile.updateOne({ user: users.other._id }, { $set: { 'dafUploads.used': 1, 'dafUploads.allowed': 1, homeState: 'Kerala' } });
     assert.equal((await getDafCheck(users.other._id)).changeNeedsPayment, true);
     const order = await call('POST', '/api/payments/order', 'other', { kind: 'daf_change', amount: 100 });
     assert.equal(order.status, 200);

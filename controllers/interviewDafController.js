@@ -4,13 +4,14 @@
 import mongoose from 'mongoose';
 import DafSubmission from '../models/DafSubmission.js';
 import User from '../models/User.js';
-import { getDafCheck, setDafCheck, dafCheckOf, rollOf, readableDaf, takeDafUpload, grantDafUpload, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
+import { getDafCheck, setDafCheck, dafCheckOf, rollOf, readableDaf, takeDafUpload, grantDafUpload, closeDafUploads, DAF_CHANGE_PRICE } from '../lib/interview/dafCheck.js';
 import { findByRoll, normalizeRoll, parseSchedulePdf, replaceSchedule, scheduleInfo } from '../lib/interview/schedule.js';
 import InterviewSchedule from '../models/InterviewSchedule.js';
 import InterviewProfile from '../models/InterviewProfile.js';
 import { isAdminEmail } from '../middlewares/adminMiddleware.js';
 import { checkGemini, geminiStatus } from '../lib/interview/gemini.js';
 import { extractDaf, isProfileEmpty, cleanProfileInput } from '../lib/interview/daf.js';
+import { markUnread, readStoredDaf, storeDafReading, clearDetails, detailsFrom, applyReading, notifyStudent, ALREADY_VERIFIED, CHANGE_APPLIED } from '../lib/interview/dafRead.js';
 
 const fail = (res, status, error, extra = {}) => res.status(status).json({ error, ...extra });
 const isId = (id) => mongoose.Types.ObjectId.isValid(String(id || ''));
@@ -27,19 +28,22 @@ export const getDafStatus = async (req, res) => {
   }
 };
 
-// Sending a DAF for verification - uploaded or filled in - uses the account's one submission (one more after
-// each rejection); nothing while one is waiting. A verified student's is a change: paid for first, verified
-// again, and it leaves the current DAF in place until then. Admins (testing) are not limited.
-// Returns { user, isChange } or null when it has already answered.
+// Sending a DAF - uploaded or filled in - uses the account's one submission (one more after each rejection);
+// nothing while one is waiting or being read. A verified student's is a change: paid for first, verified
+// again, and it leaves the current DAF in place until then - except for a verified student who has no details
+// at all (verified before uploads were kept), who gives theirs once, free, with nothing to verify again.
+// Admins (testing) are not limited. Returns { user, isChange, detailsUpload } or null when it has answered.
 const takeDafSubmission = async (req, res) => {
   const user = await User.findById(req.userId).select('email name fullName').lean();
   const admin = !!user && isAdminEmail(user.email);
   const current = await getDafCheck(req.userId);
-  const isChange = current.status === 'verified';
+  const detailsUpload = current.status === 'verified' && !!current.detailsUpload;
+  const isChange = current.status === 'verified' && !detailsUpload;
   if (!admin) {
     if (current.status === 'pending') { fail(res, 403, 'Your DAF is waiting to be verified. You can send it again only if our team can’t verify it.', { dafLocked: 'pending', daf: current }); return null; }
     if (isChange && current.change?.status === 'pending') { fail(res, 403, 'Your new DAF is waiting to be verified.', { dafLocked: 'changePending', daf: current }); return null; }
-    if (!(await takeDafUpload(req.userId))) {
+    if (current.reading) { fail(res, 403, 'Our team is reading your DAF. Its details will appear soon.', { dafLocked: 'reading', daf: current }); return null; }
+    if (!detailsUpload && !(await takeDafUpload(req.userId))) {
       if (isChange) fail(res, 402, `Changing your DAF costs ₹${DAF_CHANGE_PRICE}.`, { needPayment: true, price: DAF_CHANGE_PRICE, daf: current });
       else fail(res, 403, 'You have already sent your DAF.', { dafLocked: 'used', daf: current });
       return null;
@@ -51,52 +55,76 @@ const takeDafSubmission = async (req, res) => {
       return null;
     }
   }
+  if (detailsUpload && !admin) await closeDafUploads(req.userId);
   // One waiting DAF per student: a new one replaces the old (a waiting roll number request stays).
   await DafSubmission.deleteMany({ user: req.userId, status: 'pending', kind: { $ne: 'roll' } });
-  return { user, isChange };
+  return { user, isChange, detailsUpload };
 };
 
-const submissionBase = (req, user, isChange) => ({
+const submissionBase = (req, user, isChange, detailsUpload = false) => ({
   kind: isChange ? 'change' : 'first',
   user: req.userId,
   userEmail: user?.email || '',
-  userName: user?.fullName || user?.name || ''
+  userName: user?.fullName || user?.name || '',
+  // A verified student giving the details they never had: nothing to verify again.
+  ...(detailsUpload ? { status: 'verified', reviewedBy: ALREADY_VERIFIED, reviewedAt: new Date() } : {})
 });
 
 // POST /daf/submit (multipart "file"): the student's DAF upload. One call stores the file for an admin to
-// verify and has AI read it, so the student can check the details (returned as fields) before saving them.
+// verify and has AI read it. The student never types or saves anything: a first DAF's details are saved from
+// the reading at once; a change's are kept with it and replace the current details once it is verified. If it
+// can't be read (AI off, out of credits, the read fails or finds nothing), the student only waits: the upload
+// is flagged for our team, who re-read it with AI ("Redo with AI") once AI works again.
 export const submitDaf = async (req, res) => {
   if (!req.file) return fail(res, 400, 'Choose your DAF file (PDF or a photo).');
   try {
     const taken = await takeDafSubmission(req, res);
     if (!taken) return;
-    const { user, isChange } = taken;
+    const { user, isChange, detailsUpload } = taken;
+    const now = new Date();
     const sub = await DafSubmission.create({
-      ...submissionBase(req, user, isChange),
+      ...submissionBase(req, user, isChange, detailsUpload),
       fileName: String(req.file.originalname || 'daf').slice(0, 160),
       mimeType: req.file.mimetype,
       size: req.file.size,
       file: req.file.buffer
     });
     if (isChange) {
-      await InterviewProfile.updateOne({ user: req.userId }, { $set: { dafChange: { status: 'pending', submissionId: sub._id, submittedAt: new Date(), reviewedAt: null, reason: '', fields: null, appliedAt: null } } });
-    } else {
-      await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: new Date(), reviewedAt: null, reason: '' });
+      await InterviewProfile.updateOne({ user: req.userId }, { $set: { dafChange: { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '', fields: null, appliedAt: null } } });
+    } else if (!detailsUpload) {
+      await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '' });
+      await clearDetails(req.userId); // whatever an earlier, rejected upload left
     }
-    // AI reads it to fill in the form; if it can't, the student fills it in from the file instead.
-    let read = { aiUnavailable: true };
+    let reading = null;
+    let why = '';
+    let aiUnavailable = false;
     if (await checkGemini()) {
       try {
-        const { fields, unsure } = await extractDaf(req.file.buffer, req.file.mimetype);
-        read = { fields, unsure, empty: isProfileEmpty(fields) };
-        // Kept with the upload: if the student leaves before saving the details, they can come back to them.
-        await DafSubmission.updateOne({ _id: sub._id }, { $set: { fields, unsure, aiReads: 1, ...(fields.rollNo ? { rollNo: fields.rollNo } : {}) } });
+        reading = await extractDaf(req.file.buffer, req.file.mimetype);
+        if (isProfileEmpty(reading.fields)) why = 'AI read the file but found no DAF details in it';
       } catch (err) {
         console.warn('[interview] reading an uploaded DAF failed:', String(err?.message || err).slice(0, 200));
-        read = { readFailed: true };
+        why = err?.message || String(err);
+        aiUnavailable = err?.name === 'GeminiUnavailableError';
       }
+    } else {
+      why = geminiStatus().lastError || 'AI was off';
+      aiUnavailable = true;
     }
-    res.json({ daf: await getDafCheck(req.userId), stored: true, change: isChange, ...read });
+    let saved = false;
+    if (reading && !why) {
+      saved = (await storeDafReading(sub.toObject(), reading)).applied;
+    } else {
+      if (reading) await DafSubmission.updateOne({ _id: sub._id }, { $set: { fields: reading.fields, unsure: reading.unsure || [], aiReads: 1 } });
+      await markUnread(sub._id, why);
+    }
+    res.json({
+      daf: await getDafCheck(req.userId),
+      stored: true,
+      change: isChange,
+      saved,
+      ...(why ? { waitingForRead: true, ...(aiUnavailable ? { aiUnavailable: true } : { readFailed: true }) } : {})
+    });
   } catch (err) {
     console.error('[interview] submitDaf error:', err);
     fail(res, 500, 'Could not upload your DAF. Please try again.');
@@ -153,10 +181,10 @@ export const submitDafForm = async (req, res) => {
   try {
     const taken = await takeDafSubmission(req, res);
     if (!taken) return;
-    const { user, isChange } = taken;
+    const { user, isChange, detailsUpload } = taken;
     const proof = req.file;
     const sub = await DafSubmission.create({
-      ...submissionBase(req, user, isChange),
+      ...submissionBase(req, user, isChange, detailsUpload),
       source: 'form',
       fields,
       rollNo: roll,
@@ -171,7 +199,7 @@ export const submitDafForm = async (req, res) => {
       await InterviewProfile.updateOne({ user: req.userId }, { $set: { dafChange: { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '', fields, appliedAt: null } } });
     } else {
       await InterviewProfile.updateOne({ user: req.userId }, { $set: { ...fields, source: 'manual', detailsSavedAt: now }, $setOnInsert: { user: req.userId } }, { upsert: true });
-      await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '' });
+      if (!detailsUpload) await setDafCheck(req.userId, { status: 'pending', submissionId: sub._id, submittedAt: now, reviewedAt: null, reason: '' });
     }
     res.json({ daf: await getDafCheck(req.userId), stored: true, change: isChange });
   } catch (err) {
@@ -235,27 +263,37 @@ const summary = (s) => ({
   createdAt: s.createdAt,
   kind: s.kind || 'first',
   source: s.source || 'file',
-  fields: s.source === 'form' ? s.fields || null : null,
+  // What AI read from an upload (or what was filled in), and the fields AI was unsure of.
+  fields: s.kind !== 'roll' ? s.fields || null : null,
+  unsure: s.kind !== 'roll' ? s.unsure || [] : [],
+  detailsUpload: s.reviewedBy === ALREADY_VERIFIED,
   rollNo: s.rollNo || '',
+  needsRead: !!s.needsRead,
+  readError: s.needsRead ? s.readError || '' : '',
   detailsMissing: !!s.detailsMissing,
   schedule: s.schedule || null
 });
 
+const UNREAD = { needsRead: true, status: { $in: ['pending', 'verified'] }, kind: { $ne: 'roll' } };
+
 export const adminListDaf = async (req, res) => {
   try {
-    const status = ['pending', 'verified', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
-    const [items, counts] = await Promise.all([
+    // 'unread': uploads AI couldn't read (waiting or verified) - their students are waiting for the details.
+    const status = ['pending', 'verified', 'rejected', 'unread'].includes(req.query.status) ? req.query.status : 'pending';
+    const match = status === 'unread' ? UNREAD : { status };
+    const [items, counts, unread] = await Promise.all([
       DafSubmission.aggregate([
-        { $match: { status } },
-        { $sort: { createdAt: status === 'pending' ? 1 : -1 } },
+        { $match: match },
+        { $sort: { createdAt: status === 'pending' || status === 'unread' ? 1 : -1 } },
         { $limit: 300 },
-        { $project: { hasFile: { $gt: [{ $ifNull: ['$size', 0] }, 0] }, user: 1, userEmail: 1, userName: 1, status: 1, fileName: 1, mimeType: 1, size: 1, reason: 1, reviewedBy: 1, reviewedAt: 1, createdAt: 1, kind: 1, rollNo: 1, source: 1, fields: 1 } }
+        { $project: { hasFile: { $gt: [{ $ifNull: ['$size', 0] }, 0] }, user: 1, userEmail: 1, userName: 1, status: 1, fileName: 1, mimeType: 1, size: 1, reason: 1, reviewedBy: 1, reviewedAt: 1, createdAt: 1, kind: 1, rollNo: 1, source: 1, fields: 1, unsure: 1, needsRead: 1, readError: 1 } }
       ]),
-      DafSubmission.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])
+      DafSubmission.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
+      DafSubmission.countDocuments(UNREAD)
     ]);
     // Waiting: the roll number read from the file or typed by the student (a suggestion for the admin to
     // check). Reviewed: the one the admin saved when verifying. Either way checked against UPSC's schedule.
-    const profiles = status === 'pending' ? await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo homeState homeDistrict education work optional hobbies achievements').lean() : [];
+    const profiles = status === 'pending' || status === 'unread' ? await InterviewProfile.find({ user: { $in: items.map((i) => i.user) } }).select('user rollNo homeState homeDistrict education work optional hobbies achievements').lean() : [];
     const rollOfUser = new Map(profiles.map((p) => [String(p.user), p.rollNo || '']));
     // A waiting student who hasn't filled in their DAF details yet (they can after verification, from My DAF).
     const noDetails = new Set(profiles.filter((p) => isProfileEmpty(p)).map((p) => String(p.user)));
@@ -277,7 +315,7 @@ export const adminListDaf = async (req, res) => {
     // Whether uploads are being read automatically right now (and Google's reason when not).
     const aiOn = await checkGemini();
     const ai = geminiStatus();
-    res.json({ items: items.map(summary), counts: Object.fromEntries(counts.map((c) => [c._id, c.n])), schedule: await scheduleInfo(), ai: { available: aiOn, configured: ai.configured, billingBlocked: ai.billingBlocked, reason: aiOn ? '' : ai.lastError } });
+    res.json({ items: items.map(summary), counts: { ...Object.fromEntries(counts.map((c) => [c._id, c.n])), unread }, schedule: await scheduleInfo(), ai: { available: aiOn, configured: ai.configured, billingBlocked: ai.billingBlocked, reason: aiOn ? '' : ai.lastError } });
   } catch (err) {
     console.error('[interview] adminListDaf error:', err);
     fail(res, 500, 'Could not load the DAF uploads.');
@@ -325,19 +363,18 @@ const decide = (status) => async (req, res) => {
     // The file stays, so admins can look at it again later (or delete the entry).
     await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, ...(status === 'verified' ? { rollNo: roll } : {}) } });
     if (s.kind === 'change') {
-      // A change: verified -> the new details replace the current ones. Those the student checked and saved,
-      // or - if they haven't saved them yet - what was read from the new DAF, which they may then check once,
-      // free. (Verifying used to apply nothing in that case, leaving a student who paid with the old DAF.)
-      // Rejected -> the current DAF stays and they may upload once more.
+      // A change: verified -> the new details replace the current ones at once, no Save needed: those filled
+      // in by hand, or what was read from the new DAF (as an admin may have corrected it). Not read yet (AI was
+      // off): the student waits, and an admin's Redo with AI applies it. Rejected -> the current DAF stays and
+      // they may upload once more.
       const p = await InterviewProfile.findOne({ user: s.user }).select('dafChange').lean();
-      const checked = p?.dafChange?.fields;
-      const read = !checked && s.fields && !isProfileEmpty(s.fields) ? cleanProfileInput(s.fields) : null;
-      if (read) delete read.rollNo; // the roll number is only ever the one the admin checked
+      const typed = p?.dafChange?.fields;
+      const details = typed ? detailsFrom(typed) : s.fields && !isProfileEmpty(s.fields) ? detailsFrom(s.fields) : null;
       const $set = { 'dafChange.status': status, 'dafChange.reason': reason, 'dafChange.reviewedAt': now };
-      if (status === 'verified' && checked) Object.assign($set, checked, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
-      else if (status === 'verified' && read) Object.assign($set, read, { 'dafChange.filledAt': now, detailsSavedAt: now });
+      if (status === 'verified' && details) Object.assign($set, details, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
       if (status === 'verified') Object.assign($set, checkedRoll);
       await InterviewProfile.updateOne({ user: s.user }, { $set });
+      if (status === 'verified' && details) await notifyStudent(s.user, CHANGE_APPLIED);
     } else if (s.kind === 'roll') {
       // A roll number request: approved -> the roll number the admin checked becomes theirs. Rejected -> the
       // student may ask again (it's free).
@@ -346,7 +383,14 @@ const decide = (status) => async (req, res) => {
       await InterviewProfile.updateOne({ user: s.user }, { $set });
     } else {
       await setDafCheck(s.user, { status, reason, reviewedAt: now });
-      if (status === 'verified') await InterviewProfile.updateOne({ user: s.user }, { $set: checkedRoll });
+      if (status === 'verified') {
+        await InterviewProfile.updateOne({ user: s.user }, { $set: checkedRoll });
+        // Read, but its details never saved (sent before they were saved automatically): put them in place.
+        if (s.fields && !isProfileEmpty(s.fields)) await applyReading(s.toObject(), s.fields);
+      } else if (s.source !== 'form') {
+        // A rejected upload (say the wrong file): what was read from it goes, so the next upload starts clean.
+        await clearDetails(s.user);
+      }
     }
     // A rejected DAF may be uploaded once more.
     if (status === 'rejected' && s.kind !== 'roll') await grantDafUpload(s.user);
@@ -358,6 +402,86 @@ const decide = (status) => async (req, res) => {
 };
 
 export const adminVerifyDaf = decide('verified');
+
+// What admins are told when AI can't be used to re-read a DAF, with Google's reason.
+const aiOffReply = (res) => {
+  const ai = geminiStatus();
+  return fail(res, 503, ai.billingBlocked
+    ? 'Google is still refusing AI requests for billing reasons. Add credits (or raise the spending cap) in AI Studio, then press Redo with AI again.'
+    : 'AI is off right now, so the DAF can’t be read. Try again in a few minutes.', { aiUnavailable: true, ai: { available: false, configured: ai.configured, billingBlocked: ai.billingBlocked, reason: ai.lastError } });
+};
+
+// PUT /admin/daf/:id/fields: an admin corrects what AI read from an upload (or what was filled in) before -
+// or after - verifying, so a missed or misread entry is fixed without the student paying for a change. The
+// correction goes wherever those details are in use: a first DAF's are the student's details now; a change's
+// replace them when it is verified (or now, if it already is).
+export const adminSaveDafFields = async (req, res) => {
+  if (!isId(req.params.id)) return fail(res, 404, 'Not found.');
+  try {
+    const s = await DafSubmission.findById(req.params.id).select('user kind source status fields').lean();
+    if (!s) return fail(res, 404, 'Not found.');
+    if (s.kind === 'roll') return fail(res, 400, 'A roll number request has no DAF details.');
+    const details = detailsFrom(req.body?.fields);
+    if (isProfileEmpty(details)) return fail(res, 400, 'Fill in at least one detail.');
+    if (s.status === 'rejected') return fail(res, 409, 'This DAF was rejected: its details aren’t used.');
+    await DafSubmission.updateOne({ _id: s._id }, { $set: { fields: { ...details, rollNo: s.fields?.rollNo || '' }, unsure: [], needsRead: false, readError: '' } });
+    const p = await InterviewProfile.findOne({ user: s.user }).select('dafCheck dafChange').lean();
+    const now = new Date();
+    let applied = false;
+    if (s.kind === 'change') {
+      if (String(p?.dafChange?.submissionId) === String(s._id)) {
+        if (p.dafChange.status === 'pending' && p.dafChange.fields) await InterviewProfile.updateOne({ user: s.user }, { $set: { 'dafChange.fields': details } });
+        if (p.dafChange.status === 'verified') {
+          await InterviewProfile.updateOne({ user: s.user }, { $set: { ...details, detailsSavedAt: now, 'dafChange.appliedAt': p.dafChange.appliedAt || now } });
+          applied = true;
+        }
+      }
+    } else {
+      // The student's current first DAF (or the details they gave once already verified).
+      const latest = await DafSubmission.findOne({ user: s.user, kind: 'first', status: { $ne: 'rejected' } }).sort({ createdAt: -1 }).select('_id').lean();
+      if (String(latest?._id) === String(s._id)) {
+        await InterviewProfile.updateOne({ user: s.user }, { $set: { ...details, detailsSavedAt: now } });
+        applied = true;
+      }
+    }
+    res.json({ ok: true, applied });
+  } catch (err) {
+    console.error('[interview] adminSaveDafFields error:', err);
+    fail(res, 500, 'Could not save the details.');
+  }
+};
+
+// POST /admin/daf/:id/read ("Redo with AI"): re-reads an upload AI couldn't read when it was sent - once AI
+// works again, say after adding credits - and puts the details in place for the student, who was waiting.
+export const adminReadDaf = async (req, res) => {
+  if (!isId(req.params.id)) return fail(res, 404, 'Not found.');
+  try {
+    const s = await DafSubmission.findById(req.params.id).select('user kind source status size').lean();
+    if (!s) return fail(res, 404, 'Not found.');
+    if (s.kind === 'roll' || s.source === 'form' || !(s.size > 0)) return fail(res, 400, 'There is no uploaded DAF file to read here.');
+    // Looks again right away (not on the usual timer): credits may have just been added.
+    if (!(await checkGemini({ now: true }))) return aiOffReply(res);
+    let reading;
+    try {
+      reading = await readStoredDaf(s._id);
+    } catch (err) {
+      if (err?.name === 'GeminiUnavailableError') { await markUnread(s._id, geminiStatus().lastError || err.message); return aiOffReply(res); }
+      await markUnread(s._id, err?.message || err);
+      console.warn('[interview] re-reading a DAF failed:', String(err?.message || err).slice(0, 200));
+      return fail(res, 502, `AI couldn’t read this file (${String(err?.message || err).slice(0, 120)}). Open the DAF to check it, and try again.`);
+    }
+    if (!reading) return fail(res, 404, 'The file is no longer stored.');
+    if (isProfileEmpty(reading.fields)) {
+      await markUnread(s._id, 'AI read the file but found no DAF details in it');
+      return fail(res, 422, 'AI read the file but found no DAF details in it. Open it: if it isn’t a readable DAF, reject it so the student can upload again.');
+    }
+    const { applied } = await storeDafReading(s, reading, { notify: true });
+    res.json({ ok: true, applied, rollNo: reading.fields.rollNo || '' });
+  } catch (err) {
+    console.error('[interview] adminReadDaf error:', err);
+    fail(res, 500, 'Could not read that DAF.');
+  }
+};
 
 // DELETE /admin/daf/:id: removes an entry and its file. A waiting one is undone as if it was never sent (the
 // student can send it again); a reviewed one leaves the student's verification as it is.

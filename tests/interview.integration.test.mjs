@@ -957,45 +957,75 @@ if (!URI) {
     assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'] })).status, 403, 'no free edits either');
 
     const { grantDafUpload } = await import('../lib/interview/dafCheck.js');
+    const { storeDafReading } = await import('../lib/interview/dafRead.js');
+    const { default: Message } = await import('../models/Message.js');
     await grantDafUpload(s3._id); // what a paid Rs 50 order does
+    // A paid change: the current DAF stays until the new one is verified, and the student never edits or saves
+    // anything - the new details come from the new DAF. (AI is off here, so it isn't read as it is sent.)
     const change = await upload(Buffer.from('%PDF-1.4 my new DAF'));
     assert.equal(change.status, 200);
     assert.equal(change.data.change, true);
+    assert.equal(change.data.saved, false, 'a change is applied only once verified');
     assert.equal(change.data.daf.status, 'verified', 'still verified while the new DAF waits');
     assert.equal(change.data.daf.change.status, 'pending');
-    const saved = await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'], homeState: 'Haryana', rollNo: '0814202' });
-    assert.equal(saved.data.changePending, true);
-    assert.deepEqual((await api('GET', '/profile', 's3')).data.profile.hobbies, ['Chess'], 'the current DAF stays until the new one is verified');
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'] })).status, 403, 'no saving by the student');
     assert.equal((await upload(Buffer.from('%PDF-1.4 another'))).status, 403, 'one change at a time');
-
     const waiting = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev');
     assert.equal(waiting.kind, 'change');
+    assert.equal(waiting.needsRead, true, 'not read: flagged for admins');
     assert.equal(waiting.rollNo, '0811049', "a changed DAF can't carry a roll number the student typed");
+    // An admin's Redo with AI reads it: held until it is verified
+    const held = await storeDafReading(await DafSubmission.findById(waiting.id).lean(), { fields: { homeState: 'Haryana', homeDistrict: 'Panipat', hobbies: ['Kabaddi'], achievements: ['NSS lead volunteer'], rollNo: '0999999' }, unsure: ['achievements'] }, { notify: true });
+    assert.equal(held.applied, false, 'held while it waits');
+    assert.deepEqual((await api('GET', '/profile', 's3')).data.profile.hobbies, ['Chess'], 'the current DAF stays until the new one is verified');
+    // The admin sees what AI read (and what it was unsure of) and corrects it before verifying
+    const read = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.id === waiting.id);
+    assert.deepEqual(read.fields.achievements, ['NSS lead volunteer']);
+    assert.deepEqual(read.unsure, ['achievements']);
+    assert.equal((await api('PUT', `/admin/daf/${waiting.id}/fields`, 's3', { fields: { homeState: 'Goa' } })).status, 403, 'admins only');
+    assert.equal((await api('PUT', `/admin/daf/${waiting.id}/fields`, 'admin', { fields: {} })).status, 400);
+    assert.equal((await api('PUT', `/admin/daf/${waiting.id}/fields`, 'admin', { fields: { ...read.fields, achievements: ['NSS lead volunteer', 'Social Innovation Award'] } })).status, 200);
+    assert.deepEqual((await api('GET', '/profile', 's3')).data.profile.hobbies, ['Chess'], 'still held');
     assert.equal((await api('POST', `/admin/daf/${waiting.id}/verify`, 'admin', { rollNo: '0811049' })).status, 200);
     const now = (await api('GET', '/profile', 's3')).data.profile;
-    assert.deepEqual(now.hobbies, ['Kabaddi'], 'verified: the new details replace the old');
-    assert.equal(now.homeState, 'Haryana');
+    assert.deepEqual(now.hobbies, ['Kabaddi'], 'verified: the new details replace the old, no Save needed');
+    assert.deepEqual(now.achievements, ['NSS lead volunteer', 'Social Innovation Award'], "with the admin's correction");
+    assert.equal(now.homeDistrict, 'Panipat');
     assert.equal(now.rollNo, '0811049', 'the roll number is still the one the admin checked');
+    assert.ok(await Message.findOne({ recipientId: s3._id, text: /new DAF is verified/ }), 'the student is told in their inbox');
     assert.equal((await api('GET', '/daf/status', 's3')).data.daf.changeNeedsPayment, true, 'the next change is paid for again');
-    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.change.toCheck, false, 'details they saved themselves need no check');
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Chess'] })).status, 403, 'and no edits after it');
 
-    // A change verified BEFORE the student saved the details they were checking (they left the page, or our
-    // team was quick): what was read from the new DAF replaces the old details, and they may check them once.
+    // A change verified before it could be read: the student waits (flagged for admins); once an admin's Redo
+    // with AI reads it, the new details are put in place at once and the student is told.
     await grantDafUpload(s3._id);
-    assert.equal((await upload(Buffer.from('%PDF-1.4 newest DAF'))).status, 200);
-    const newest = await DafSubmission.findOne({ user: s3._id, kind: 'change', status: 'pending' });
-    // what AI read from it (AI is off in these tests)
-    await DafSubmission.updateOne({ _id: newest._id }, { $set: { fields: { homeState: 'Haryana', homeDistrict: 'Panipat', hobbies: ['Stand-up comedy'], achievements: ['NSS lead volunteer', 'Social Innovation Award'], rollNo: '0999999' } } });
-    assert.equal((await api('POST', `/admin/daf/${newest._id}/verify`, 'admin', { rollNo: '0811049' })).status, 200);
-    const filled = (await api('GET', '/profile', 's3')).data.profile;
-    assert.deepEqual(filled.achievements, ['NSS lead volunteer', 'Social Innovation Award'], 'the new DAF is applied, not left waiting');
-    assert.equal(filled.homeDistrict, 'Panipat');
-    assert.equal(filled.rollNo, '0811049', 'never a roll number read from the file');
-    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.change.toCheck, true, 'they are asked to check them');
-    assert.equal((await api('PUT', '/profile', 's3', { ...filled, achievements: [...filled.achievements, 'Runner-up, design challenge'] })).status, 200, 'one free check');
-    assert.equal((await api('GET', '/profile', 's3')).data.profile.achievements.length, 3);
-    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.change.toCheck, false);
-    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'] })).status, 403, 'and only one');
+    const unreadUp = await upload(Buffer.from('%PDF-1.4 unread new DAF'));
+    assert.equal(unreadUp.data.waitingForRead, true, 'the student just waits');
+    assert.equal(unreadUp.data.aiUnavailable, true);
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.reading, true);
+    const flagged = (await api('GET', '/admin/daf?status=unread', 'admin')).data;
+    const unreadItem = flagged.items.find((i) => i.userEmail === 's3@test.dev');
+    assert.equal(unreadItem?.needsRead, true, 'flagged for admins');
+    assert.ok(unreadItem.readError, 'with why');
+    assert.ok(flagged.counts.unread >= 1);
+    const redoOff = await api('POST', `/admin/daf/${unreadItem.id}/read`, 'admin');
+    assert.equal(redoOff.status, 503, 'Redo with AI needs AI');
+    assert.equal(redoOff.data.aiUnavailable, true);
+    assert.equal((await api('POST', `/admin/daf/${unreadItem.id}/read`, 's3')).status, 403, 'admins only');
+    const beforeVerify = (await api('GET', '/profile', 's3')).data.profile;
+    assert.equal((await api('POST', `/admin/daf/${unreadItem.id}/verify`, 'admin', { rollNo: '0811049' })).status, 200);
+    assert.deepEqual((await api('GET', '/profile', 's3')).data.profile.achievements, beforeVerify.achievements, 'nothing read: nothing applied');
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.reading, true, 'still waiting for our team');
+    assert.equal((await upload(Buffer.from('%PDF-1.4 impatient'))).status, 403, 'no new upload while it is being read');
+    const unreadSub = await DafSubmission.findById(unreadItem.id).lean();
+    assert.equal((await storeDafReading(unreadSub, { fields: { homeState: 'Punjab', hobbies: ['Cycling'], achievements: ['Debate winner'], rollNo: '0999999' }, unsure: [] }, { notify: true })).applied, true, 'what a successful Redo with AI does');
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.reading, false);
+    const redone = (await api('GET', '/profile', 's3')).data.profile;
+    assert.deepEqual(redone.achievements, ['Debate winner']);
+    assert.equal(redone.rollNo, '0811049');
+    assert.equal((await api('GET', '/admin/daf?status=unread', 'admin')).data.items.find((i) => i.userEmail === 's3@test.dev'), undefined, 'no longer flagged');
+    assert.equal(await Message.countDocuments({ recipientId: s3._id, text: /new DAF is verified/ }), 2);
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'] })).status, 403);
   });
 
   test('UPSC interview schedule: admins see the match for each upload; students see only their own row, once verified', async () => {
@@ -1212,33 +1242,94 @@ if (!URI) {
     assert.equal((await api('DELETE', `/admin/daf/${done.id}`, 'admin')).status, 404);
   });
 
-  test('a DAF sent while AI was off can fill in the details later from the stored upload', async () => {
+  test('a DAF AI could not read: the student only waits, admins are flagged and re-read it with AI', async () => {
     const { default: User } = await import('../models/User.js');
     const { default: DafSubmission } = await import('../models/DafSubmission.js');
-    await User.create({ googleId: 'g-s7', email: 's7@test.dev', name: 's7' });
-    const s7 = await User.findOne({ email: 's7@test.dev' });
-    tokens.s7 = jwt.sign({ userId: s7._id, email: 's7@test.dev' }, 'test-secret');
+    const { default: Message } = await import('../models/Message.js');
+    const { storeDafReading } = await import('../lib/interview/dafRead.js');
+    const { setDafCheck } = await import('../lib/interview/dafCheck.js');
+    const student = async (n) => {
+      await User.create({ googleId: `g-${n}`, email: `${n}@test.dev`, name: n });
+      const u = await User.findOne({ email: `${n}@test.dev` });
+      tokens[n] = jwt.sign({ userId: u._id, email: `${n}@test.dev` }, 'test-secret');
+      return u;
+    };
+    const send = async (n) => {
+      const form = new FormData();
+      form.append('file', new Blob([Buffer.from(`%PDF-1.4 ${n} daf`)], { type: 'application/pdf' }), 'daf.pdf');
+      const r = await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens[n]}` }, body: form });
+      return { status: r.status, data: await r.json() };
+    };
+    const s7 = await student('s7');
     assert.equal((await api('POST', '/daf/read', 's7')).data.noFile, true, 'nothing uploaded yet');
-    const form = new FormData();
-    form.append('file', new Blob([Buffer.from('%PDF-1.4 s7 daf')], { type: 'application/pdf' }), 'daf.pdf');
-    const up = await fetch(`${base}/api/interview/daf/submit`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.s7}` }, body: form });
-    assert.equal((await up.json()).aiUnavailable, true, 'AI is off: not read when sent');
-    assert.equal((await api('GET', '/daf/status', 's7')).data.daf.detailsFromFile, true, 'the upload can still fill in the details');
-    const off = await api('POST', '/daf/read', 's7');
-    assert.equal(off.status, 503);
-    assert.equal(off.data.aiUnavailable, true);
+    const up = (await send('s7')).data;
+    assert.equal(up.aiUnavailable, true, 'AI is off: not read when sent');
+    assert.equal(up.waitingForRead, true, 'the student just waits - nothing to fill in');
+    assert.equal(up.saved, false);
+    let st = (await api('GET', '/daf/status', 's7')).data.daf;
+    assert.equal(st.reading, true);
+    const sub = await DafSubmission.findOne({ user: s7._id }).lean();
+    assert.equal(sub.needsRead, true);
+    const list = (await api('GET', '/admin/daf?status=pending', 'admin')).data;
+    assert.equal(list.items.find((i) => i.userEmail === 's7@test.dev').needsRead, true, 'flagged on the waiting list too');
+    assert.equal((await api('POST', `/admin/daf/${sub._id}/read`, 'admin')).status, 503, 'Redo with AI waits for AI');
 
-    // Once AI has read it (kept with the upload), coming back to it is free and needs no AI
-    await DafSubmission.updateOne({ user: s7._id }, { $set: { fields: { homeState: 'Assam', hobbies: ['Music'], rollNo: '0811049' }, unsure: ['hobbies'] } });
-    const read = await api('POST', '/daf/read', 's7');
-    assert.equal(read.status, 200);
-    assert.equal(read.data.fields.homeState, 'Assam');
-    assert.deepEqual(read.data.unsure, ['hobbies']);
-    // the student checks and saves them
-    assert.equal((await api('PUT', '/profile', 's7', read.data.fields)).status, 200);
+    // The admin's Redo with AI works (say credits were added): the details are saved, and the student is told
+    assert.equal((await storeDafReading(sub, { fields: { homeState: 'Assam', hobbies: ['Music'], rollNo: '0811049' }, unsure: ['hobbies'] }, { notify: true })).applied, true);
+    st = (await api('GET', '/daf/status', 's7')).data.daf;
+    assert.equal(st.reading, false);
     assert.equal((await api('GET', '/profile', 's7')).data.profile.homeState, 'Assam');
-    assert.equal((await api('GET', '/daf/status', 's7')).data.daf.detailsFromFile, false);
+    assert.equal((await api('GET', '/profile', 's7')).data.profile.rollNo, '', 'never a roll number read from the file');
+    assert.ok(await Message.findOne({ recipientId: s7._id, text: /DAF details are ready/ }), 'a note in their inbox');
+    const entry = (await api('GET', '/admin/daf?status=pending', 'admin')).data.items.find((i) => i.userEmail === 's7@test.dev');
+    assert.equal(entry.needsRead, false);
+    assert.equal(entry.rollNo, '0811049', 'the roll number read from it is suggested to the admin');
+    assert.deepEqual(entry.unsure, ['hobbies'], 'and what AI was unsure of');
+    assert.equal((await api('PUT', '/profile', 's7', { homeState: 'Goa' })).status, 403, 'students never edit what was read');
     assert.equal((await api('POST', '/daf/read', 's7')).status, 409, 'already filled in');
+    assert.equal((await storeDafReading(sub, { fields: { homeState: 'Goa' }, unsure: [] })).applied, false, 'a re-read never overwrites saved details');
+    // An admin corrects it: it is the student's details at once
+    assert.equal((await api('PUT', `/admin/daf/${sub._id}/fields`, 'admin', { fields: { homeState: 'Assam', homeDistrict: 'Jorhat', hobbies: ['Music'] } })).data.applied, true);
+    assert.equal((await api('GET', '/profile', 's7')).data.profile.homeDistrict, 'Jorhat');
+    // Rejected (say the wrong file): what was read from it goes, and the next upload starts clean
+    assert.equal((await api('POST', `/admin/daf/${sub._id}/reject`, 'admin', { reason: 'Upload the full DAF' })).status, 200);
+    assert.equal((await api('GET', '/profile', 's7')).data.empty, true, 'the rejected file left nothing behind');
+    assert.equal((await send('s7')).status, 200, 'one more upload after a rejection');
+
+    // Verified before it could be read: the details are saved when an admin re-reads it, and then locked
+    const s8 = await student('s8');
+    await send('s8');
+    const sub8 = await DafSubmission.findOne({ user: s8._id }).lean();
+    assert.equal((await api('POST', `/admin/daf/${sub8._id}/verify`, 'admin', { rollNo: '0814202' })).status, 200);
+    assert.equal((await api('GET', '/daf/status', 's8')).data.daf.reading, true, 'verified, still waiting for the details');
+    assert.equal((await api('GET', '/daf/status', 's8')).data.daf.detailsUpload, false, 'nothing to give while it is being read');
+    assert.equal((await api('GET', '/admin/daf?status=unread', 'admin')).data.items.some((i) => i.userEmail === 's8@test.dev'), true, 'flagged while verified');
+    assert.equal((await storeDafReading(await DafSubmission.findById(sub8._id).lean(), { fields: { homeState: 'Bihar', achievements: ['NCC C certificate'] }, unsure: [] })).applied, true);
+    assert.equal((await api('GET', '/daf/status', 's8')).data.daf.reading, false);
+    assert.equal((await api('PUT', '/profile', 's8', { homeState: 'Goa' })).status, 403, 'locked like any verified DAF');
+    assert.equal((await api('GET', '/profile', 's8')).data.profile.rollNo, '0814202');
+
+    // Verified with no details and no file (verified before uploads were kept): one free upload - or fill-in -
+    // with nothing to verify again
+    const s9 = await student('s9');
+    await setDafCheck(s9._id, { status: 'verified', reviewedAt: new Date() });
+    st = (await api('GET', '/daf/status', 's9')).data.daf;
+    assert.equal(st.detailsUpload, true);
+    assert.equal(st.canUpload, true);
+    assert.equal(st.changeNeedsPayment, false, 'free');
+    const given = await send('s9');
+    assert.equal(given.status, 200);
+    assert.equal(given.data.change, false, 'not a paid change');
+    const sub9 = await DafSubmission.findOne({ user: s9._id }).lean();
+    assert.equal(sub9.status, 'verified', 'nothing to verify again');
+    assert.equal(sub9.kind, 'first');
+    assert.equal((await api('GET', '/admin/daf?status=verified', 'admin')).data.items.find((i) => i.userEmail === 's9@test.dev').detailsUpload, true);
+    assert.equal((await api('GET', '/daf/status', 's9')).data.daf.reading, true, 'AI off here: they wait for our team');
+    assert.equal((await send('s9')).status, 403, 'once');
+    assert.equal((await storeDafReading(sub9, { fields: { homeState: 'Odisha' }, unsure: [] })).applied, true);
+    st = (await api('GET', '/daf/status', 's9')).data.daf;
+    assert.equal(st.detailsUpload, false);
+    assert.equal(st.changeNeedsPayment, true, 'from now on a change is paid for, like anyone');
   });
 
   test('recording feedback: 2 credits up to 90 seconds, 3 up to 3 minutes, all or none', async () => {

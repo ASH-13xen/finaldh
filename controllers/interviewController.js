@@ -24,6 +24,7 @@ import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { CREDIT_PACKS, FREE_AI_USES, AI_USES_PER_DAY, FEEDBACK_CREDITS_SHORT, FEEDBACK_CREDITS_LONG, FEEDBACK_SHORT_SECONDS, FEEDBACK_MAX_SECONDS, feedbackCreditsFor, getBalance, spendCredit, spendCredits, refundCredit, refundCredits } from '../lib/interview/credits.js';
 import { draftAnswer } from '../lib/interview/answers.js';
 import { getDafCheck, dafGateMessage } from '../lib/interview/dafCheck.js';
+import { clearUnread } from '../lib/interview/dafRead.js';
 
 // Free for now; the caps only stop one account from running up the Gemini bill.
 const LIMITS = { sessionsPerDay: 10, predictionRunsPerDay: 15, transcribesPerDay: 400, extractsPerDay: 5, approachesPerDay: 40 };
@@ -112,9 +113,10 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// Saving the DAF details. Before verification (and an admin's) they're simply saved. Once a student is
-// verified, details already saved change only through a paid re-upload: the reviewed fields wait on the
-// change until an admin verifies the new DAF (or, if it was verified first, replace the details now).
+// Saving DAF details by hand. A student gives their DAF once - uploaded (its details are saved from AI's
+// reading) or filled in (POST /daf/form) - and never edits it: it changes only by re-uploading it (Rs 50,
+// verified again). The one thing a student saves here is the details they never had (a DAF verified before
+// uploads were kept), once. Admins can always save.
 export const saveProfile = async (req, res) => {
   try {
     const fields = cleanProfileInput(req.body || {});
@@ -125,26 +127,17 @@ export const saveProfile = async (req, res) => {
     // the DAF they upload (read from the file, checked by an admin when verifying) or from a roll number
     // request with proof (POST /daf/roll), also checked by an admin.
     if (!admin) delete fields.rollNo;
-    // Locked once there are details. A verified DAF whose details were never filled in (say the file couldn't
-    // be read automatically and the student skipped the form) can still be filled in, free.
     const saved = !!before && !isProfileEmpty(before);
-    if (!admin && verified && saved) {
-      const change = before.dafChange || {};
-      if (change.status === 'pending') {
-        await InterviewProfile.updateOne({ user: req.userId }, { $set: { 'dafChange.fields': fields } });
-        const current = await InterviewProfile.findOne({ user: req.userId });
-        return res.json({ profile: publicProfile(current), items: profileItems(current.toObject()), empty: isProfileEmpty(current), changePending: true });
-      }
-      if (!(change.status === 'verified' && !change.appliedAt)) {
-        return fail(res, 403, 'Your DAF is verified. To change it, re-upload it.', { needReupload: true });
-      }
+    if (!admin && saved) {
+      return fail(res, 403, verified ? 'Your DAF is verified. To change it, re-upload it.' : 'Your DAF details are saved. They change only if you upload your DAF again.', { needReupload: verified, saved: true });
     }
-    const extra = verified && before?.dafChange?.status === 'verified' && !before.dafChange.appliedAt ? { 'dafChange.appliedAt': new Date() } : {};
+    const extra = {};
     const p = await InterviewProfile.findOneAndUpdate(
       { user: req.userId },
       { $set: { ...fields, source: 'manual', detailsSavedAt: new Date(), ...extra }, $setOnInsert: { user: req.userId } },
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
+    if (!isProfileEmpty(p)) await clearUnread(req.userId);
     res.json({ profile: publicProfile(p), items: profileItems(p.toObject()), empty: isProfileEmpty(p) });
     // Have the tailored predictions ready by the time the student opens them (once the DAF is verified).
     warmPredictions(p, req).catch(() => {});
@@ -178,9 +171,12 @@ export const extractProfile = async (req, res) => {
 const DAF_DETAIL_FIELDS = ['homeState', 'homeDistrict', 'hometown', 'education', 'work', 'optional', 'hobbies', 'achievements', 'servicePreference', 'familyBackground', 'languages', 'otherNotes', 'source', 'predictionCache', 'predictionCaches'];
 export const deleteProfile = async (req, res) => {
   try {
-    // A verified DAF is changed by re-uploading (deleting and refilling it would be a free change).
+    // A DAF is given once: a sent or verified one changes only by uploading it again (deleting and refilling
+    // it would be a free edit, or a free change).
     const p = await InterviewProfile.findOne({ user: req.userId }).select('dafCheck').lean();
-    if (p?.dafCheck?.status === 'verified' && !(await isAdminRequest(req))) return fail(res, 403, 'Your DAF is verified. To change it, re-upload it.', { needReupload: true });
+    if (['pending', 'verified'].includes(p?.dafCheck?.status) && !(await isAdminRequest(req))) {
+      return fail(res, 403, p.dafCheck.status === 'verified' ? 'Your DAF is verified. To change it, re-upload it.' : 'Your DAF is with our team. It changes only if you upload it again.', { needReupload: p.dafCheck.status === 'verified' });
+    }
     await InterviewProfile.updateOne({ user: req.userId }, { $unset: Object.fromEntries(DAF_DETAIL_FIELDS.map((k) => [k, 1])) });
     res.json({ ok: true });
   } catch (err) {
