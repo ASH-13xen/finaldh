@@ -71,6 +71,9 @@ const interviewProfileSchema = new mongoose.Schema({
   },
   // When the DAF details were first saved: after verification, changing them is a paid re-upload.
   detailsSavedAt: { type: Date, default: null },
+  // The step-by-step tours of Abhivyakti's tabs this student has seen (finished or skipped): each opens by
+  // itself once per account, never again on a refresh or another device.
+  toursSeen: { type: [String], default: [] },
   // A change of DAF after verification (paid, re-uploaded, verified again). The current details and
   // predictions stay until an admin verifies the new DAF; then its fields replace them.
   dafChange: {

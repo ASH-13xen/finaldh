@@ -60,7 +60,7 @@ import {
   adminGenerateGuide,
   adminUpdateGuide
 } from '../controllers/interviewNotesController.js';
-import { getDafStatus, submitDaf, submitDafForm, readMyDaf, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminDeleteDaf, adminReadDaf, adminSaveDafFields, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
+import { getDafStatus, submitDaf, submitDafForm, readMyDaf, submitRollClaim, adminListDaf, adminGetDafFile, adminVerifyDaf, adminRejectDaf, adminDeleteDaf, adminReadDaf, adminSaveDafFields, getTours, markTourSeen, adminGetSchedule, adminUploadSchedule, adminScheduleRoll, getMyInterview } from '../controllers/interviewDafController.js';
 import { authenticateToken, optionalAuth } from '../middlewares/authMiddleware.js';
 import { mockInterviewEnabled } from '../lib/interview/features.js';
 import { requireAdmin } from '../middlewares/adminMiddleware.js';
@@ -123,6 +123,9 @@ router.post('/practice/attempts', authenticateToken, sectionAccess, savePractice
 router.get('/practice/attempts', authenticateToken, sectionAccess, listPracticeAttempts);
 // DAF verification: the student uploads their DAF; practice and AI unlock once an admin verifies it
 router.get('/daf/status', authenticateToken, sectionAccess, getDafStatus);
+// The step-by-step tours a student has seen (each opens by itself once per account)
+router.get('/tours', authenticateToken, sectionAccess, getTours);
+router.post('/tours/seen', authenticateToken, sectionAccess, markTourSeen);
 router.post('/daf/submit', authenticateToken, sectionAccess, dafUpload.single('file'), submitDaf);
 router.post('/daf/form', authenticateToken, sectionAccess, dafUpload.single('file'), submitDafForm);
 router.post('/daf/read', authenticateToken, sectionAccess, readMyDaf);

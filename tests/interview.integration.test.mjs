@@ -1332,6 +1332,17 @@ if (!URI) {
     assert.equal(st.changeNeedsPayment, true, 'from now on a change is paid for, like anyone');
   });
 
+  test('step-by-step tours: each opens once per account; seen is saved on the account', async () => {
+    assert.deepEqual((await api('GET', '/tours', 's2')).data.seen, []);
+    assert.equal((await api('POST', '/tours/seen', 's2', { tab: 'nope' })).status, 400, 'only known tabs');
+    assert.equal((await api('POST', '/tours/seen', 's2', { tab: 'predictions' })).status, 200);
+    assert.equal((await api('POST', '/tours/seen', 's2', { tab: 'predictions' })).status, 200, 'twice is fine');
+    assert.equal((await api('POST', '/tours/seen', 's2', { tab: 'home' })).status, 200);
+    assert.deepEqual((await api('GET', '/tours', 's2')).data.seen.sort(), ['home', 'predictions']);
+    assert.deepEqual((await api('GET', '/tours', 's1')).data.seen, [], 'each student has their own');
+    assert.equal((await fetch(`${base}/api/interview/tours`)).status, 401, 'signed-in students only');
+  });
+
   test('recording feedback: 2 credits up to 90 seconds, 3 up to 3 minutes, all or none', async () => {
     const { spendCredits, refundCredits, getBalance, feedbackCreditsFor } = await import('../lib/interview/credits.js');
     const { default: User } = await import('../models/User.js');

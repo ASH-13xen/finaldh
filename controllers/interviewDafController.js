@@ -19,6 +19,31 @@ const SUBMITS_PER_DAY = 6;
 
 // ------------------------------------------------------------------ students
 
+// The tabs that have a step-by-step tour.
+export const TOUR_TABS = ['home', 'daf', 'predictions', 'bank', 'practice', 'notes', 'insights', 'me'];
+
+// GET /tours: the tours this student has seen. POST /tours/seen { tab }: one more (finished or skipped).
+export const getTours = async (req, res) => {
+  try {
+    const p = await InterviewProfile.findOne({ user: req.userId }).select('toursSeen').lean();
+    res.json({ seen: (p?.toursSeen || []).filter((x) => TOUR_TABS.includes(x)) });
+  } catch (err) {
+    console.error('[interview] getTours error:', err);
+    fail(res, 500, 'Could not load the tours.');
+  }
+};
+export const markTourSeen = async (req, res) => {
+  const tab = String(req.body?.tab || '');
+  if (!TOUR_TABS.includes(tab)) return fail(res, 400, 'Unknown tour.');
+  try {
+    await InterviewProfile.updateOne({ user: req.userId }, { $addToSet: { toursSeen: tab }, $setOnInsert: { user: req.userId } }, { upsert: true });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[interview] markTourSeen error:', err);
+    fail(res, 500, 'Could not save that.');
+  }
+};
+
 export const getDafStatus = async (req, res) => {
   try {
     res.json({ daf: await getDafCheck(req.userId) });
