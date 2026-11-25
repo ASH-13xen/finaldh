@@ -977,6 +977,25 @@ if (!URI) {
     assert.equal(now.homeState, 'Haryana');
     assert.equal(now.rollNo, '0811049', 'the roll number is still the one the admin checked');
     assert.equal((await api('GET', '/daf/status', 's3')).data.daf.changeNeedsPayment, true, 'the next change is paid for again');
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.change.toCheck, false, 'details they saved themselves need no check');
+
+    // A change verified BEFORE the student saved the details they were checking (they left the page, or our
+    // team was quick): what was read from the new DAF replaces the old details, and they may check them once.
+    await grantDafUpload(s3._id);
+    assert.equal((await upload(Buffer.from('%PDF-1.4 newest DAF'))).status, 200);
+    const newest = await DafSubmission.findOne({ user: s3._id, kind: 'change', status: 'pending' });
+    // what AI read from it (AI is off in these tests)
+    await DafSubmission.updateOne({ _id: newest._id }, { $set: { fields: { homeState: 'Haryana', homeDistrict: 'Panipat', hobbies: ['Stand-up comedy'], achievements: ['NSS lead volunteer', 'Social Innovation Award'], rollNo: '0999999' } } });
+    assert.equal((await api('POST', `/admin/daf/${newest._id}/verify`, 'admin', { rollNo: '0811049' })).status, 200);
+    const filled = (await api('GET', '/profile', 's3')).data.profile;
+    assert.deepEqual(filled.achievements, ['NSS lead volunteer', 'Social Innovation Award'], 'the new DAF is applied, not left waiting');
+    assert.equal(filled.homeDistrict, 'Panipat');
+    assert.equal(filled.rollNo, '0811049', 'never a roll number read from the file');
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.change.toCheck, true, 'they are asked to check them');
+    assert.equal((await api('PUT', '/profile', 's3', { ...filled, achievements: [...filled.achievements, 'Runner-up, design challenge'] })).status, 200, 'one free check');
+    assert.equal((await api('GET', '/profile', 's3')).data.profile.achievements.length, 3);
+    assert.equal((await api('GET', '/daf/status', 's3')).data.daf.change.toCheck, false);
+    assert.equal((await api('PUT', '/profile', 's3', { hobbies: ['Kabaddi'] })).status, 403, 'and only one');
   });
 
   test('UPSC interview schedule: admins see the match for each upload; students see only their own row, once verified', async () => {

@@ -80,7 +80,10 @@ const interviewProfileSchema = new mongoose.Schema({
     reviewedAt: { type: Date, default: null },
     reason: { type: String, default: '' },
     fields: { type: mongoose.Schema.Types.Mixed, default: null },
-    appliedAt: { type: Date, default: null }
+    appliedAt: { type: Date, default: null },
+    // Verified before the student saved the details they checked: the details were filled in from what was
+    // read from the new DAF, and the student may check them once, free (appliedAt is set when they save).
+    filledAt: { type: Date, default: null }
   },
   // DAF uploads: one per account, plus one more each time an admin rejects the DAF (no defaults, so
   // students who uploaded before this existed are counted from dafCheck - see lib/interview/dafCheck.js).

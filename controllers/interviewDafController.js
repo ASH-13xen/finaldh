@@ -325,12 +325,17 @@ const decide = (status) => async (req, res) => {
     // The file stays, so admins can look at it again later (or delete the entry).
     await DafSubmission.updateOne({ _id: s._id }, { $set: { status, reason, reviewedBy: req.adminUser?.email || '', reviewedAt: now, ...(status === 'verified' ? { rollNo: roll } : {}) } });
     if (s.kind === 'change') {
-      // A change: verified -> the new details replace the current ones (if the student has saved them;
-      // otherwise when they do). Rejected -> the current DAF stays and they may upload once more.
+      // A change: verified -> the new details replace the current ones. Those the student checked and saved,
+      // or - if they haven't saved them yet - what was read from the new DAF, which they may then check once,
+      // free. (Verifying used to apply nothing in that case, leaving a student who paid with the old DAF.)
+      // Rejected -> the current DAF stays and they may upload once more.
       const p = await InterviewProfile.findOne({ user: s.user }).select('dafChange').lean();
-      const fields = p?.dafChange?.fields;
+      const checked = p?.dafChange?.fields;
+      const read = !checked && s.fields && !isProfileEmpty(s.fields) ? cleanProfileInput(s.fields) : null;
+      if (read) delete read.rollNo; // the roll number is only ever the one the admin checked
       const $set = { 'dafChange.status': status, 'dafChange.reason': reason, 'dafChange.reviewedAt': now };
-      if (status === 'verified' && fields) Object.assign($set, fields, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
+      if (status === 'verified' && checked) Object.assign($set, checked, { 'dafChange.appliedAt': now, 'dafChange.fields': null, detailsSavedAt: now });
+      else if (status === 'verified' && read) Object.assign($set, read, { 'dafChange.filledAt': now, detailsSavedAt: now });
       if (status === 'verified') Object.assign($set, checkedRoll);
       await InterviewProfile.updateOne({ user: s.user }, { $set });
     } else if (s.kind === 'roll') {
