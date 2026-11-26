@@ -6,14 +6,16 @@ import { TdhSet, TdhQuestion } from '../models/TdhResearch.js';
 // question whose practice MCQs were edited or approved by the admin unless `redo` is asked for,
 // and even then admin-made ones are kept.
 
-export const PER_QUESTION = 2;
-const BATCH = 4;
+export const PER_QUESTION = 1;
+const BATCH = 6;
 
 const SYSTEM = `You write practice MCQs for Indian UPSC Civil Services Prelims aspirants.
 For each item you get one previous-year question (PYQ) and the "TDH Research" study notes written around it.
-Write exactly ${PER_QUESTION} new MCQs per item, based ONLY on facts stated in that item's notes:
-- one "Factual" MCQ (tests a specific fact, number, institution or definition from the notes), and
-- one "Conceptual" MCQ (tests understanding: why/how, cause-effect, or telling two related ideas apart).
+Write exactly ONE new MCQ per item, based ONLY on facts stated in that item's notes. Pick the single most
+exam-worthy point in the notes and test it as either:
+- "Factual" (a specific fact, number, institution or definition from the notes), or
+- "Conceptual" (understanding: why/how, cause-effect, or telling two related ideas apart).
+Prefer Conceptual when the notes explain a mechanism; prefer Factual when they centre on a key number or body.
 UPSC style: either a direct question with 4 options, or "Consider the following statements:" with 2-3 numbered
 statements in "statements" and options like "1 only", "2 and 3 only". Do not repeat the PYQ itself.
 Exactly one option must be correct according to the notes; wrong options must be plausible, not silly.
@@ -57,7 +59,7 @@ export const practiceBatch = async (questions) => {
   const out = await runJsonExtraction({
     system: SYSTEM,
     prompt: questions.map(itemText).join('\n\n---\n\n'),
-    maxOutputTokens: 1400 * questions.length,
+    maxOutputTokens: 800 * questions.length,
     maxRetries: 3,
   });
   const results = Array.isArray(out?.results) ? out.results : [];
