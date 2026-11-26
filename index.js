@@ -19,6 +19,7 @@ import progressRoutes from './routes/progressRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import interviewRoutes from './routes/interviewRoutes.js';
+import tdhRoutes from './routes/tdhRoutes.js';
 
 dotenv.config();
 
@@ -102,6 +103,7 @@ app.use('/api/mcq', mcqRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/interview', interviewRoutes);
+app.use('/api/tdh', tdhRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
